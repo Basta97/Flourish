@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
+import 'package:flourish/core/finance/financial_ledger_service.dart';
+import 'package:flourish/core/finance/recurring_service.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/core/services/transaction_notification_parser.dart';
 
@@ -76,7 +78,7 @@ void main() {
       ),
     );
 
-    await db.insertTransactionAndUpdateBalance(
+    await FinancialLedgerService(db).insertTransactionAndUpdateBalance(
       TransactionsCompanion.insert(
         accountId: accountId,
         categoryId: categoryId,
@@ -89,7 +91,9 @@ void main() {
     final savedTransaction = (await db.getAllTransactions()).single;
     expect((await db.getAccountById(accountId))!.balance, 875);
 
-    await db.deleteTransactionAndUpdateBalance(savedTransaction.id);
+    await FinancialLedgerService(
+      db,
+    ).deleteTransactionAndUpdateBalance(savedTransaction.id);
     expect((await db.getAccountById(accountId))!.balance, 1000);
   });
 
@@ -116,7 +120,7 @@ void main() {
       ),
     );
 
-    await db.insertTransactionAndUpdateBalance(
+    await FinancialLedgerService(db).insertTransactionAndUpdateBalance(
       TransactionsCompanion.insert(
         accountId: accountId,
         categoryId: categoryId,
@@ -172,7 +176,7 @@ void main() {
         ),
       );
 
-      await db.insertTransactionAndUpdateBalance(
+      await FinancialLedgerService(db).insertTransactionAndUpdateBalance(
         TransactionsCompanion.insert(
           accountId: cashAccountId,
           categoryId: expenseCategoryId,
@@ -183,7 +187,7 @@ void main() {
       );
 
       final existing = (await db.getAllTransactions()).single;
-      await db.updateTransactionAndUpdateBalance(
+      await FinancialLedgerService(db).updateTransactionAndUpdateBalance(
         existing.copyWith(
           accountId: savingsAccountId,
           categoryId: incomeCategoryId,
@@ -223,7 +227,7 @@ void main() {
         ),
       );
 
-      await db.transferBetweenAccounts(
+      await FinancialLedgerService(db).transferBetweenAccounts(
         fromAccountId: fromAccountId,
         toAccountId: toAccountId,
         amount: 80,
@@ -274,7 +278,7 @@ void main() {
         ),
       );
 
-      await db.transferBetweenAccounts(
+      await FinancialLedgerService(db).transferBetweenAccounts(
         fromAccountId: fromAccountId,
         toAccountId: toAccountId,
         amount: 80,
@@ -282,7 +286,9 @@ void main() {
       );
 
       final transferSide = (await db.getAllTransactions()).first;
-      await db.deleteTransactionAndUpdateBalance(transferSide.id);
+      await FinancialLedgerService(
+        db,
+      ).deleteTransactionAndUpdateBalance(transferSide.id);
 
       expect(await db.getAllTransactions(), isEmpty);
       expect((await db.getAccountById(fromAccountId))!.balance, 300);
@@ -326,7 +332,9 @@ void main() {
         ),
       );
 
-      await db.processDueRecurringTransactions(now: DateTime(2026, 1, 31));
+      await RecurringService(
+        FinancialLedgerService(db),
+      ).processDue(now: DateTime(2026, 1, 31));
 
       final transactions = await db.getAllTransactions();
       final recurring = await db.getActiveRecurringTransactions();

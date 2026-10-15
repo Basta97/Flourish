@@ -95,7 +95,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -1034,7 +1034,7 @@ class $TransactionsTable extends Transactions
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -1564,7 +1564,7 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -2012,7 +2012,7 @@ class $RecurringTransactionsTable extends RecurringTransactions
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -2598,7 +2598,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [

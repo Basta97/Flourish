@@ -1,5 +1,4 @@
 import 'package:flourish/presentation/providers/finance_providers.dart';
-import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -10,6 +9,7 @@ import 'package:flourish/core/theme/app_spacing.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flourish/core/utils/date_formatter.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
@@ -301,35 +301,29 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
   Future<void> _delete() async {
     final messenger = ScaffoldMessenger.of(context);
     final ledger = ref.read(financialLedgerProvider);
-    final db = ref.read(databaseProvider);
     final id = widget.transaction.id;
 
     // Collapse first so the row folds away, then remove the record.
     if (!Motion.reduced(context)) await _collapse.reverse();
     try {
-      final deletedTx = await db.getTransactionById(id);
-      await ledger.deleteTransactionAndUpdateBalance(id);
+      final deleted = await ledger.deleteWithUndo(id);
       ref.invalidate(transactionsProvider);
       ref.invalidate(accountsProvider);
       messenger.showSnackBar(
         SnackBar(
           content: const Text('Transaction deleted'),
-          action: deletedTx?.linkedTransactionId != null
+          action: deleted == null
               ? null
               : SnackBarAction(
                   label: 'Undo',
                   onPressed: () async {
-                    if (deletedTx == null) return;
-                    await ledger.insertTransactionAndUpdateBalance(
-                      TransactionsCompanion.insert(
-                        accountId: deletedTx.accountId,
-                        categoryId: deletedTx.categoryId,
-                        amount: deletedTx.amount,
-                        type: deletedTx.type,
-                        note: Value(deletedTx.note),
-                        transactionDate: deletedTx.transactionDate,
-                      ),
-                    );
+                    try {
+                      await ledger.restore(deleted);
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(describeError(e))),
+                      );
+                    }
                     ref.invalidate(transactionsProvider);
                     ref.invalidate(accountsProvider);
                   },
@@ -338,7 +332,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
       );
     } catch (e) {
       if (mounted) _collapse.forward();
-      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+      messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
     }
   }
 }

@@ -251,7 +251,7 @@ class ContractService {
         }
         for (final tx in ids) {
           if (await ledger.db.getTransactionById(tx) != null) {
-            await ledger.db.deleteTransactionAndUpdateBalance(tx);
+            await ledger.removeOwnedEntry(tx);
           }
         }
         if (data['cancelledPayments'] is List) {

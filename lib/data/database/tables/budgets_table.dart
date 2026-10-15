@@ -8,7 +8,10 @@ class Budgets extends Table {
   RealColumn get amount => real()();
   TextColumn get period => text()();
   DateTimeColumn get startDate => dateTime()();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  // Filled in by the app on every insert. Databases upgraded through the v5
+  // rebuild carry a TEXT `CURRENT_TIMESTAMP` column default, which Drift cannot
+  // read back as a date, so the SQL default must never be relied on.
+  DateTimeColumn get createdAt => dateTime().clientDefault(DateTime.now)();
 
   @override
   List<String> get customConstraints => [

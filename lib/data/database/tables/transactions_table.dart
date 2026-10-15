@@ -13,7 +13,10 @@ class Transactions extends Table {
   TextColumn get note => text().nullable()();
   DateTimeColumn get transactionDate => dateTime()();
   IntColumn get linkedTransactionId => integer().nullable()();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  // Filled in by the app on every insert. Databases upgraded through the v5
+  // rebuild carry a TEXT `CURRENT_TIMESTAMP` column default, which Drift cannot
+  // read back as a date, so the SQL default must never be relied on.
+  DateTimeColumn get createdAt => dateTime().clientDefault(DateTime.now)();
 
   @override
   List<String> get customConstraints => [

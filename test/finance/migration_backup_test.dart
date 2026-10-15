@@ -74,7 +74,7 @@ void main() {
           icon: 'wallet',
         ),
       );
-      await legacy.transferBetweenAccounts(
+      await FinancialLedgerService(legacy).transferBetweenAccounts(
         fromAccountId: id,
         toAccountId: other,
         amount: 100,

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'core/finance/financial_ledger_service.dart';
+import 'core/finance/recurring_service.dart';
 import 'core/services/preferences_service.dart';
 import 'data/database/database.dart';
 import 'presentation/providers/database_provider.dart';
@@ -25,7 +27,7 @@ Future<void> main() async {
   final db = AppDatabase();
 
   try {
-    await db.processDueRecurringTransactions();
+    await RecurringService(FinancialLedgerService(db)).processDue();
   } catch (e, st) {
     // Log but don't block app launch if recurring processing fails.
     // A background/resume check will retry later.

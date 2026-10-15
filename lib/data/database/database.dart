@@ -1,4 +1,3 @@
-import '../../core/finance/valuation_service.dart';
 import 'dart:io';
 import 'dart:async';
 import '../finance/finance_store.dart';
@@ -67,6 +66,7 @@ class AppDatabase extends _$AppDatabase {
     return MigrationStrategy(
       onCreate: (m) async {
         await m.createAll();
+        await _ensureIndexes();
         await _seedDefaults();
         await FinanceStore.create(this);
       },
@@ -102,12 +102,86 @@ class AppDatabase extends _$AppDatabase {
           await _migrateToV5();
         }
         if (from < 6) await FinanceStore.create(this);
+        await _ensureIndexes();
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
         await customStatement('PRAGMA journal_mode = WAL');
+        if (!details.wasCreated) await repairLegacyData();
       },
     );
+  }
+
+  Future<void> _ensureIndexes() async {
+    for (final statement in const [
+      'CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON transactions(account_id)',
+      'CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id)',
+      'CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date)',
+      'CREATE INDEX IF NOT EXISTS idx_transactions_type_date ON transactions(type, transaction_date)',
+      'CREATE INDEX IF NOT EXISTS idx_transactions_linked ON transactions(linked_transaction_id)',
+      'CREATE INDEX IF NOT EXISTS idx_budgets_category_id ON budgets(category_id)',
+      'CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type)',
+    ]) {
+      await customStatement(statement);
+    }
+  }
+
+  /// Repairs rows written while an upgraded database still used the v5
+  /// rebuild's column defaults. Safe to run repeatedly.
+  ///
+  /// * `created_at` received SQLite's TEXT `CURRENT_TIMESTAMP`, which Drift
+  ///   cannot read back as a unix timestamp, so whole tables failed to load.
+  /// * `category_id` was nullable there, so deleting a category could leave
+  ///   rows that crash every read.
+  Future<void> repairLegacyData() async {
+    for (final table in const [
+      'accounts',
+      'transactions',
+      'recurring_transactions',
+      'budgets',
+      'goals',
+    ]) {
+      await customStatement(
+        "UPDATE $table SET created_at = COALESCE(CAST(strftime('%s', created_at) AS INTEGER), CAST(strftime('%s', 'now') AS INTEGER)) WHERE typeof(created_at) = 'text'",
+      );
+    }
+    for (final table in const ['transactions', 'recurring_transactions']) {
+      final orphans = await customSelect(
+        'SELECT DISTINCT type FROM $table WHERE category_id IS NULL',
+      ).get();
+      for (final row in orphans) {
+        final type = row.read<String>('type') == 'income'
+            ? 'income'
+            : 'expense';
+        final fallback = await fallbackCategoryFor(type);
+        await customStatement(
+          'UPDATE $table SET category_id = ? WHERE category_id IS NULL AND type = ?',
+          [fallback.id, row.read<String>('type')],
+        );
+      }
+    }
+  }
+
+  /// The catch-all category for [type], created when the user removed it.
+  Future<Category> fallbackCategoryFor(String type) async {
+    final name = type == 'income' ? 'Other income' : 'Other';
+    final existing =
+        await (select(categories)
+              ..where((c) => c.type.equals(type) & c.name.equals(name))
+              ..limit(1))
+            .getSingleOrNull();
+    if (existing != null) return existing;
+    final id = await into(categories).insert(
+      CategoriesCompanion.insert(
+        name: name,
+        icon: 'more_horiz',
+        color: 0xFF6B7280,
+        type: type,
+        isDefault: const Value(true),
+        sortOrder: const Value(999),
+      ),
+    );
+    return (await getCategoryById(id))!;
   }
 
   Future<void> _migrateToV5() async {
@@ -391,10 +465,17 @@ class AppDatabase extends _$AppDatabase {
     return id;
   });
 
-  Future<bool> updateAccount(Account entry) async {
-    final result = await update(accounts).replace(entry);
+  /// Updates presentation fields only. Balances change exclusively through
+  /// [FinancialLedgerService], which keeps `exact_balances` in step.
+  Future<void> updateAccount(Account entry) async {
+    await (update(accounts)..where((a) => a.id.equals(entry.id))).write(
+      AccountsCompanion(
+        name: Value(entry.name),
+        color: Value(entry.color),
+        icon: Value(entry.icon),
+      ),
+    );
     notifyFinanceChanged();
-    return result;
   }
 
   Future<int> deleteAccount(int id) => transaction(() async {
@@ -406,21 +487,21 @@ class AppDatabase extends _$AppDatabase {
         'This account is linked to a contract. Archive it instead.',
       );
     }
+    final history =
+        await (select(transactions)
+              ..where((t) => t.accountId.equals(id))
+              ..limit(1))
+            .get();
+    if (history.isNotEmpty) {
+      throw const TransactionLogicException(
+        'This account has financial history. Archive it through Manage account instead.',
+      );
+    }
     final result = await (delete(accounts)..where((a) => a.id.equals(id))).go();
     await FinanceStore(this).remove('accountDetails', '$id');
     notifyFinanceChanged();
     return result;
   });
-
-  Future<double> getNetWorth({String currency = 'EGP'}) async {
-    final wealth = await ValuationService(FinanceStore(this)).summary(currency);
-    if (!wealth.complete) {
-      throw StateError(
-        'Cannot total holdings without all required prices and exchange rates',
-      );
-    }
-    return wealth.netWorth.toDouble();
-  }
 
   // ========== Transactions ==========
 
@@ -467,6 +548,8 @@ class AppDatabase extends _$AppDatabase {
   Future<Transaction?> getTransactionById(int id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  // Row primitives: callers outside FinancialLedgerService must not use these,
+  // because they do not adjust balances (see test/architecture_test.dart).
   Future<int> insertTransaction(TransactionsCompanion entry) =>
       into(transactions).insert(entry);
 
@@ -493,179 +576,6 @@ class AppDatabase extends _$AppDatabase {
             ]))
           .watch();
 
-  Future<double> sumTransactionsByType(
-    String type,
-    DateTime start,
-    DateTime end,
-  ) async {
-    final rows =
-        await (select(transactions)..where(
-              (t) =>
-                  t.type.equals(type) &
-                  t.transactionDate.isBetween(Variable(start), Variable(end)),
-            ))
-            .get();
-    return rows.fold<double>(0, (s, t) => s + t.amount);
-  }
-
-  Future<void> insertTransactionAndUpdateBalance(
-    TransactionsCompanion entry,
-  ) async {
-    await transaction(() async {
-      final accountId = entry.accountId.value;
-      final amount = entry.amount.value;
-      final type = entry.type.value;
-      final categoryId = entry.categoryId.value;
-
-      _requirePositiveAmount(amount);
-      final account = await _requireAccount(accountId);
-      await _requireCategoryForType(categoryId, type);
-
-      await into(transactions).insert(entry);
-      await _applyTransactionImpact(
-        account: account,
-        type: type,
-        amount: amount,
-      );
-    });
-  }
-
-  Future<void> deleteTransactionAndUpdateBalance(int transactionId) async {
-    await transaction(() async {
-      final tx = await getTransactionById(transactionId);
-      if (tx == null) return;
-
-      final metadata = await FinanceStore(this).transactionDetails(tx.id);
-      final feeId = metadata?['feeId'] as int?;
-      if (feeId != null) {
-        final fee = await getTransactionById(feeId);
-        if (fee != null) await _deleteSingleTransactionAndRevert(fee);
-      }
-      final linkedTx = tx.linkedTransactionId == null
-          ? null
-          : await getTransactionById(tx.linkedTransactionId!);
-
-      await _deleteSingleTransactionAndRevert(tx);
-      if (linkedTx != null) {
-        await _deleteSingleTransactionAndRevert(linkedTx);
-      }
-    });
-  }
-
-  Future<void> _deleteSingleTransactionAndRevert(Transaction tx) async {
-    final details = await FinanceStore(this).transactionDetails(tx.id);
-    final account = await getAccountById(tx.accountId);
-    if (account != null) {
-      final amount = details?['amount'] == null
-          ? Amount.fromNum(tx.amount)
-          : Amount(details!['amount'].toString());
-      final sign = (tx.type == 'income') != (account.type == 'credit')
-          ? Amount.one
-          : -Amount.one;
-      await FinanceStore(this).changeBalance(account.id, -(amount * sign));
-    }
-    await deleteTransaction(tx.id);
-  }
-
-  Future<void> updateTransactionAndUpdateBalance(Transaction updated) async {
-    await transaction(() async {
-      final existing = await getTransactionById(updated.id);
-      if (existing == null) return;
-      if (existing.linkedTransactionId != null) {
-        throw const TransactionLogicException(
-          'Edit this transfer using the transfer form.',
-        );
-      }
-      _requirePositiveAmount(updated.amount);
-
-      await _requireAccount(updated.accountId);
-      await _requireCategoryForType(updated.categoryId, updated.type);
-
-      final oldAccount = await getAccountById(existing.accountId);
-      if (oldAccount != null) {
-        await _revertTransactionImpact(
-          account: oldAccount,
-          type: existing.type,
-          amount: existing.amount,
-        );
-      }
-
-      await updateTransaction(updated);
-      await _applyTransactionImpact(
-        account: await _requireAccount(updated.accountId),
-        type: updated.type,
-        amount: updated.amount,
-      );
-    });
-  }
-
-  Future<void> transferBetweenAccounts({
-    required int fromAccountId,
-    required int toAccountId,
-    required double amount,
-    String? note,
-    DateTime? date,
-  }) async {
-    await transaction(() async {
-      _requirePositiveAmount(amount);
-      if (fromAccountId == toAccountId) {
-        throw const TransactionLogicException(
-          'Choose two different accounts for a transfer.',
-        );
-      }
-
-      final fromAccount = await _requireAccount(fromAccountId);
-      final toAccount = await _requireAccount(toAccountId);
-      final expenseCategory = await _ensureTransferCategory(type: 'expense');
-      final incomeCategory = await _ensureTransferCategory(type: 'income');
-      final txDate = date ?? DateTime.now();
-      final transferNote = _transferNote(
-        note,
-        fromAccount.name,
-        toAccount.name,
-      );
-
-      final fromTxId = await into(transactions).insert(
-        TransactionsCompanion.insert(
-          accountId: fromAccountId,
-          categoryId: expenseCategory.id,
-          amount: amount,
-          type: 'expense',
-          note: Value(transferNote),
-          transactionDate: txDate,
-        ),
-      );
-
-      final toTxId = await into(transactions).insert(
-        TransactionsCompanion.insert(
-          accountId: toAccountId,
-          categoryId: incomeCategory.id,
-          amount: amount,
-          type: 'income',
-          note: Value(transferNote),
-          transactionDate: txDate,
-          linkedTransactionId: Value(fromTxId),
-        ),
-      );
-
-      // Link the two transactions bidirectionally
-      await (update(transactions)..where((t) => t.id.equals(fromTxId))).write(
-        TransactionsCompanion(linkedTransactionId: Value(toTxId)),
-      );
-
-      await _applyTransactionImpact(
-        account: fromAccount,
-        type: 'expense',
-        amount: amount,
-      );
-      await _applyTransactionImpact(
-        account: toAccount,
-        type: 'income',
-        amount: amount,
-      );
-    });
-  }
-
   Future<List<Transaction>> searchTransactions(String query) async {
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) return const [];
@@ -686,22 +596,11 @@ class AppDatabase extends _$AppDatabase {
       LIMIT 50
       ''',
       variables: [Variable<String>(q)],
+      readsFrom: {transactions, accounts, categories},
     ).get();
 
-    return rows.map((row) => _transactionFromRow(row)).toList();
+    return Future.wait(rows.map((row) => transactions.mapFromRow(row)));
   }
-
-  Transaction _transactionFromRow(QueryRow row) => Transaction(
-    id: row.read<int>('id'),
-    accountId: row.read<int>('account_id'),
-    categoryId: row.read<int>('category_id'),
-    amount: row.read<double>('amount'),
-    type: row.read<String>('type'),
-    note: row.readNullable<String>('note'),
-    transactionDate: row.read<DateTime>('transaction_date'),
-    linkedTransactionId: row.readNullable<int>('linked_transaction_id'),
-    createdAt: row.read<DateTime>('created_at'),
-  );
 
   // ========== Categories ==========
 
@@ -839,67 +738,6 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteRecurringTransaction(int id) =>
       (delete(recurringTransactions)..where((r) => r.id.equals(id))).go();
 
-  Future<void> processDueRecurringTransactions({DateTime? now}) async {
-    final until = now ?? DateTime.now();
-    await transaction(() async {
-      final due = await getDueRecurringTransactions(until);
-      for (final original in due) {
-        var r = original;
-        if (!['daily', 'weekly', 'monthly', 'yearly'].contains(r.frequency)) {
-          throw const TransactionLogicException(
-            'Unsupported recurring frequency.',
-          );
-        }
-        // Re-read inside the serialized transaction to prevent concurrent duplicates.
-        final current = await (select(
-          recurringTransactions,
-        )..where((t) => t.id.equals(r.id))).getSingle();
-        r = current;
-        final store = FinanceStore(this);
-        final anchorData = await store.get('recurringAnchors', '${r.id}');
-        final anchor = anchorData == null
-            ? r.nextDate
-            : DateTime.parse(anchorData['date'] as String);
-        if (anchorData == null) {
-          await store.put('recurringAnchors', '${r.id}', {
-            'date': anchor.toIso8601String(),
-          });
-        }
-        while (r.isActive && !r.nextDate.isAfter(until)) {
-          await insertTransactionAndUpdateBalance(
-            TransactionsCompanion.insert(
-              accountId: r.accountId,
-              categoryId: r.categoryId,
-              amount: r.amount,
-              type: r.type,
-              note: Value(r.note ?? 'Recurring: ${r.frequency}'),
-              transactionDate: r.nextDate,
-            ),
-          );
-          var next = nextRecurringDate(
-            current: r.nextDate,
-            frequency: r.frequency,
-          );
-          if (r.frequency == 'monthly' || r.frequency == 'yearly') {
-            final last = DateTime(next.year, next.month + 1, 0).day;
-            next = DateTime(
-              next.year,
-              next.month,
-              anchor.day > last ? last : anchor.day,
-              anchor.hour,
-              anchor.minute,
-            );
-          }
-          if (!next.isAfter(r.nextDate)) {
-            throw StateError('Recurring date did not advance');
-          }
-          r = r.copyWith(nextDate: next);
-          await updateRecurringTransaction(r);
-        }
-      }
-    });
-  }
-
   // ========== Goals ==========
 
   Stream<List<Goal>> watchAllGoals() => (select(
@@ -916,28 +754,30 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteGoal(int id) =>
       (delete(goals)..where((g) => g.id.equals(id))).go();
 
-  Future<void> contributeToGoal(int goalId, double amount) async {
-    final goal = await getGoalById(goalId);
-    if (goal != null) {
-      if (!amount.isFinite || amount <= 0) {
-        throw const TransactionLogicException('Enter a positive allocation');
-      }
-      final account = await _requireAccount(goal.accountId);
-      final allocated =
-          (await (select(
-                goals,
-              )..where((g) => g.accountId.equals(goal.accountId))).get())
-              .fold<double>(0, (s, g) => s + g.currentAmount);
-      if (account.type == 'credit' || allocated + amount > account.balance) {
-        throw const TransactionLogicException(
-          'Allocations cannot exceed available account cash',
+  Future<void> contributeToGoal(int goalId, double amount) => transaction(
+    () async {
+      final goal = await getGoalById(goalId);
+      if (goal != null) {
+        if (!amount.isFinite || amount <= 0) {
+          throw const TransactionLogicException('Enter a positive allocation');
+        }
+        final account = await _requireAccount(goal.accountId);
+        final allocated =
+            (await (select(
+                  goals,
+                )..where((g) => g.accountId.equals(goal.accountId))).get())
+                .fold<double>(0, (s, g) => s + g.currentAmount);
+        if (account.type == 'credit' || allocated + amount > account.balance) {
+          throw const TransactionLogicException(
+            'Allocations cannot exceed available account cash',
+          );
+        }
+        await updateGoal(
+          goal.copyWith(currentAmount: goal.currentAmount + amount),
         );
       }
-      await updateGoal(
-        goal.copyWith(currentAmount: goal.currentAmount + amount),
-      );
-    }
-  }
+    },
+  );
 
   Future<Account> _requireAccount(int id) async {
     final account = await getAccountById(id);
@@ -948,93 +788,6 @@ class AppDatabase extends _$AppDatabase {
     }
     return account;
   }
-
-  Future<Category> _requireCategoryForType(int id, String type) async {
-    final category = await getCategoryById(id);
-    if (category == null) {
-      throw const TransactionLogicException(
-        'The selected category no longer exists.',
-      );
-    }
-    if (category.type != type) {
-      throw TransactionLogicException(
-        'The selected category does not match a $type transaction.',
-      );
-    }
-    return category;
-  }
-
-  void _requirePositiveAmount(double amount) {
-    if (!amount.isFinite || amount <= 0) {
-      throw const TransactionLogicException(
-        'Transaction amount must be greater than zero.',
-      );
-    }
-  }
-
-  Future<void> _applyTransactionImpact({
-    required Account account,
-    required String type,
-    required double amount,
-  }) async {
-    final delta = _balanceDeltaForTransaction(
-      accountType: account.type,
-      transactionType: type,
-      amount: amount,
-    );
-    await FinanceStore(this).changeBalance(account.id, Amount.fromNum(delta));
-  }
-
-  Future<void> _revertTransactionImpact({
-    required Account account,
-    required String type,
-    required double amount,
-  }) async {
-    final delta = _balanceDeltaForTransaction(
-      accountType: account.type,
-      transactionType: type,
-      amount: amount,
-    );
-    await FinanceStore(this).changeBalance(account.id, -Amount.fromNum(delta));
-  }
-
-  Future<Category> _ensureTransferCategory({required String type}) async {
-    final targetName = type == 'income' ? 'Transfer In' : 'Transfer Out';
-    final existing =
-        await (select(categories)
-              ..where((c) => c.type.equals(type) & c.name.equals(targetName)))
-            .getSingleOrNull();
-    if (existing != null) return existing;
-
-    final maxSortOrder = categories.sortOrder.max();
-    final maxValue = await (selectOnly(categories)..addColumns([maxSortOrder]))
-        .map((row) => row.read(maxSortOrder))
-        .getSingleOrNull();
-
-    final id = await into(categories).insert(
-      CategoriesCompanion.insert(
-        name: targetName,
-        icon: type == 'income' ? 'south_west' : 'north_east',
-        color: type == 'income' ? 0xFF0EA5E9 : 0xFF8B5CF6,
-        type: type,
-        sortOrder: Value((maxValue ?? 0) + 1),
-      ),
-    );
-
-    return (await getCategoryById(id))!;
-  }
-
-  String _transferNote(
-    String? note,
-    String fromAccountName,
-    String toAccountName,
-  ) {
-    final trimmed = note?.trim();
-    if (trimmed != null && trimmed.isNotEmpty) {
-      return trimmed;
-    }
-    return 'Transfer: $fromAccountName -> $toAccountName';
-  }
 }
 
 class TransactionLogicException implements Exception {
@@ -1044,18 +797,6 @@ class TransactionLogicException implements Exception {
 
   @override
   String toString() => message;
-}
-
-double _balanceDeltaForTransaction({
-  required String accountType,
-  required String transactionType,
-  required double amount,
-}) {
-  final isCredit = accountType == 'credit';
-  if (transactionType == 'income') {
-    return isCredit ? -amount : amount;
-  }
-  return isCredit ? amount : -amount;
 }
 
 DateTime _shiftMonthClamped(DateTime value, int monthDelta) {

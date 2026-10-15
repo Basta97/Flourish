@@ -73,7 +73,7 @@ can't receive contributions; "Reset all data" is not transactional.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1A | One write path for money, recurring/undo/auto-income, legacy DB repair | planned |
+| 1A | One write path for money, recurring/undo/auto-income, legacy DB repair | done |
 | 1B | Amount parsing, currency guards and defaults, credit wording | planned |
 | 1C | Transfer classification, system categories, FX freshness, dead code | planned |
 | 2A–2D | Payment instruments, foreign-currency purchases, card terms, reports | planned |

@@ -22,6 +22,7 @@ class FinancialLedgerService {
     String? note,
     DateTime? date,
     String kind = 'cash',
+    Json? extra,
   }) => db.transaction(() async {
     positive(amount);
     if (!['income', 'expense'].contains(type)) {
@@ -39,7 +40,9 @@ class FinancialLedgerService {
           type,
           kind == 'fee'
               ? 'Investment fees'
-              : ['asset', 'principal', 'transfer'].contains(kind)
+              : kind == 'transfer'
+              ? (type == 'income' ? 'Transfer In' : 'Transfer Out')
+              : ['asset', 'principal'].contains(kind)
               ? 'Transfer $kind'
               : 'Other',
         );
@@ -63,6 +66,12 @@ class FinancialLedgerService {
         : -Amount.one;
     await store.changeBalance(accountId, amount * sign);
     await _snapshot(id, amount, account.currency, occurred, kind);
+    if (extra != null && extra.isNotEmpty) {
+      await store.setTransactionDetails(id, {
+        ...(await store.transactionDetails(id))!,
+        ...extra,
+      });
+    }
     return id;
   });
 
@@ -195,9 +204,28 @@ class FinancialLedgerService {
           );
         }
       });
-  Future<void> deleteTransactionAndUpdateBalance(
-    int id,
-  ) => db.transaction(() async {
+  Future<void> deleteTransactionAndUpdateBalance(int id) =>
+      db.transaction(() async {
+        await _guardUserDelete(id);
+        await _removeEntry(id);
+      });
+
+  /// Deletes [id] (with its linked leg and fee) and returns everything needed
+  /// to put it back exactly as it was through [restore].
+  Future<DeletedEntry?> deleteWithUndo(int id) => db.transaction(() async {
+    if (await db.getTransactionById(id) == null) return null;
+    await _guardUserDelete(id);
+    final entry = await _capture(id);
+    await _removeEntry(id);
+    return entry;
+  });
+
+  /// Removes a ledger entry owned by a contract or holding operation, skipping
+  /// the user-facing guards that point people at that operation.
+  Future<void> removeOwnedEntry(int id) =>
+      db.transaction(() => _removeEntry(id));
+
+  Future<void> _guardUserDelete(int id) async {
     final details = await store.transactionDetails(id);
     if (details?['holdingFeeFor'] != null) {
       throw StateError('This fee belongs to the holding acquisition cost');
@@ -214,18 +242,131 @@ class FinancialLedgerService {
         'This entry belongs to a holding or contract and cannot be deleted independently',
       );
     }
+  }
+
+  /// Every row that belongs to the entry [id]: itself, its transfer leg, and
+  /// any fee booked with it.
+  Future<List<Transaction>> _entryRows(int id) async {
+    final rows = <Transaction>[];
+    final seen = <int>{};
+    Future<void> visit(int? rowId) async {
+      if (rowId == null || !seen.add(rowId)) return;
+      final tx = await db.getTransactionById(rowId);
+      if (tx == null) return;
+      rows.add(tx);
+      final details = await store.transactionDetails(rowId);
+      await visit(details?['feeId'] as int?);
+      await visit(tx.linkedTransactionId);
+    }
+
+    await visit(id);
+    return rows;
+  }
+
+  Future<void> _removeEntry(int id) async {
+    final rows = await _entryRows(id);
+    final ids = rows.map((t) => t.id).toSet();
     for (final event in await store.list('activity')) {
-      if (event['transactionId'] == id &&
+      if (ids.contains(event['transactionId']) &&
           ['dividend', 'interest', 'rent'].contains(event['kind'])) {
         await store.remove('activity', event['id']);
       }
     }
     for (final attachment in await store.list('attachments')) {
-      if (attachment['transactionId'] == id) {
+      if (ids.contains(attachment['transactionId'])) {
         await store.remove('attachments', attachment['id']);
       }
     }
-    await db.deleteTransactionAndUpdateBalance(id);
+    for (final tx in rows) {
+      await _revert(tx);
+      await db.deleteTransaction(tx.id);
+    }
+  }
+
+  Amount _sign(String type, String accountType) =>
+      (type == 'income') != (accountType == 'credit')
+      ? Amount.one
+      : -Amount.one;
+
+  Future<Amount> _exactAmount(Transaction tx) async {
+    final details = await store.transactionDetails(tx.id);
+    return details?['amount'] == null
+        ? Amount.fromNum(tx.amount)
+        : amountOf(details!['amount']);
+  }
+
+  Future<void> _revert(Transaction tx) async {
+    final account = await db.getAccountById(tx.accountId);
+    if (account == null) return;
+    final amount = await _exactAmount(tx);
+    await store.changeBalance(
+      account.id,
+      -(amount * _sign(tx.type, account.type)),
+    );
+  }
+
+  Future<DeletedEntry> _capture(int id) async {
+    final rows = await _entryRows(id);
+    final ids = rows.map((t) => t.id).toSet();
+    return DeletedEntry(
+      rows: rows,
+      details: {
+        for (final tx in rows) tx.id: await store.transactionDetails(tx.id),
+      },
+      activity: [
+        for (final event in await store.list('activity'))
+          if (ids.contains(event['transactionId'])) event,
+      ],
+      attachments: [
+        for (final attachment in await store.list('attachments'))
+          if (ids.contains(attachment['transactionId'])) attachment,
+      ],
+    );
+  }
+
+  /// Puts back an entry removed by [deleteWithUndo] with its original ids,
+  /// conversion snapshot, links, attachments and balance effect.
+  Future<void> restore(DeletedEntry entry) => db.transaction(() async {
+    for (final tx in entry.rows) {
+      final account = await db.getAccountById(tx.accountId);
+      if (account == null) throw StateError('Account no longer exists');
+      if ((await store.get('accountDetails', '${account.id}'))?['archived'] ==
+          true) {
+        throw StateError('Unarchive this account first');
+      }
+      if (await db.getTransactionById(tx.id) != null) {
+        throw StateError('This entry was already restored');
+      }
+    }
+    for (final tx in entry.rows) {
+      await db.insertTransaction(
+        tx.copyWith(linkedTransactionId: const Value(null)).toCompanion(true),
+      );
+    }
+    for (final tx in entry.rows) {
+      if (tx.linkedTransactionId != null) {
+        await (db.update(
+          db.transactions,
+        )..where((t) => t.id.equals(tx.id))).write(
+          TransactionsCompanion(
+            linkedTransactionId: Value(tx.linkedTransactionId),
+          ),
+        );
+      }
+      final details = entry.details[tx.id];
+      if (details != null) await store.setTransactionDetails(tx.id, details);
+      final account = (await db.getAccountById(tx.accountId))!;
+      await store.changeBalance(
+        account.id,
+        await _exactAmount(tx) * _sign(tx.type, account.type),
+      );
+    }
+    for (final event in entry.activity) {
+      await store.put('activity', event['id'], event);
+    }
+    for (final attachment in entry.attachments) {
+      await store.put('attachments', attachment['id'], attachment);
+    }
   });
 
   Future<void> transferBetweenAccounts({
@@ -287,10 +428,7 @@ class FinancialLedgerService {
       if (metadata?['contractPaymentId'] != null) {
         throw StateError('Reverse this settlement through its contract');
       }
-      if (metadata?['feeId'] != null) {
-        await db.deleteTransactionAndUpdateBalance(metadata!['feeId'] as int);
-      }
-      await db.deleteTransactionAndUpdateBalance(editId);
+      await _removeEntry(editId);
     }
     final out = await recordCash(
       accountId: fromAccountId,
@@ -609,5 +747,18 @@ class FinancialLedgerService {
       'transactionId': tx,
       'date': (date ?? DateTime.now()).toIso8601String(),
     });
+  });
+}
+
+/// A ledger entry removed by [FinancialLedgerService.deleteWithUndo].
+class DeletedEntry {
+  final List<Transaction> rows;
+  final Map<int, Json?> details;
+  final List<Json> activity, attachments;
+  const DeletedEntry({
+    required this.rows,
+    required this.details,
+    required this.activity,
+    required this.attachments,
   });
 }

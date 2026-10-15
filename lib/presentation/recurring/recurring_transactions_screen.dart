@@ -12,7 +12,9 @@ import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/recurring_provider.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
-import 'package:flourish/presentation/providers/theme_providers.dart';
+import 'package:flourish/presentation/providers/finance_providers.dart';
+import 'package:flourish/core/finance/recurring_service.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/shared/widgets/animated_list_item.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/empty_state.dart';
@@ -76,7 +78,15 @@ class _RecurringCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catAsync = ref.watch(categoryByIdProvider(recurring.categoryId));
-    final currency = ref.watch(defaultCurrencyProvider);
+    final currency =
+        ref
+            .watch(accountByIdProvider(recurring.accountId))
+            .valueOrNull
+            ?.currency ??
+        '';
+    final warning = ref
+        .watch(recurringWarningsProvider)
+        .valueOrNull?[recurring.id];
     final isIncome = recurring.type == 'income';
 
     final palette = FlourishPalette.of(context);
@@ -139,6 +149,17 @@ class _RecurringCard extends ConsumerWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    if (warning != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          'Not posted: $warning',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -151,16 +172,20 @@ class _RecurringCard extends ConsumerWidget {
                 icon: Icon(Icons.more_vert_rounded, color: palette.textLow),
                 onSelected: (action) async {
                   Haptics.select();
-                  final db = ref.read(databaseProvider);
-                  if (action == 'toggle') {
-                    await db.updateRecurringTransaction(
-                      recurring.copyWith(isActive: !recurring.isActive),
+                  final service = ref.read(recurringServiceProvider);
+                  if (action == 'edit') {
+                    await showSpringBottomSheet(
+                      context: context,
+                      builder: (_) => _AddRecurringSheet(existing: recurring),
                     );
+                  } else if (action == 'toggle') {
+                    await service.setActive(recurring, !recurring.isActive);
                   } else if (action == 'delete') {
-                    await db.deleteRecurringTransaction(recurring.id);
+                    await service.delete(recurring.id);
                   }
                 },
                 itemBuilder: (ctx) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
                   PopupMenuItem(
                     value: 'toggle',
                     child: Text(recurring.isActive ? 'Pause' : 'Resume'),
@@ -218,7 +243,9 @@ class _Tag extends StatelessWidget {
 }
 
 class _AddRecurringSheet extends ConsumerStatefulWidget {
-  const _AddRecurringSheet();
+  const _AddRecurringSheet({this.existing});
+
+  final RecurringTransaction? existing;
 
   @override
   ConsumerState<_AddRecurringSheet> createState() => _AddRecurringSheetState();
@@ -236,6 +263,21 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   String? _amountError;
 
   @override
+  void initState() {
+    super.initState();
+    final r = widget.existing;
+    if (r != null) {
+      _amountController.text = '${r.amount}';
+      _noteController.text = r.note ?? '';
+      _type = r.type;
+      _frequency = r.frequency;
+      _accountId = r.accountId;
+      _categoryId = r.categoryId;
+      _nextDate = r.nextDate;
+    }
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     _noteController.dispose();
@@ -246,10 +288,17 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
-    final currency = ref.watch(defaultCurrencyProvider);
+    final currency =
+        accountsAsync.valueOrNull
+            ?.where((a) => a.id == _accountId)
+            .firstOrNull
+            ?.currency ??
+        '';
 
     return BottomSheetScaffold(
-      title: 'New Recurring Transaction',
+      title: widget.existing == null
+          ? 'New Recurring Transaction'
+          : 'Edit Recurring Transaction',
       children: [
         Row(
           children: [
@@ -306,7 +355,10 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               decoration: const InputDecoration(labelText: 'Account'),
               items: accounts
                   .map(
-                    (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
+                    (a) => DropdownMenuItem(
+                      value: a.id,
+                      child: Text('${a.name} (${a.currency})'),
+                    ),
                   )
                   .toList(),
               onChanged: (v) {
@@ -389,14 +441,18 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             final picked = await showDatePicker(
               context: context,
               initialDate: _nextDate,
-              firstDate: DateTime.now(),
+              firstDate: DateTime(DateTime.now().year - 5),
               lastDate: DateTime(2035),
             );
             if (picked != null) setState(() => _nextDate = picked);
           },
           borderRadius: BorderRadius.circular(Rad.md),
           child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'First Occurrence'),
+            decoration: InputDecoration(
+              labelText: widget.existing == null
+                  ? 'First Occurrence'
+                  : 'Next Occurrence',
+            ),
             child: Row(
               children: [
                 const Icon(Icons.calendar_today, size: 18),
@@ -430,7 +486,10 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Create Recurring', style: TextStyle(fontSize: 16)),
+              : Text(
+                  widget.existing == null ? 'Create Recurring' : 'Save',
+                  style: const TextStyle(fontSize: 16),
+                ),
         ),
       ],
     );
@@ -448,34 +507,97 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       );
       return;
     }
+    final note = _noteController.text.trim().isEmpty
+        ? null
+        : _noteController.text.trim();
+    final service = ref.read(recurringServiceProvider);
+    final existing = widget.existing;
+    var catchUp = false;
+    if (existing == null) {
+      final today = DateTime.now();
+      final missed = RecurringService.occurrences(
+        _nextDate,
+        _frequency,
+        today,
+        limit: 25,
+      ).length;
+      if (missed > 0) {
+        final choice = await _askCatchUp(missed);
+        if (choice == null) return;
+        catchUp = choice;
+      }
+    }
     setState(() => _isSubmitting = true);
     try {
-      final db = ref.read(databaseProvider);
-      await db.insertRecurringTransaction(
-        RecurringTransactionsCompanion.insert(
-          accountId: _accountId!,
-          categoryId: _categoryId!,
-          amount: amount,
-          type: _type,
-          frequency: _frequency,
-          nextDate: _nextDate,
-          note: Value(
-            _noteController.text.trim().isEmpty
-                ? null
-                : _noteController.text.trim(),
+      if (existing == null) {
+        await service.create(
+          RecurringTransactionsCompanion.insert(
+            accountId: _accountId!,
+            categoryId: _categoryId!,
+            amount: amount,
+            type: _type,
+            frequency: _frequency,
+            nextDate: _nextDate,
+            note: Value(note),
           ),
-        ),
-      );
+          catchUp: catchUp,
+        );
+      } else {
+        await service.update(
+          existing.copyWith(
+            accountId: _accountId,
+            categoryId: _categoryId,
+            amount: amount,
+            type: _type,
+            frequency: _frequency,
+            nextDate: _nextDate,
+            note: Value(note),
+          ),
+        );
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }
+
+  /// Asks whether occurrences before today should be posted now. Returns
+  /// null when the user cancels.
+  Future<bool?> _askCatchUp(int missed) => showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Start date is in the past'),
+      content: Text(
+        missed > 24
+            ? 'More than 24 payments fall before today. The schedule will '
+                  'start from its next date; add older payments manually if '
+                  'you need them.'
+            : '$missed payment${missed == 1 ? '' : 's'} fall before today. '
+                  'Post ${missed == 1 ? 'it' : 'them'} now, or start from the '
+                  'next date?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Start from next date'),
+        ),
+        if (missed <= 24)
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Post $missed'),
+          ),
+      ],
+    ),
+  );
 }
 
 class _TypeBtn extends StatelessWidget {

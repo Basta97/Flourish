@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/finance/financial_ledger_service.dart';
 import '../../core/finance/contract_service.dart';
+import '../../core/finance/recurring_service.dart';
 import '../../core/finance/market_data_service.dart';
 import '../../core/finance/valuation_service.dart';
 import '../../data/finance/finance_store.dart';
@@ -16,6 +17,9 @@ final financeStoreProvider = Provider(
 );
 final financialLedgerProvider = Provider(
   (ref) => FinancialLedgerService(ref.watch(databaseProvider)),
+);
+final recurringServiceProvider = Provider(
+  (ref) => RecurringService(ref.watch(financialLedgerProvider)),
 );
 final contractServiceProvider = Provider(
   (ref) => ContractService(ref.watch(financialLedgerProvider)),

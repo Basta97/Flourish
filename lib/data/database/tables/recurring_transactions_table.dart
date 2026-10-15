@@ -14,7 +14,10 @@ class RecurringTransactions extends Table {
   TextColumn get frequency => text()();
   DateTimeColumn get nextDate => dateTime()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  // Filled in by the app on every insert. Databases upgraded through the v5
+  // rebuild carry a TEXT `CURRENT_TIMESTAMP` column default, which Drift cannot
+  // read back as a date, so the SQL default must never be relied on.
+  DateTimeColumn get createdAt => dateTime().clientDefault(DateTime.now)();
 
   @override
   List<String> get customConstraints => [

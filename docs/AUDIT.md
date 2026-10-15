@@ -76,5 +76,6 @@ can't receive contributions; "Reset all data" is not transactional.
 | 1A | One write path for money, recurring/undo/auto-income, legacy DB repair | done |
 | 1B | Amount parsing, currency guards and defaults, credit wording | done |
 | 1C | Transfer classification, system categories, FX freshness, dead code | done |
-| 2A–2D | Payment instruments, foreign-currency purchases, card terms, reports | planned |
+| 2A | Schema v7: cards & wallets, payment method/merchant/source on entries, FX purchases, refunds, cash advances, recurring transfers | done |
+| 2B–2D | Credit card terms, screens, reports | planned |
 | 3A–3E | Automatic payment detection (EN/AR parser, inbox, Android listener, iOS Shortcuts) | planned |

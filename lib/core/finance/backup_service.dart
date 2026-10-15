@@ -15,12 +15,16 @@ class BackupService {
   static const tableNames = [
     'categories',
     'accounts',
+    'payment_instruments',
     'transactions',
     'budgets',
     'recurring_transactions',
     'goals',
     ...FinanceStore.tables,
   ];
+
+  /// Schema version that introduced each table added after v6.
+  static const requiredSince = {'payment_instruments': 7};
   static const settings = [
     'default_currency',
     'app_theme_mode',
@@ -72,11 +76,16 @@ class BackupService {
         'Backup requires a newer version of Flourish',
       );
     }
-    final tables = payload['tables'] as Json;
+    final tables = Map<String, dynamic>.from(payload['tables'] as Json);
+    final version = payload['databaseVersion'] as int;
     for (final name in tableNames) {
-      if (tables[name] is! List) {
-        throw FormatException('Missing backup table: $name');
+      if (tables[name] is List) continue;
+      // Tables added after the backup was taken restore empty.
+      if (version < (requiredSince[name] ?? 0)) {
+        tables[name] = const [];
+        continue;
       }
+      throw FormatException('Missing backup table: $name');
     }
     final copied = <File>[];
     bool committed = false;

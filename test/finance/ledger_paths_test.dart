@@ -62,7 +62,8 @@ void main() {
       final tx = (await db.getAllTransactions()).single;
       final details = await store.transactionDetails(tx.id);
       expect(details?['currency'], 'EGP');
-      expect(details?['source'], 'recurring');
+      expect(tx.source, 'recurring');
+      expect(details?['recurringId'], isNotNull);
       expect(await store.balance(id), Amount('990'));
     });
 

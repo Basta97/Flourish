@@ -2,6 +2,8 @@ import 'fx_policy.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import 'system_categories.dart';
+import 'payment_methods.dart';
+import '../utils/currency_formatter.dart';
 import '../../data/database/database.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
@@ -26,10 +28,18 @@ class FinancialLedgerService {
     String kind = 'cash',
     Json? extra,
     String? expectCurrency,
+    int? instrumentId,
+    String? paymentMethod,
+    String? merchant,
+    String? source,
+    String? sourceRef,
   }) => db.transaction(() async {
     positive(amount);
     if (!['income', 'expense'].contains(type)) {
       throw ArgumentError('Choose income or expense');
+    }
+    if (kind == 'refund' && type != 'income') {
+      throw ArgumentError('A refund adds money back');
     }
     final account = await db.getAccountById(accountId);
     if (account == null) throw StateError('Account no longer exists');
@@ -45,9 +55,11 @@ class FinancialLedgerService {
           SystemCategories.keyFor(kind, type, feeType: extra?['feeType']),
         );
     final c = await db.getCategoryById(category);
-    if (c == null || c.type != type) {
+    // A refund is income filed under the expense category it reverses.
+    if (c == null || c.type != (kind == 'refund' ? 'expense' : type)) {
       throw ArgumentError('Category must match transaction type');
     }
+    final method = await _paymentMethod(account, instrumentId, paymentMethod);
     final occurred = date ?? DateTime.now();
     final id = await db.insertTransaction(
       TransactionsCompanion.insert(
@@ -57,6 +69,11 @@ class FinancialLedgerService {
         type: type,
         note: Value(note),
         transactionDate: occurred,
+        paymentInstrumentId: Value(instrumentId),
+        paymentMethod: Value(method),
+        merchant: Value(_clean(merchant)),
+        source: Value(source),
+        sourceRef: Value(sourceRef),
       ),
     );
     final sign = (type == 'income') != (account.type == 'credit')
@@ -72,6 +89,199 @@ class FinancialLedgerService {
     }
     return id;
   });
+
+  static String? _clean(String? text) {
+    final t = text?.trim();
+    return t == null || t.isEmpty ? null : t;
+  }
+
+  /// Validates the card/wallet and method for [account]; an instrument
+  /// implies its own method.
+  Future<String?> _paymentMethod(
+    Account account,
+    int? instrumentId,
+    String? method,
+  ) async {
+    if (instrumentId != null) {
+      final instrument = await db.getPaymentInstrument(instrumentId);
+      if (instrument == null || instrument.accountId != account.id) {
+        throw ArgumentError('That card or wallet belongs to another account');
+      }
+      if (instrument.archived) {
+        throw StateError('That card or wallet is archived');
+      }
+      method = instrument.kind;
+    }
+    if (method == null) return null;
+    if (!PaymentMethods.all.contains(method)) {
+      throw ArgumentError('Unknown payment method');
+    }
+    if (!PaymentMethods.fitsAccount(method, account.type)) {
+      throw ArgumentError(
+        '${PaymentMethods.label(method)} cannot pay from ${account.name}',
+      );
+    }
+    return method;
+  }
+
+  /// Records a purchase. When [original] is in another currency than the
+  /// account (paying USD with an EGP card), [amount] is what the account was
+  /// charged; the bank's foreign-transaction fee is booked as a separate
+  /// linked entry so reports show it. With [feeIncluded] the charged amount
+  /// already contains the fee and is split; otherwise the fee is added.
+  Future<int> recordPurchase({
+    required int accountId,
+    required Amount amount,
+    required int categoryId,
+    Money? original,
+    Amount? fxFeePercent,
+    bool feeIncluded = false,
+    int? instrumentId,
+    String? paymentMethod,
+    String? merchant,
+    String? note,
+    DateTime? date,
+    String? source,
+    String? sourceRef,
+    String? expectCurrency,
+  }) => db.transaction(() async {
+    final account = await db.getAccountById(accountId);
+    if (account == null) throw StateError('Account no longer exists');
+    _checkCurrency(account, expectCurrency);
+    final foreign = original != null && original.currency != account.currency;
+    if (!foreign) {
+      return recordCash(
+        accountId: accountId,
+        amount: amount,
+        type: 'expense',
+        categoryId: categoryId,
+        note: note,
+        date: date,
+        instrumentId: instrumentId,
+        paymentMethod: paymentMethod,
+        merchant: merchant,
+        source: source,
+        sourceRef: sourceRef,
+      );
+    }
+    positive(original.amount);
+    positive(amount);
+    final pct = fxFeePercent ?? await fxFeePercentFor(account, instrumentId);
+    if (pct < Amount.zero || pct > Amount('100')) {
+      throw ArgumentError('Enter a fee between 0% and 100%');
+    }
+    final digits = CurrencyFormatter.decimalsFor(account.currency);
+    final rate = Amount.one + pct / Amount('100');
+    final main = feeIncluded ? (amount / rate).rounded(digits) : amount;
+    final fee = feeIncluded
+        ? amount - main
+        : (amount * pct / Amount('100')).rounded(digits);
+    final mainId = await recordCash(
+      accountId: accountId,
+      amount: main,
+      type: 'expense',
+      categoryId: categoryId,
+      note: note,
+      date: date,
+      instrumentId: instrumentId,
+      paymentMethod: paymentMethod,
+      merchant: merchant,
+      source: source,
+      sourceRef: sourceRef,
+      extra: {
+        'original': {
+          'amount': '${original.amount}',
+          'currency': original.currency,
+        },
+        'bookedRate': '${main / original.amount}',
+        'fxFeePercent': '$pct',
+      },
+    );
+    if (fee > Amount.zero) {
+      final feeId = await recordCash(
+        accountId: accountId,
+        amount: fee,
+        type: 'expense',
+        kind: 'fee',
+        note: 'Foreign transaction fee ($pct%)',
+        date: date,
+        instrumentId: instrumentId,
+        paymentMethod: paymentMethod,
+        merchant: merchant,
+        source: source,
+        extra: {'feeType': 'fx', 'feeFor': mainId},
+      );
+      await store.setTransactionDetails(mainId, {
+        ...(await store.transactionDetails(mainId))!,
+        'feeId': feeId,
+      });
+    }
+    return mainId;
+  });
+
+  /// Money back for an earlier purchase, filed under the expense category it
+  /// reverses so budgets and reports show net spending.
+  Future<int> recordRefund({
+    required int accountId,
+    required Amount amount,
+    required int expenseCategoryId,
+    int? refundOf,
+    int? instrumentId,
+    String? merchant,
+    String? note,
+    DateTime? date,
+    String? source,
+    String? sourceRef,
+    String? expectCurrency,
+  }) => recordCash(
+    accountId: accountId,
+    amount: amount,
+    type: 'income',
+    kind: 'refund',
+    categoryId: expenseCategoryId,
+    note: note,
+    date: date,
+    instrumentId: instrumentId,
+    merchant: merchant,
+    source: source,
+    sourceRef: sourceRef,
+    expectCurrency: expectCurrency,
+    extra: {'refundOf': ?refundOf},
+  );
+
+  /// The foreign-transaction fee for paying from [account]: the card's own
+  /// terms first, then the credit card's billing terms, else 0.
+  Future<Amount> fxFeePercentFor(Account account, int? instrumentId) async {
+    if (instrumentId != null) {
+      final terms = (await db.getPaymentInstrument(instrumentId))?.termsJson;
+      if (terms?['fxFeePercent'] != null) {
+        return amountOf(terms!['fxFeePercent']);
+      }
+    }
+    for (final c in await store.list('contracts')) {
+      final card = c['card'] as Map?;
+      if (c['cardAccountId'] == account.id && card?['fxFeePercent'] != null) {
+        return amountOf(card!['fxFeePercent']);
+      }
+    }
+    return Amount.zero;
+  }
+
+  /// The cash-advance fee a card charges for withdrawing [amount]:
+  /// max(minimum, amount × percent), from the card's billing terms.
+  Future<Amount> cashAdvanceFeeFor(Account card, Amount amount) async {
+    for (final c in await store.list('contracts')) {
+      final terms = c['card'] as Map?;
+      if (c['cardAccountId'] != card.id || terms == null) continue;
+      final pct = amountOf(terms['cashAdvanceFeePercent'] ?? '0');
+      final min = amountOf(terms['cashAdvanceFeeMin'] ?? '0');
+      final fee = (amount * pct / Amount('100')).rounded(
+        CurrencyFormatter.decimalsFor(card.currency),
+      );
+      return fee > min ? fee : min;
+    }
+    return Amount.zero;
+  }
 
   /// The amount was entered in [expected]; refuse to book it in another
   /// currency, which would silently relabel e.g. USD 100 as EGP 100.
@@ -158,6 +368,9 @@ class FinancialLedgerService {
     String? note,
     required DateTime date,
     String? expectCurrency,
+    Value<int?> instrumentId = const Value.absent(),
+    Value<String?> paymentMethod = const Value.absent(),
+    Value<String?> merchant = const Value.absent(),
   }) => db.transaction(() async {
     final existing = await db.getTransactionById(id);
     if (existing == null) throw StateError('Transaction no longer exists');
@@ -167,20 +380,40 @@ class FinancialLedgerService {
     final details = await store.transactionDetails(existing.id);
     if (details?['contractPaymentId'] != null ||
         details?['transferOwner'] != null ||
+        details?['feeFor'] != null ||
         details?['holdingFeeFor'] != null) {
       throw StateError('Manage this entry through its linked operation');
     }
-    if (details != null && !['cash', 'fee'].contains(details['kind'])) {
+    final refund = details?['kind'] == 'refund';
+    if (details != null &&
+        !['cash', 'fee', 'refund'].contains(details['kind'])) {
       throw StateError('Manage this entry from its holding or contract');
     }
     positive(amount);
     final a = await db.getAccountById(accountId);
     final old = await db.getAccountById(existing.accountId);
     final category = await db.getCategoryById(categoryId);
-    if (a == null || old == null || category?.type != type) {
+    if (a == null ||
+        old == null ||
+        category?.type != (refund ? 'expense' : type) ||
+        (refund && type != 'income')) {
       throw ArgumentError('Select a valid account and matching category');
     }
     _checkCurrency(a, expectCurrency);
+    // A card or wallet stays only while it belongs to the chosen account.
+    var instrument = instrumentId.present
+        ? instrumentId.value
+        : existing.paymentInstrumentId;
+    var method = paymentMethod.present
+        ? paymentMethod.value
+        : existing.paymentMethod;
+    if (!instrumentId.present && accountId != existing.accountId) {
+      instrument = null;
+      if (method != null && !PaymentMethods.fitsAccount(method, a.type)) {
+        method = null;
+      }
+    }
+    method = await _paymentMethod(a, instrument, method);
     if ((await store.get('accountDetails', '${a.id}'))?['archived'] == true) {
       throw StateError('Unarchive the account before editing');
     }
@@ -199,9 +432,26 @@ class FinancialLedgerService {
         categoryId: categoryId,
         note: Value(note),
         transactionDate: date,
+        paymentInstrumentId: Value(instrument),
+        paymentMethod: Value(method),
+        merchant: merchant.present
+            ? Value(_clean(merchant.value))
+            : Value(existing.merchant),
       ),
     );
     await store.changeBalance(a.id, amount * _sign(type, a.type));
+    if (details?['feeId'] != null && details?['fxFeePercent'] != null) {
+      await _rebookFxFee(
+        details!['feeId'] as int,
+        a,
+        (amount * amountOf(details['fxFeePercent']) / Amount('100')).rounded(
+          CurrencyFormatter.decimalsFor(a.currency),
+        ),
+        date,
+        instrument,
+        method,
+      );
+    }
     for (final event in await store.list('activity')) {
       if (event['transactionId'] == id &&
           ['dividend', 'interest', 'rent'].contains(event['kind'])) {
@@ -228,6 +478,43 @@ class FinancialLedgerService {
       );
     }
   });
+
+  /// Moves a purchase's linked FX fee along with it after an edit.
+  Future<void> _rebookFxFee(
+    int feeId,
+    Account account,
+    Amount fee,
+    DateTime date,
+    int? instrument,
+    String? method,
+  ) async {
+    final row = await db.getTransactionById(feeId);
+    if (row == null) return;
+    await _revert(row);
+    if (fee <= Amount.zero) {
+      final owner = (await store.transactionDetails(feeId))?['feeFor'];
+      await db.deleteTransaction(feeId);
+      if (owner is int) {
+        final d = await store.transactionDetails(owner);
+        if (d != null) {
+          await store.setTransactionDetails(owner, {...d, 'feeId': null});
+        }
+      }
+      return;
+    }
+    final details = await store.transactionDetails(feeId);
+    await db.updateTransaction(
+      row.copyWith(
+        accountId: account.id,
+        amount: fee.toDouble(),
+        transactionDate: date,
+        paymentInstrumentId: Value(instrument),
+        paymentMethod: Value(method),
+      ),
+    );
+    await store.changeBalance(account.id, fee * _sign('expense', account.type));
+    await _snapshot(feeId, fee, account.currency, date, 'fee', keep: details);
+  }
 
   Future<void> deleteTransactionAndUpdateBalance(int id) =>
       db.transaction(() async {
@@ -261,8 +548,11 @@ class FinancialLedgerService {
     if (details?['transferOwner'] != null) {
       throw StateError('Manage transfer fees through the linked transfer');
     }
+    if (details?['feeFor'] != null) {
+      throw StateError('This fee belongs to a purchase; edit or delete that');
+    }
     if (details != null &&
-        !['cash', 'fee', 'transfer'].contains(details['kind'])) {
+        !['cash', 'fee', 'transfer', 'refund'].contains(details['kind'])) {
       throw StateError(
         'This entry belongs to a holding or contract and cannot be deleted independently',
       );
@@ -428,8 +718,6 @@ class FinancialLedgerService {
     String? expectCurrency,
   }) => db.transaction(() async {
     positive(amount);
-    final charge = fee ?? Amount.zero;
-    if (charge < Amount.zero) throw ArgumentError('Fee cannot be negative');
     if (fromAccountId == toAccountId) {
       throw ArgumentError('Choose different accounts');
     }
@@ -438,6 +726,13 @@ class FinancialLedgerService {
     if (from == null || to == null) {
       throw StateError('Account no longer exists');
     }
+    // Without an explicit fee, a cash advance uses the card's terms.
+    final charge =
+        fee ??
+        (from.type == 'credit' && to.type != 'credit'
+            ? await cashAdvanceFeeFor(from, amount)
+            : Amount.zero);
+    if (charge < Amount.zero) throw ArgumentError('Fee cannot be negative');
     _checkCurrency(from, expectCurrency);
     if (from.currency != to.currency && received == null) {
       throw ArgumentError(
@@ -491,9 +786,15 @@ class FinancialLedgerService {
             amount: charge,
             type: 'expense',
             kind: 'fee',
-            note: 'Transfer fee',
+            note: from.type == 'credit' && to.type != 'credit'
+                ? 'Cash advance fee'
+                : 'Transfer fee',
             date: date,
-            extra: {'feeType': 'transfer'},
+            extra: {
+              'feeType': from.type == 'credit' && to.type != 'credit'
+                  ? 'cashAdvance'
+                  : 'transfer',
+            },
           )
         : null;
     if (feeId != null) {
@@ -502,6 +803,9 @@ class FinancialLedgerService {
         'transferOwner': out,
       });
     }
+    // Taking money out of a credit card into cash or a bank account is a
+    // cash advance: banks charge a fee and interest from day one.
+    final cashAdvance = from.type == 'credit' && to.type != 'credit';
     for (final id in [out, incoming]) {
       await store.setTransactionDetails(id, {
         ...(await store.transactionDetails(id))!,
@@ -509,6 +813,7 @@ class FinancialLedgerService {
         'sourceAmount': '$amount',
         'destinationAmount': '$destination',
         'rate': '${destination / amount}',
+        if (cashAdvance) 'cashAdvance': true,
       });
     }
   });

@@ -103,18 +103,18 @@ class RecurringService {
           }
           final anchor = await _anchor(r);
           while (r!.isActive && !r.nextDate.isAfter(until)) {
-            await ledger.recordCash(
-              accountId: r.accountId,
-              amount: Amount.fromNum(r.amount),
-              type: r.type,
-              categoryId: r.categoryId,
-              note: r.note ?? 'Recurring: ${r.frequency}',
-              date: r.nextDate,
-              extra: {'source': 'recurring', 'recurringId': r.id},
-            );
+            if (r.endDate != null && r.nextDate.isAfter(r.endDate!)) {
+              r = r.copyWith(isActive: false);
+              await db.updateRecurringTransaction(r);
+              break;
+            }
+            await _post(r);
             r = r.copyWith(
               nextDate: following(r.nextDate, r.frequency, anchor),
             );
+            if (r.endDate != null && r.nextDate.isAfter(r.endDate!)) {
+              r = r.copyWith(isActive: false);
+            }
             await db.updateRecurringTransaction(r);
           }
         });
@@ -127,6 +127,32 @@ class RecurringService {
         });
       }
     }
+  }
+
+  Future<void> _post(RecurringTransaction r) async {
+    final note = r.note ?? 'Recurring: ${r.frequency}';
+    if (r.type == 'transfer') {
+      await ledger.transfer(
+        fromAccountId: r.accountId,
+        toAccountId: r.toAccountId!,
+        amount: Amount.fromNum(r.amount),
+        received: r.toAmount == null ? null : Amount.fromNum(r.toAmount!),
+        note: note,
+        date: r.nextDate,
+      );
+      return;
+    }
+    await ledger.recordCash(
+      accountId: r.accountId,
+      amount: Amount.fromNum(r.amount),
+      type: r.type,
+      categoryId: r.categoryId,
+      note: note,
+      date: r.nextDate,
+      instrumentId: r.paymentInstrumentId,
+      source: 'recurring',
+      extra: {'recurringId': r.id},
+    );
   }
 
   /// Rule id → reason it could not post last time.
@@ -167,6 +193,11 @@ class RecurringService {
     DateTime? now,
   }) => db.transaction(() async {
     _validate(entry.amount.value, entry.frequency.value);
+    _validateTransfer(
+      entry.type.value,
+      entry.accountId.value,
+      entry.toAccountId.present ? entry.toAccountId.value : null,
+    );
     final start = entry.nextDate.value;
     final next = catchUp || !start.isBefore(now ?? DateTime.now())
         ? start
@@ -183,6 +214,7 @@ class RecurringService {
   /// Edits a rule's amount, category, note, account or schedule.
   Future<void> update(RecurringTransaction rule) => db.transaction(() async {
     _validate(rule.amount, rule.frequency);
+    _validateTransfer(rule.type, rule.accountId, rule.toAccountId);
     final existing = await (db.select(
       db.recurringTransactions,
     )..where((t) => t.id.equals(rule.id))).getSingleOrNull();
@@ -202,6 +234,19 @@ class RecurringService {
     await store.remove('recurringAnchors', '$id');
     await store.remove('recurringWarnings', '$id');
   });
+
+  void _validateTransfer(String type, int from, int? to) {
+    if ((type == 'transfer') != (to != null)) {
+      throw const TransactionLogicException(
+        'Choose a destination account for a recurring transfer',
+      );
+    }
+    if (to == from) {
+      throw const TransactionLogicException(
+        'Transfer source and destination must be different',
+      );
+    }
+  }
 
   void _validate(double amount, String frequency) {
     if (!amount.isFinite || amount <= 0) {
@@ -258,7 +303,7 @@ class RecurringService {
                 categoryId: categoryId,
                 note: 'Auto monthly income',
                 date: date,
-                extra: {'source': 'auto_income'},
+                source: 'auto_income',
               );
         await store.put('autoIncome', key, {'month': key, 'transactionId': id});
       });

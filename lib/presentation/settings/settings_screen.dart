@@ -516,6 +516,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           await db.delete(db.recurringTransactions).go();
           await db.delete(db.budgets).go();
           await db.delete(db.goals).go();
+          await db.delete(db.paymentInstruments).go();
           await db.delete(db.accounts).go();
           await db.delete(db.categories).go();
 
@@ -718,6 +719,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               await db.delete(db.budgets).go();
               await db.delete(db.recurringTransactions).go();
               await db.delete(db.goals).go();
+              await db.delete(db.paymentInstruments).go();
               await db.delete(db.accounts).go();
               await db.delete(db.categories).go();
               for (final key in BackupService.settings) {

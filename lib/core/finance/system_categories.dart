@@ -128,16 +128,38 @@ class SystemCategories {
   static SystemCategory byKey(String key) =>
       all.firstWhere((c) => c.key == key);
 
-  /// The system category matching [category], if any.
+  /// The system category behind [category], if any: by its stored key, or
+  /// by a legacy name that maintenance has not merged yet.
   static SystemCategory? of(Category? category) {
     if (category == null) return null;
+    final key = category.systemKey;
+    if (key != null) return all.where((c) => c.key == key).firstOrNull;
     for (final c in all) {
-      if (c.type == category.type &&
-          (c.name == category.name || c.legacyNames.contains(category.name))) {
+      if (c.type == category.type && c.legacyNames.contains(category.name)) {
         return c;
       }
     }
     return null;
+  }
+
+  /// Tags existing categories that carry a system name with their key, so
+  /// they keep working after being renamed.
+  static Future<void> backfillKeys(AppDatabase db) async {
+    for (final c in all) {
+      final tagged = await db
+          .customSelect(
+            'SELECT id FROM categories WHERE system_key = ?',
+            variables: [Variable(c.key)],
+          )
+          .get();
+      if (tagged.isNotEmpty) continue;
+      await db.customStatement(
+        'UPDATE categories SET system_key = ? WHERE id = '
+        '(SELECT MIN(id) FROM categories WHERE type = ? AND name = ? '
+        'AND system_key IS NULL)',
+        [c.key, c.type, c.name],
+      );
+    }
   }
 
   static bool isHidden(Category? category) => of(category)?.hidden ?? false;
@@ -167,12 +189,28 @@ class SystemCategories {
   /// The id of system category [key], created when missing.
   static Future<int> idFor(AppDatabase db, String key) async {
     final c = byKey(key);
-    final existing =
+    final tagged =
         await (db.select(db.categories)
-              ..where((t) => t.type.equals(c.type) & t.name.equals(c.name))
+              ..where((t) => t.systemKey.equals(key))
               ..limit(1))
             .getSingleOrNull();
-    if (existing != null) return existing.id;
+    if (tagged != null) return tagged.id;
+    final named =
+        await (db.select(db.categories)
+              ..where(
+                (t) =>
+                    t.type.equals(c.type) &
+                    t.name.equals(c.name) &
+                    t.systemKey.isNull(),
+              )
+              ..orderBy([(t) => OrderingTerm(expression: t.id)])
+              ..limit(1))
+            .getSingleOrNull();
+    if (named != null) {
+      await (db.update(db.categories)..where((t) => t.id.equals(named.id)))
+          .write(CategoriesCompanion(systemKey: Value(key)));
+      return named.id;
+    }
     return db.insertCategory(
       CategoriesCompanion.insert(
         name: c.name,
@@ -181,6 +219,7 @@ class SystemCategories {
         type: c.type,
         isDefault: const Value(true),
         sortOrder: const Value(900),
+        systemKey: Value(key),
       ),
     );
   }

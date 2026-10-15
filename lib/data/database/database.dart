@@ -8,12 +8,15 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/finance/system_categories.dart';
+import '../../core/finance/payment_methods.dart';
+import 'dart:convert';
 import 'tables/accounts_table.dart';
 import 'tables/transactions_table.dart';
 import 'tables/categories_table.dart';
 import 'tables/budgets_table.dart';
 import 'tables/recurring_transactions_table.dart';
 import 'tables/goals_table.dart';
+import 'tables/payment_instruments_table.dart';
 
 part 'database.g.dart';
 
@@ -25,6 +28,7 @@ part 'database.g.dart';
     Budgets,
     RecurringTransactions,
     Goals,
+    PaymentInstruments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -50,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   final financeChanges = StreamController<void>.broadcast();
   void notifyFinanceChanged() {
@@ -70,6 +74,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
         await _ensureIndexes();
         await _seedDefaults();
+        await SystemCategories.backfillKeys(this);
         await FinanceStore.create(this);
       },
       onUpgrade: (m, from, to) async {
@@ -104,6 +109,41 @@ class AppDatabase extends _$AppDatabase {
           await _migrateToV5();
         }
         if (from < 6) await FinanceStore.create(this);
+        if (from < 7) {
+          // Each step checks the live schema so a retry after an interrupted
+          // upgrade does not fail on what already exists.
+          if (!await _hasTable('payment_instruments')) {
+            await m.createTable(paymentInstruments);
+          }
+          await _addColumnIfMissing(m, categories, categories.systemKey);
+          // The recurring rebuild needs every rule to have a category.
+          await repairLegacyData();
+          for (final column in [
+            transactions.paymentInstrumentId,
+            transactions.paymentMethod,
+            transactions.merchant,
+            transactions.source,
+            transactions.sourceRef,
+          ]) {
+            await _addColumnIfMissing(m, transactions, column);
+          }
+          // Rebuilt rather than altered: the type CHECK gains 'transfer'.
+          await m.alterTable(
+            // Drift's documented way to rebuild a table; covered by the v4
+            // and v6 upgrade tests.
+            // ignore: experimental_member_use
+            TableMigration(
+              recurringTransactions,
+              newColumns: [
+                recurringTransactions.toAccountId,
+                recurringTransactions.toAmount,
+                recurringTransactions.paymentInstrumentId,
+                recurringTransactions.endDate,
+              ],
+            ),
+          );
+          await SystemCategories.backfillKeys(this);
+        }
         await _ensureIndexes();
       },
       beforeOpen: (details) async {
@@ -112,6 +152,23 @@ class AppDatabase extends _$AppDatabase {
         if (!details.wasCreated) await repairLegacyData();
       },
     );
+  }
+
+  Future<bool> _hasTable(String name) async => (await customSelect(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+    variables: [Variable(name)],
+  ).get()).isNotEmpty;
+
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    final existing = await customSelect(
+      'PRAGMA table_info(${table.actualTableName})',
+    ).get();
+    if (existing.any((r) => r.read<String>('name') == column.name)) return;
+    await m.addColumn(table, column);
   }
 
   Future<void> _ensureIndexes() async {
@@ -123,6 +180,10 @@ class AppDatabase extends _$AppDatabase {
       'CREATE INDEX IF NOT EXISTS idx_transactions_linked ON transactions(linked_transaction_id)',
       'CREATE INDEX IF NOT EXISTS idx_budgets_category_id ON budgets(category_id)',
       'CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type)',
+      'CREATE INDEX IF NOT EXISTS idx_transactions_instrument ON transactions(payment_instrument_id)',
+      'CREATE INDEX IF NOT EXISTS idx_transactions_source_ref ON transactions(source_ref)',
+      'CREATE INDEX IF NOT EXISTS idx_payment_instruments_account ON payment_instruments(account_id)',
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_system_key ON categories(system_key) WHERE system_key IS NOT NULL',
     ]) {
       await customStatement(statement);
     }
@@ -541,6 +602,80 @@ class AppDatabase extends _$AppDatabase {
     return result;
   });
 
+  // ========== Payment instruments ==========
+
+  Stream<List<PaymentInstrument>> watchPaymentInstruments() =>
+      (select(paymentInstruments)..orderBy([
+            (i) =>
+                OrderingTerm(expression: i.isDefault, mode: OrderingMode.desc),
+            (i) => OrderingTerm(expression: i.name),
+          ]))
+          .watch();
+
+  Future<List<PaymentInstrument>> getPaymentInstruments({int? accountId}) =>
+      (select(paymentInstruments)
+            ..where(
+              (i) => accountId == null
+                  ? const Constant(true)
+                  : i.accountId.equals(accountId),
+            )
+            ..orderBy([
+              (i) => OrderingTerm(
+                expression: i.isDefault,
+                mode: OrderingMode.desc,
+              ),
+              (i) => OrderingTerm(expression: i.name),
+            ]))
+          .get();
+
+  Future<PaymentInstrument?> getPaymentInstrument(int id) => (select(
+    paymentInstruments,
+  )..where((i) => i.id.equals(id))).getSingleOrNull();
+
+  /// Adds or updates a card/wallet after checking it fits its account; one
+  /// default per account.
+  Future<int> savePaymentInstrument(PaymentInstrumentsCompanion entry) =>
+      transaction(() async {
+        final account = await _requireAccount(entry.accountId.value);
+        final kind = entry.kind.value;
+        if (!PaymentMethods.instrumentKinds.contains(kind)) {
+          throw const TransactionLogicException('Choose a card or wallet type');
+        }
+        if (!PaymentMethods.fitsAccount(kind, account.type)) {
+          throw TransactionLogicException(
+            'A ${PaymentMethods.label(kind).toLowerCase()} cannot belong to '
+            'a ${account.type} account',
+          );
+        }
+        final last4 = entry.last4.present ? entry.last4.value : null;
+        if (last4 != null && !RegExp(r'^\d{4}$').hasMatch(last4)) {
+          throw const TransactionLogicException(
+            'Enter the last 4 digits of the card',
+          );
+        }
+        final network = entry.network.present ? entry.network.value : null;
+        if (network != null && !PaymentMethods.networks.contains(network)) {
+          throw const TransactionLogicException('Choose a card network');
+        }
+        if (entry.isDefault.present && entry.isDefault.value) {
+          await (update(
+            paymentInstruments,
+          )..where((i) => i.accountId.equals(account.id))).write(
+            const PaymentInstrumentsCompanion(isDefault: Value(false)),
+          );
+        }
+        if (entry.id.present) {
+          await (update(
+            paymentInstruments,
+          )..where((i) => i.id.equals(entry.id.value))).write(entry);
+          notifyFinanceChanged();
+          return entry.id.value;
+        }
+        final id = await into(paymentInstruments).insert(entry);
+        notifyFinanceChanged();
+        return id;
+      });
+
   // ========== Transactions ==========
 
   Future<List<Transaction>> getAllTransactions() =>
@@ -627,6 +762,7 @@ class AppDatabase extends _$AppDatabase {
       LEFT JOIN categories c ON t.category_id = c.id
       WHERE
         LOWER(t.note) LIKE ?1 OR
+        LOWER(t.merchant) LIKE ?1 OR
         LOWER(t.type) LIKE ?1 OR
         LOWER(a.name) LIKE ?1 OR
         LOWER(c.name) LIKE ?1
@@ -869,4 +1005,20 @@ LazyDatabase _openConnection() {
     }
     return NativeDatabase(newFile);
   });
+}
+
+extension PaymentInstrumentText on PaymentInstrument {
+  /// Card terms such as `fxFeePercent`, stored as decimal strings.
+  Map<String, dynamic>? get termsJson =>
+      terms == null ? null : jsonDecode(terms!) as Map<String, dynamic>;
+
+  /// "CIB Visa ••1234", "Vodafone Cash", "InstaPay".
+  String get label {
+    final network = PaymentMethods.networkLabel(this.network);
+    final suffix = last4 == null ? '' : ' ••$last4';
+    if (network.isEmpty || name.toLowerCase().contains(network.toLowerCase())) {
+      return '$name$suffix';
+    }
+    return '$name $network$suffix';
+  }
 }

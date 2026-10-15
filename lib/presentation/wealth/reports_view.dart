@@ -1,3 +1,4 @@
+import '../../core/finance/transaction_classifier.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/motion/motion.dart';
@@ -408,25 +409,34 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
         missing = 0,
         forecast = Amount.zero,
         forecastMissing = 0;
-    for (final t in await db.getAllTransactions()) {
-      if (t.transactionDate.isBefore(previous) ||
-          !t.transactionDate.isBefore(end)) {
-        continue;
-      }
-      final details = await store.transactionDetails(t.id);
+    final inRange = (await db.getAllTransactions())
+        .where(
+          (t) =>
+              !t.transactionDate.isBefore(previous) &&
+              t.transactionDate.isBefore(end),
+        )
+        .toList();
+    final allDetails = await store.transactionDetailsFor(
+      inRange.map((t) => t.id),
+    );
+    for (final t in inRange) {
       final category = categories[t.categoryId];
-      if (t.linkedTransactionId != null ||
-          category?.name.toLowerCase().startsWith('transfer ') == true ||
-          ['asset', 'principal', 'transfer'].contains(details?['kind'])) {
-        continue;
-      }
-      final amount = await valuation.transactionValue(t.id, currency);
+      final flow = TransactionClassifier.classify(
+        t,
+        allDetails[t.id],
+        category,
+      );
+      if (!flow.isCashFlow) continue;
+      final signed = await valuation.transactionValue(t.id, currency);
+      final amount = signed == null || flow != FlowClass.refund
+          ? signed
+          : -signed;
       if (amount == null) {
         missing++;
         continue;
       }
       if (t.transactionDate.isBefore(start)) {
-        if (t.type == 'expense') prior += amount;
+        if (flow != FlowClass.income) prior += amount;
         continue;
       }
       var parent = parents['${t.categoryId}'];
@@ -437,7 +447,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
         parent = parents['$parent'];
       }
       final name = categories[parent]?.name ?? category?.name ?? 'Other';
-      if (t.type == 'income') {
+      if (flow == FlowClass.income) {
         income += amount;
         incomeGroups[name] = (incomeGroups[name] ?? Amount.zero) + amount;
       } else {

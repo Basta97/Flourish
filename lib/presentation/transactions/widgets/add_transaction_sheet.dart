@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
-import 'package:flourish/core/services/insights_service.dart';
+import 'package:flourish/core/services/category_suggester.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
@@ -72,8 +72,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final note = _noteController.text.trim();
     if (note.length < 3) return;
     final transactions = ref.read(transactionsProvider).valueOrNull ?? [];
-    final cats = ref.read(categoriesProvider).valueOrNull ?? [];
-    final suggested = InsightsService.suggestCategoryFromNote(
+    final cats = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
+    final suggested = CategorySuggester.suggest(
       note,
       transactions,
       categories: cats,
@@ -103,7 +103,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(pickableCategoriesProvider);
     final allAccounts = accountsAsync.valueOrNull ?? [];
     final effectiveFrom = _effectiveAccountId(allAccounts);
     final chosen = allAccounts.where((a) => a.id == effectiveFrom).firstOrNull;
@@ -322,7 +322,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _amountController.text,
       currency: currency,
     );
-    final categories = ref.read(categoriesProvider).valueOrNull ?? [];
+    final categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
     final filteredCategories = categories
         .where((category) => category.type == _mode)
         .toList();

@@ -1,3 +1,5 @@
+import 'package:flourish/core/utils/error_text.dart';
+import 'package:flourish/core/finance/system_categories.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish/shared/widgets/shimmer_loading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,7 +29,8 @@ class CategoriesManagementScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Manage Categories')),
       body: LiquidPageBackground(
         child: categoriesAsync.when(
-          data: (categories) {
+          data: (all) {
+            final categories = SystemCategories.pickable(all);
             if (categories.isEmpty) {
               return const EmptyState(
                 icon: Icons.category,
@@ -147,11 +150,20 @@ class _CategoryTile extends ConsumerWidget {
               color: AppColors.textSecondary(context),
             ),
           ),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20),
-            color: AppColors.danger.withValues(alpha: 0.6),
-            onPressed: () => _confirmDelete(context, ref, category),
-          ),
+          trailing: SystemCategories.isSystem(category)
+              ? Tooltip(
+                  message: 'Used for automatic entries; cannot be deleted',
+                  child: Icon(
+                    Icons.lock_outline_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary(context),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: AppColors.danger.withValues(alpha: 0.6),
+                  onPressed: () => _confirmDelete(context, ref, category),
+                ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Rad.md),
           ),
@@ -171,8 +183,10 @@ class _CategoryTile extends ConsumerWidget {
           title: const Text('Delete Category'),
           content: Text(
             count > 0
-                ? '"${cat.name}" has $count transactions. Deleting will move them to a fallback ${cat.type} category.'
-                : 'Delete "${cat.name}"?',
+                ? '"${cat.name}" has $count transactions. They will move to '
+                      '"${cat.type == 'income' ? 'Other income' : 'Other'}", '
+                      'and budgets for this category will be removed.'
+                : 'Delete "${cat.name}"? Budgets for it will be removed.',
           ),
           actions: [
             TextButton(
@@ -181,7 +195,15 @@ class _CategoryTile extends ConsumerWidget {
             ),
             TextButton(
               onPressed: () async {
-                await db.deleteCategoryAndReassignTransactions(cat.id);
+                try {
+                  await db.deleteCategoryAndReassignTransactions(cat.id);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(describeError(e))));
+                  }
+                }
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text(

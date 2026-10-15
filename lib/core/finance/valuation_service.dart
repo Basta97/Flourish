@@ -1,3 +1,4 @@
+import 'fx_policy.dart';
 import '../../domain/finance/models.dart';
 import '../../data/finance/finance_store.dart';
 
@@ -60,14 +61,13 @@ class ValuationService {
         .where(
           (o) =>
               o.key == key &&
-              (at == null ||
-                  o.effectiveAt.isBefore(
-                    DateTime.utc(at.year, at.month, at.day + 1),
-                  )),
+              (at == null || FxPolicy.usableFor(o.effectiveAt, at)),
         )
         .toList();
+    // Current values: a manual quote stays authoritative until cleared.
+    // Dated values: a manual quote wins only inside the historical window.
     matches.sort((a, b) {
-      if (at == null && a.manual != b.manual) return a.manual ? -1 : 1;
+      if (a.manual != b.manual) return a.manual ? -1 : 1;
       return b.effectiveAt.compareTo(a.effectiveAt);
     });
     return matches.firstOrNull;
@@ -97,27 +97,40 @@ class ValuationService {
     final amount = d == null ? Amount.fromNum(t.amount) : amountOf(d['amount']);
     if (originalCurrency == currency) return amount;
     final rate = (d?['rates'] as Json?)?[currency];
-    if (rate != null) return amount * amountOf(rate);
-    final converted = await convert(
-      amount,
-      originalCurrency,
-      currency,
+    final ratedAt = (d?['ratesAt'] as Json?)?[currency] as String?;
+    if (rate != null &&
+        (ratedAt == null ||
+            FxPolicy.usableFor(DateTime.parse(ratedAt), t.transactionDate))) {
+      return amount * amountOf(rate);
+    }
+    final direct = await observation(
+      'fx',
+      '$originalCurrency/$currency',
       at: t.transactionDate,
     );
-    if (converted != null) {
-      await store.setTransactionDetails(id, {
-        ...?d,
-        'amount': '$amount',
-        'currency': originalCurrency,
-        'kind':
-            d?['kind'] ?? (t.linkedTransactionId != null ? 'transfer' : 'cash'),
-        'rates': {
-          ...?(d?['rates'] as Json?),
-          currency: '${converted / amount}',
-        },
-      });
-    }
-    return converted;
+    final inverse = direct != null
+        ? null
+        : await observation(
+            'fx',
+            '$currency/$originalCurrency',
+            at: t.transactionDate,
+          );
+    final used = direct ?? inverse;
+    if (used == null) return null;
+    final unitRate = direct != null ? direct.value : Amount.one / used.value;
+    await store.setTransactionDetails(id, {
+      ...?d,
+      'amount': '$amount',
+      'currency': originalCurrency,
+      'kind':
+          d?['kind'] ?? (t.linkedTransactionId != null ? 'transfer' : 'cash'),
+      'rates': {...?(d?['rates'] as Json?), currency: '$unitRate'},
+      'ratesAt': {
+        ...?(d?['ratesAt'] as Json?),
+        currency: used.effectiveAt.toIso8601String(),
+      },
+    });
+    return amount * unitRate;
   }
 
   Future<WealthSummary> summary(String currency) async {

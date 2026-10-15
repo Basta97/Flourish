@@ -7,6 +7,7 @@ import '../providers/finance_providers.dart';
 import '../providers/theme_providers.dart';
 import '../providers/database_provider.dart';
 import '../../core/finance/backup_service.dart';
+import '../../core/finance/ledger_maintenance.dart';
 import '../../core/finance/reminder_service.dart';
 import '../../core/services/preferences_service.dart';
 import '../../core/motion/motion.dart';
@@ -72,6 +73,9 @@ class _FinanceRuntimeState extends ConsumerState<FinanceRuntime>
     running = true;
     final db = ref.read(databaseProvider);
     try {
+      await LedgerMaintenance(
+        db,
+      ).run(preferredCurrency: ref.read(defaultCurrencyProvider));
       await ref.read(recurringServiceProvider).processDue();
       if (!mounted) return;
       await _income();

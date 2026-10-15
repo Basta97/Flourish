@@ -107,7 +107,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(pickableCategoriesProvider);
     final currency =
         accountsAsync.valueOrNull
             ?.where((a) => a.id == _accountId)

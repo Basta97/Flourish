@@ -7,6 +7,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/finance/system_categories.dart';
 import 'tables/accounts_table.dart';
 import 'tables/transactions_table.dart';
 import 'tables/categories_table.dart';
@@ -163,24 +164,11 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  /// The catch-all category for [type], created when the user removed it.
+  /// The catch-all category for [type], created when missing.
   Future<Category> fallbackCategoryFor(String type) async {
-    final name = type == 'income' ? 'Other income' : 'Other';
-    final existing =
-        await (select(categories)
-              ..where((c) => c.type.equals(type) & c.name.equals(name))
-              ..limit(1))
-            .getSingleOrNull();
-    if (existing != null) return existing;
-    final id = await into(categories).insert(
-      CategoriesCompanion.insert(
-        name: name,
-        icon: 'more_horiz',
-        color: 0xFF6B7280,
-        type: type,
-        isDefault: const Value(true),
-        sortOrder: const Value(999),
-      ),
+    final id = await SystemCategories.idFor(
+      this,
+      type == 'income' ? 'other_income' : 'other_expense',
     );
     return (await getCategoryById(id))!;
   }
@@ -674,27 +662,40 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteCategory(int id) =>
       (delete(categories)..where((c) => c.id.equals(id))).go();
 
+  /// Deletes a user category, moving its entries and recurring rules to the
+  /// catch-all "Other"/"Other income". System categories cannot be deleted.
   Future<void> deleteCategoryAndReassignTransactions(int id) async {
     await transaction(() async {
       final category = await getCategoryById(id);
       if (category == null) return;
-
-      final fallbackCategory = await _resolveFallbackCategory(category);
-      if (fallbackCategory != null) {
-        await (update(
-          transactions,
-        )..where((t) => t.categoryId.equals(id))).write(
-          TransactionsCompanion(categoryId: Value(fallbackCategory.id)),
-        );
-        await (update(
-          recurringTransactions,
-        )..where((r) => r.categoryId.equals(id))).write(
-          RecurringTransactionsCompanion(
-            categoryId: Value(fallbackCategory.id),
-          ),
+      if (SystemCategories.isSystem(category)) {
+        throw const TransactionLogicException(
+          'This category is used for automatic entries and cannot be deleted.',
         );
       }
-
+      final fallback = await fallbackCategoryFor(category.type);
+      await (update(transactions)..where((t) => t.categoryId.equals(id))).write(
+        TransactionsCompanion(categoryId: Value(fallback.id)),
+      );
+      await (update(
+        recurringTransactions,
+      )..where((r) => r.categoryId.equals(id))).write(
+        RecurringTransactionsCompanion(categoryId: Value(fallback.id)),
+      );
+      final store = FinanceStore(this);
+      for (final link in await store.list('categoryParents')) {
+        if (link['child'] == id || link['parent'] == id) {
+          await store.remove('categoryParents', '${link['child']}');
+        }
+      }
+      for (final template in await store.list('templates')) {
+        if (template['category'] == '$id') {
+          await store.put('templates', template['id'], {
+            ...template,
+            'category': '${fallback.id}',
+          });
+        }
+      }
       await deleteCategory(id);
     });
   }
@@ -706,31 +707,6 @@ class AppDatabase extends _$AppDatabase {
           ..where(transactions.categoryId.equals(id)))
         .map((row) => row.read(countExpr) ?? 0)
         .getSingle();
-  }
-
-  Future<Category?> _resolveFallbackCategory(Category category) async {
-    final sameType =
-        await (select(categories)
-              ..where(
-                (c) =>
-                    c.type.equals(category.type) & c.id.isNotValue(category.id),
-              )
-              ..orderBy([
-                (c) => OrderingTerm(
-                  expression: c.isDefault,
-                  mode: OrderingMode.desc,
-                ),
-                (c) => OrderingTerm(expression: c.sortOrder),
-              ]))
-            .get();
-
-    if (sameType.isEmpty) return null;
-
-    for (final candidate in sameType) {
-      if (candidate.name.toLowerCase() == 'other') return candidate;
-    }
-
-    return sameType.first;
   }
 
   // ========== Budgets ==========

@@ -1,5 +1,7 @@
+import 'fx_policy.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'system_categories.dart';
 import '../../data/database/database.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
@@ -38,15 +40,9 @@ class FinancialLedgerService {
     }
     final category =
         categoryId ??
-        await _category(
-          type,
-          kind == 'fee'
-              ? 'Investment fees'
-              : kind == 'transfer'
-              ? (type == 'income' ? 'Transfer In' : 'Transfer Out')
-              : ['asset', 'principal'].contains(kind)
-              ? 'Transfer $kind'
-              : 'Other',
+        await SystemCategories.idFor(
+          db,
+          SystemCategories.keyFor(kind, type, feeType: extra?['feeType']),
         );
     final c = await db.getCategoryById(category);
     if (c == null || c.type != type) {
@@ -101,9 +97,7 @@ class FinancialLedgerService {
         .where(
           (r) =>
               r.key.startsWith('$currency/') &&
-              r.effectiveAt.isBefore(
-                DateTime.utc(date.year, date.month, date.day + 1),
-              ),
+              FxPolicy.usableFor(r.effectiveAt, date),
         )
         .toList();
     rates.sort((a, b) {
@@ -111,8 +105,11 @@ class FinancialLedgerService {
       return b.effectiveAt.compareTo(a.effectiveAt);
     });
     final snapshots = <String, String>{currency: '1'};
+    final ratedAt = <String, String>{};
     for (final r in rates) {
-      snapshots.putIfAbsent(r.currency, () => '${r.value}');
+      if (snapshots.containsKey(r.currency)) continue;
+      snapshots[r.currency] = '${r.value}';
+      ratedAt[r.currency] = r.effectiveAt.toIso8601String();
     }
     await store.setTransactionDetails(id, {
       ...?keep,
@@ -121,21 +118,8 @@ class FinancialLedgerService {
       'date': date.toIso8601String(),
       'kind': kind,
       'rates': snapshots,
+      'ratesAt': ratedAt,
     });
-  }
-
-  Future<int> _category(String type, String name) async {
-    for (final c in await db.getAllCategories()) {
-      if (c.type == type && c.name == name) return c.id;
-    }
-    return db.insertCategory(
-      CategoriesCompanion.insert(
-        name: name,
-        icon: 'swap_horiz',
-        color: 0xFF4F46E5,
-        type: type,
-      ),
-    );
   }
 
   Future<void> insertTransactionAndUpdateBalance(
@@ -509,6 +493,7 @@ class FinancialLedgerService {
             kind: 'fee',
             note: 'Transfer fee',
             date: date,
+            extra: {'feeType': 'transfer'},
           )
         : null;
     if (feeId != null) {
@@ -649,6 +634,7 @@ class FinancialLedgerService {
             kind: 'fee',
             note: '${h.name} fee',
             date: date,
+            extra: {'feeType': 'investment'},
           )
         : null;
     if (feeId != null) {

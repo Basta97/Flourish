@@ -506,7 +506,7 @@ Future<void> templates(BuildContext context, WidgetRef ref) async {
 
 Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
   final accounts = ref.read(accountsProvider).valueOrNull ?? [],
-      categories = ref.read(categoriesProvider).valueOrNull ?? [];
+      categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
   await financeForm(
     context,
     title: j == null ? 'Save template' : 'Review template transaction',
@@ -567,7 +567,7 @@ Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
 }
 
 Future<void> subcategory(BuildContext context, WidgetRef ref) async {
-  final categories = ref.read(categoriesProvider).valueOrNull ?? [];
+  final categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
   await financeForm(
     context,
     title: 'Assign subcategory',

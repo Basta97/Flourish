@@ -16,6 +16,8 @@ void main() {
     'lib/data/finance/finance_store.dart',
     'lib/data/database/database.dart',
     'lib/data/database/database.g.dart',
+    // Re-points entries from merged legacy categories; never moves money.
+    'lib/core/finance/ledger_maintenance.dart',
     // Whole-file restore of a legacy JSON backup, which carries its balances.
     'lib/presentation/settings/settings_screen.dart',
   };

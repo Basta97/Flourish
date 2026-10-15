@@ -1,4 +1,5 @@
 import 'presentation/wealth/finance_runtime.dart';
+import 'presentation/transactions/import_runtime.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,7 +38,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db)],
-      child: const FinanceRuntime(child: FlourishApp()),
+      child: const FinanceRuntime(child: ImportRuntime(child: FlourishApp())),
     ),
   );
 }

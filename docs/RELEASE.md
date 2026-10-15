@@ -101,7 +101,7 @@ Or use the GitHub web UI: **Releases → Draft a new release** → choose tag �
 
 ## Automated release (optional)
 
-Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) runs on tags `v*`:
+Workflow templates live in [`docs/ci/release.yml`](ci/release.yml) (copy to `.github/workflows/release.yml` in the repo). On tags `v*`:
 
 1. Runs `flutter test`
 2. If Android signing secrets are configured, builds `app-release.apk` and attaches it to the GitHub Release
@@ -128,6 +128,6 @@ GitHub Releases are commonly used for **Android APKs**. iOS builds need Apple De
 
 ## CI on every push
 
-[`.github/workflows/flutter.yml`](../.github/workflows/flutter.yml) runs format, analyze, and tests on pull requests and pushes to `main`.
+CI template: [`docs/ci/flutter.yml`](ci/flutter.yml) → `.github/workflows/flutter.yml` runs format, analyze, and tests on pull requests and pushes to `main`.
 
 **Note:** Pushing workflow files requires a Git credential with the **`workflow`** OAuth scope (or SSH). If push is rejected, add the workflow via the GitHub web editor or update your token scopes.

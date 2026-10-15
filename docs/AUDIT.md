@@ -71,6 +71,12 @@ can't receive contributions; "Reset all data" is not transactional.
 
 ## Status
 
+Remaining items intentionally not changed: the iOS bundle / app-group id
+`com.basta.bastasaving` (changing it would break existing installs), and the
+v1-era credit-card sign (only affects databases created by the first
+release; reconcile those cards once via Manage account).
+
+
 | Phase | Scope | Status |
 |---|---|---|
 | 1A | One write path for money, recurring/undo/auto-income, legacy DB repair | done |
@@ -81,4 +87,5 @@ can't receive contributions; "Reset all data" is not transactional.
 | 3A | English/Arabic bank & wallet message parser with 44 fixtures | done |
 | 3B | Detected-payments inbox (schema v8), matching, dedupe, auto-confirm, settings | done |
 | 3C | Android notification listener + durable queue (compile-checked; needs device test) | done |
-| 3D–3E | iOS Shortcuts queue, docs | planned |
+| 3D | iOS Shortcuts actions + app-group queue (needs Xcode build and device test) | done |
+| 3E | Settings, privacy controls, documentation | done |

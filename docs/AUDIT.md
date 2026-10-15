@@ -78,4 +78,5 @@ can't receive contributions; "Reset all data" is not transactional.
 | 1C | Transfer classification, system categories, FX freshness, dead code | done |
 | 2A | Schema v7: cards & wallets, payment method/merchant/source on entries, FX purchases, refunds, cash advances, recurring transfers | done |
 | 2B–2D | Credit card terms (limit, APR, minimum due, fees), paid-with / foreign currency / refund in forms, card panel, reports by method/card/currency/fees | done |
-| 3A–3E | Automatic payment detection (EN/AR parser, inbox, Android listener, iOS Shortcuts) | planned |
+| 3A | English/Arabic bank & wallet message parser with 44 fixtures | done |
+| 3B–3E | Detection inbox, Android notification listener, iOS Shortcuts, settings | planned |

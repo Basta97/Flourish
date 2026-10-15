@@ -17,6 +17,7 @@ import 'tables/budgets_table.dart';
 import 'tables/recurring_transactions_table.dart';
 import 'tables/goals_table.dart';
 import 'tables/payment_instruments_table.dart';
+import 'tables/detected_payments_table.dart';
 
 part 'database.g.dart';
 
@@ -29,6 +30,7 @@ part 'database.g.dart';
     RecurringTransactions,
     Goals,
     PaymentInstruments,
+    DetectedPayments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -54,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   final financeChanges = StreamController<void>.broadcast();
   void notifyFinanceChanged() {
@@ -144,6 +146,9 @@ class AppDatabase extends _$AppDatabase {
           );
           await SystemCategories.backfillKeys(this);
         }
+        if (from < 8 && !await _hasTable('detected_payments')) {
+          await m.createTable(detectedPayments);
+        }
         await _ensureIndexes();
       },
       beforeOpen: (details) async {
@@ -184,6 +189,8 @@ class AppDatabase extends _$AppDatabase {
       'CREATE INDEX IF NOT EXISTS idx_transactions_source_ref ON transactions(source_ref)',
       'CREATE INDEX IF NOT EXISTS idx_payment_instruments_account ON payment_instruments(account_id)',
       'CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_system_key ON categories(system_key) WHERE system_key IS NOT NULL',
+      'CREATE INDEX IF NOT EXISTS idx_detected_status ON detected_payments(status, received_at)',
+      'CREATE INDEX IF NOT EXISTS idx_detected_amount ON detected_payments(amount, currency, occurred_at)',
     ]) {
       await customStatement(statement);
     }

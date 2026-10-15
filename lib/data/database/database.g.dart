@@ -4298,6 +4298,1616 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   }
 }
 
+class $DetectedPaymentsTable extends DetectedPayments
+    with TableInfo<$DetectedPaymentsTable, DetectedPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DetectedPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fingerprintMeta = const VerificationMeta(
+    'fingerprint',
+  );
+  @override
+  late final GeneratedColumn<String> fingerprint = GeneratedColumn<String>(
+    'fingerprint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _senderMeta = const VerificationMeta('sender');
+  @override
+  late final GeneratedColumn<String> sender = GeneratedColumn<String>(
+    'sender',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _packageNameMeta = const VerificationMeta(
+    'packageName',
+  );
+  @override
+  late final GeneratedColumn<String> packageName = GeneratedColumn<String>(
+    'package_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawTextMeta = const VerificationMeta(
+    'rawText',
+  );
+  @override
+  late final GeneratedColumn<String> rawText = GeneratedColumn<String>(
+    'raw_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _receivedAtMeta = const VerificationMeta(
+    'receivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> receivedAt = GeneratedColumn<DateTime>(
+    'received_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parsedMeta = const VerificationMeta('parsed');
+  @override
+  late final GeneratedColumn<String> parsed = GeneratedColumn<String>(
+    'parsed',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parserVersionMeta = const VerificationMeta(
+    'parserVersion',
+  );
+  @override
+  late final GeneratedColumn<int> parserVersion = GeneratedColumn<int>(
+    'parser_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<String> amount = GeneratedColumn<String>(
+    'amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _directionMeta = const VerificationMeta(
+    'direction',
+  );
+  @override
+  late final GeneratedColumn<String> direction = GeneratedColumn<String>(
+    'direction',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _merchantMeta = const VerificationMeta(
+    'merchant',
+  );
+  @override
+  late final GeneratedColumn<String> merchant = GeneratedColumn<String>(
+    'merchant',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _last4Meta = const VerificationMeta('last4');
+  @override
+  late final GeneratedColumn<String> last4 = GeneratedColumn<String>(
+    'last4',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _balanceAfterMeta = const VerificationMeta(
+    'balanceAfter',
+  );
+  @override
+  late final GeneratedColumn<String> balanceAfter = GeneratedColumn<String>(
+    'balance_after',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _toAccountIdMeta = const VerificationMeta(
+    'toAccountId',
+  );
+  @override
+  late final GeneratedColumn<int> toAccountId = GeneratedColumn<int>(
+    'to_account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _instrumentIdMeta = const VerificationMeta(
+    'instrumentId',
+  );
+  @override
+  late final GeneratedColumn<int> instrumentId = GeneratedColumn<int>(
+    'instrument_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES payment_instruments (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _transactionIdMeta = const VerificationMeta(
+    'transactionId',
+  );
+  @override
+  late final GeneratedColumn<int> transactionId = GeneratedColumn<int>(
+    'transaction_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES transactions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _matchTransactionIdMeta =
+      const VerificationMeta('matchTransactionId');
+  @override
+  late final GeneratedColumn<int> matchTransactionId = GeneratedColumn<int>(
+    'match_transaction_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES transactions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _duplicateOfIdMeta = const VerificationMeta(
+    'duplicateOfId',
+  );
+  @override
+  late final GeneratedColumn<int> duplicateOfId = GeneratedColumn<int>(
+    'duplicate_of_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _autoConfirmedMeta = const VerificationMeta(
+    'autoConfirmed',
+  );
+  @override
+  late final GeneratedColumn<bool> autoConfirmed = GeneratedColumn<bool>(
+    'auto_confirmed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_confirmed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _resolvedAtMeta = const VerificationMeta(
+    'resolvedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+    'resolved_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fingerprint,
+    source,
+    sender,
+    packageName,
+    rawText,
+    receivedAt,
+    parsed,
+    parserVersion,
+    amount,
+    currency,
+    direction,
+    kind,
+    merchant,
+    last4,
+    occurredAt,
+    balanceAfter,
+    accountId,
+    toAccountId,
+    instrumentId,
+    categoryId,
+    confidence,
+    status,
+    transactionId,
+    matchTransactionId,
+    duplicateOfId,
+    autoConfirmed,
+    createdAt,
+    resolvedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'detected_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DetectedPayment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('fingerprint')) {
+      context.handle(
+        _fingerprintMeta,
+        fingerprint.isAcceptableOrUnknown(
+          data['fingerprint']!,
+          _fingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fingerprintMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('sender')) {
+      context.handle(
+        _senderMeta,
+        sender.isAcceptableOrUnknown(data['sender']!, _senderMeta),
+      );
+    }
+    if (data.containsKey('package_name')) {
+      context.handle(
+        _packageNameMeta,
+        packageName.isAcceptableOrUnknown(
+          data['package_name']!,
+          _packageNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('raw_text')) {
+      context.handle(
+        _rawTextMeta,
+        rawText.isAcceptableOrUnknown(data['raw_text']!, _rawTextMeta),
+      );
+    }
+    if (data.containsKey('received_at')) {
+      context.handle(
+        _receivedAtMeta,
+        receivedAt.isAcceptableOrUnknown(data['received_at']!, _receivedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_receivedAtMeta);
+    }
+    if (data.containsKey('parsed')) {
+      context.handle(
+        _parsedMeta,
+        parsed.isAcceptableOrUnknown(data['parsed']!, _parsedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_parsedMeta);
+    }
+    if (data.containsKey('parser_version')) {
+      context.handle(
+        _parserVersionMeta,
+        parserVersion.isAcceptableOrUnknown(
+          data['parser_version']!,
+          _parserVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_parserVersionMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('direction')) {
+      context.handle(
+        _directionMeta,
+        direction.isAcceptableOrUnknown(data['direction']!, _directionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_directionMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('merchant')) {
+      context.handle(
+        _merchantMeta,
+        merchant.isAcceptableOrUnknown(data['merchant']!, _merchantMeta),
+      );
+    }
+    if (data.containsKey('last4')) {
+      context.handle(
+        _last4Meta,
+        last4.isAcceptableOrUnknown(data['last4']!, _last4Meta),
+      );
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    }
+    if (data.containsKey('balance_after')) {
+      context.handle(
+        _balanceAfterMeta,
+        balanceAfter.isAcceptableOrUnknown(
+          data['balance_after']!,
+          _balanceAfterMeta,
+        ),
+      );
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
+    if (data.containsKey('to_account_id')) {
+      context.handle(
+        _toAccountIdMeta,
+        toAccountId.isAcceptableOrUnknown(
+          data['to_account_id']!,
+          _toAccountIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('instrument_id')) {
+      context.handle(
+        _instrumentIdMeta,
+        instrumentId.isAcceptableOrUnknown(
+          data['instrument_id']!,
+          _instrumentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('transaction_id')) {
+      context.handle(
+        _transactionIdMeta,
+        transactionId.isAcceptableOrUnknown(
+          data['transaction_id']!,
+          _transactionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('match_transaction_id')) {
+      context.handle(
+        _matchTransactionIdMeta,
+        matchTransactionId.isAcceptableOrUnknown(
+          data['match_transaction_id']!,
+          _matchTransactionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('duplicate_of_id')) {
+      context.handle(
+        _duplicateOfIdMeta,
+        duplicateOfId.isAcceptableOrUnknown(
+          data['duplicate_of_id']!,
+          _duplicateOfIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_confirmed')) {
+      context.handle(
+        _autoConfirmedMeta,
+        autoConfirmed.isAcceptableOrUnknown(
+          data['auto_confirmed']!,
+          _autoConfirmedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+        _resolvedAtMeta,
+        resolvedAt.isAcceptableOrUnknown(data['resolved_at']!, _resolvedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DetectedPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DetectedPayment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fingerprint'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      sender: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sender'],
+      ),
+      packageName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}package_name'],
+      ),
+      rawText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_text'],
+      ),
+      receivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}received_at'],
+      )!,
+      parsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parsed'],
+      )!,
+      parserVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parser_version'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}amount'],
+      ),
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      ),
+      direction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}direction'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      ),
+      merchant: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merchant'],
+      ),
+      last4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last4'],
+      ),
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      ),
+      balanceAfter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}balance_after'],
+      ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      ),
+      toAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}to_account_id'],
+      ),
+      instrumentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}instrument_id'],
+      ),
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      ),
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      transactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}transaction_id'],
+      ),
+      matchTransactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}match_transaction_id'],
+      ),
+      duplicateOfId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duplicate_of_id'],
+      ),
+      autoConfirmed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_confirmed'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      resolvedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}resolved_at'],
+      ),
+    );
+  }
+
+  @override
+  $DetectedPaymentsTable createAlias(String alias) {
+    return $DetectedPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class DetectedPayment extends DataClass implements Insertable<DetectedPayment> {
+  final int id;
+
+  /// Hash of source, sender, text and minute; repeats are ignored.
+  final String fingerprint;
+
+  /// android_notification, android_share, ios_shortcut, ios_wallet,
+  /// ios_share, paste, ocr.
+  final String source;
+  final String? sender;
+  final String? packageName;
+
+  /// The message with card numbers, IDs and codes removed; cleared after
+  /// the retention period.
+  final String? rawText;
+  final DateTime receivedAt;
+
+  /// ParsedPayment as JSON.
+  final String parsed;
+  final int parserVersion;
+
+  /// Exact decimal text.
+  final String? amount;
+  final String? currency;
+  final String direction;
+  final String? kind;
+  final String? merchant;
+  final String? last4;
+  final DateTime? occurredAt;
+  final String? balanceAfter;
+  final int? accountId;
+  final int? toAccountId;
+  final int? instrumentId;
+  final int? categoryId;
+  final double confidence;
+
+  /// pending, confirmed, dismissed, duplicate.
+  final String status;
+  final int? transactionId;
+
+  /// An existing ledger entry that may already record this payment.
+  final int? matchTransactionId;
+  final int? duplicateOfId;
+  final bool autoConfirmed;
+  final DateTime createdAt;
+  final DateTime? resolvedAt;
+  const DetectedPayment({
+    required this.id,
+    required this.fingerprint,
+    required this.source,
+    this.sender,
+    this.packageName,
+    this.rawText,
+    required this.receivedAt,
+    required this.parsed,
+    required this.parserVersion,
+    this.amount,
+    this.currency,
+    required this.direction,
+    this.kind,
+    this.merchant,
+    this.last4,
+    this.occurredAt,
+    this.balanceAfter,
+    this.accountId,
+    this.toAccountId,
+    this.instrumentId,
+    this.categoryId,
+    required this.confidence,
+    required this.status,
+    this.transactionId,
+    this.matchTransactionId,
+    this.duplicateOfId,
+    required this.autoConfirmed,
+    required this.createdAt,
+    this.resolvedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['fingerprint'] = Variable<String>(fingerprint);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || sender != null) {
+      map['sender'] = Variable<String>(sender);
+    }
+    if (!nullToAbsent || packageName != null) {
+      map['package_name'] = Variable<String>(packageName);
+    }
+    if (!nullToAbsent || rawText != null) {
+      map['raw_text'] = Variable<String>(rawText);
+    }
+    map['received_at'] = Variable<DateTime>(receivedAt);
+    map['parsed'] = Variable<String>(parsed);
+    map['parser_version'] = Variable<int>(parserVersion);
+    if (!nullToAbsent || amount != null) {
+      map['amount'] = Variable<String>(amount);
+    }
+    if (!nullToAbsent || currency != null) {
+      map['currency'] = Variable<String>(currency);
+    }
+    map['direction'] = Variable<String>(direction);
+    if (!nullToAbsent || kind != null) {
+      map['kind'] = Variable<String>(kind);
+    }
+    if (!nullToAbsent || merchant != null) {
+      map['merchant'] = Variable<String>(merchant);
+    }
+    if (!nullToAbsent || last4 != null) {
+      map['last4'] = Variable<String>(last4);
+    }
+    if (!nullToAbsent || occurredAt != null) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt);
+    }
+    if (!nullToAbsent || balanceAfter != null) {
+      map['balance_after'] = Variable<String>(balanceAfter);
+    }
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<int>(accountId);
+    }
+    if (!nullToAbsent || toAccountId != null) {
+      map['to_account_id'] = Variable<int>(toAccountId);
+    }
+    if (!nullToAbsent || instrumentId != null) {
+      map['instrument_id'] = Variable<int>(instrumentId);
+    }
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<int>(categoryId);
+    }
+    map['confidence'] = Variable<double>(confidence);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || transactionId != null) {
+      map['transaction_id'] = Variable<int>(transactionId);
+    }
+    if (!nullToAbsent || matchTransactionId != null) {
+      map['match_transaction_id'] = Variable<int>(matchTransactionId);
+    }
+    if (!nullToAbsent || duplicateOfId != null) {
+      map['duplicate_of_id'] = Variable<int>(duplicateOfId);
+    }
+    map['auto_confirmed'] = Variable<bool>(autoConfirmed);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    return map;
+  }
+
+  DetectedPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return DetectedPaymentsCompanion(
+      id: Value(id),
+      fingerprint: Value(fingerprint),
+      source: Value(source),
+      sender: sender == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sender),
+      packageName: packageName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageName),
+      rawText: rawText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawText),
+      receivedAt: Value(receivedAt),
+      parsed: Value(parsed),
+      parserVersion: Value(parserVersion),
+      amount: amount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amount),
+      currency: currency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currency),
+      direction: Value(direction),
+      kind: kind == null && nullToAbsent ? const Value.absent() : Value(kind),
+      merchant: merchant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(merchant),
+      last4: last4 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(last4),
+      occurredAt: occurredAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(occurredAt),
+      balanceAfter: balanceAfter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(balanceAfter),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
+      toAccountId: toAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toAccountId),
+      instrumentId: instrumentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(instrumentId),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      confidence: Value(confidence),
+      status: Value(status),
+      transactionId: transactionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transactionId),
+      matchTransactionId: matchTransactionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(matchTransactionId),
+      duplicateOfId: duplicateOfId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(duplicateOfId),
+      autoConfirmed: Value(autoConfirmed),
+      createdAt: Value(createdAt),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+    );
+  }
+
+  factory DetectedPayment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DetectedPayment(
+      id: serializer.fromJson<int>(json['id']),
+      fingerprint: serializer.fromJson<String>(json['fingerprint']),
+      source: serializer.fromJson<String>(json['source']),
+      sender: serializer.fromJson<String?>(json['sender']),
+      packageName: serializer.fromJson<String?>(json['packageName']),
+      rawText: serializer.fromJson<String?>(json['rawText']),
+      receivedAt: serializer.fromJson<DateTime>(json['receivedAt']),
+      parsed: serializer.fromJson<String>(json['parsed']),
+      parserVersion: serializer.fromJson<int>(json['parserVersion']),
+      amount: serializer.fromJson<String?>(json['amount']),
+      currency: serializer.fromJson<String?>(json['currency']),
+      direction: serializer.fromJson<String>(json['direction']),
+      kind: serializer.fromJson<String?>(json['kind']),
+      merchant: serializer.fromJson<String?>(json['merchant']),
+      last4: serializer.fromJson<String?>(json['last4']),
+      occurredAt: serializer.fromJson<DateTime?>(json['occurredAt']),
+      balanceAfter: serializer.fromJson<String?>(json['balanceAfter']),
+      accountId: serializer.fromJson<int?>(json['accountId']),
+      toAccountId: serializer.fromJson<int?>(json['toAccountId']),
+      instrumentId: serializer.fromJson<int?>(json['instrumentId']),
+      categoryId: serializer.fromJson<int?>(json['categoryId']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      status: serializer.fromJson<String>(json['status']),
+      transactionId: serializer.fromJson<int?>(json['transactionId']),
+      matchTransactionId: serializer.fromJson<int?>(json['matchTransactionId']),
+      duplicateOfId: serializer.fromJson<int?>(json['duplicateOfId']),
+      autoConfirmed: serializer.fromJson<bool>(json['autoConfirmed']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fingerprint': serializer.toJson<String>(fingerprint),
+      'source': serializer.toJson<String>(source),
+      'sender': serializer.toJson<String?>(sender),
+      'packageName': serializer.toJson<String?>(packageName),
+      'rawText': serializer.toJson<String?>(rawText),
+      'receivedAt': serializer.toJson<DateTime>(receivedAt),
+      'parsed': serializer.toJson<String>(parsed),
+      'parserVersion': serializer.toJson<int>(parserVersion),
+      'amount': serializer.toJson<String?>(amount),
+      'currency': serializer.toJson<String?>(currency),
+      'direction': serializer.toJson<String>(direction),
+      'kind': serializer.toJson<String?>(kind),
+      'merchant': serializer.toJson<String?>(merchant),
+      'last4': serializer.toJson<String?>(last4),
+      'occurredAt': serializer.toJson<DateTime?>(occurredAt),
+      'balanceAfter': serializer.toJson<String?>(balanceAfter),
+      'accountId': serializer.toJson<int?>(accountId),
+      'toAccountId': serializer.toJson<int?>(toAccountId),
+      'instrumentId': serializer.toJson<int?>(instrumentId),
+      'categoryId': serializer.toJson<int?>(categoryId),
+      'confidence': serializer.toJson<double>(confidence),
+      'status': serializer.toJson<String>(status),
+      'transactionId': serializer.toJson<int?>(transactionId),
+      'matchTransactionId': serializer.toJson<int?>(matchTransactionId),
+      'duplicateOfId': serializer.toJson<int?>(duplicateOfId),
+      'autoConfirmed': serializer.toJson<bool>(autoConfirmed),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+    };
+  }
+
+  DetectedPayment copyWith({
+    int? id,
+    String? fingerprint,
+    String? source,
+    Value<String?> sender = const Value.absent(),
+    Value<String?> packageName = const Value.absent(),
+    Value<String?> rawText = const Value.absent(),
+    DateTime? receivedAt,
+    String? parsed,
+    int? parserVersion,
+    Value<String?> amount = const Value.absent(),
+    Value<String?> currency = const Value.absent(),
+    String? direction,
+    Value<String?> kind = const Value.absent(),
+    Value<String?> merchant = const Value.absent(),
+    Value<String?> last4 = const Value.absent(),
+    Value<DateTime?> occurredAt = const Value.absent(),
+    Value<String?> balanceAfter = const Value.absent(),
+    Value<int?> accountId = const Value.absent(),
+    Value<int?> toAccountId = const Value.absent(),
+    Value<int?> instrumentId = const Value.absent(),
+    Value<int?> categoryId = const Value.absent(),
+    double? confidence,
+    String? status,
+    Value<int?> transactionId = const Value.absent(),
+    Value<int?> matchTransactionId = const Value.absent(),
+    Value<int?> duplicateOfId = const Value.absent(),
+    bool? autoConfirmed,
+    DateTime? createdAt,
+    Value<DateTime?> resolvedAt = const Value.absent(),
+  }) => DetectedPayment(
+    id: id ?? this.id,
+    fingerprint: fingerprint ?? this.fingerprint,
+    source: source ?? this.source,
+    sender: sender.present ? sender.value : this.sender,
+    packageName: packageName.present ? packageName.value : this.packageName,
+    rawText: rawText.present ? rawText.value : this.rawText,
+    receivedAt: receivedAt ?? this.receivedAt,
+    parsed: parsed ?? this.parsed,
+    parserVersion: parserVersion ?? this.parserVersion,
+    amount: amount.present ? amount.value : this.amount,
+    currency: currency.present ? currency.value : this.currency,
+    direction: direction ?? this.direction,
+    kind: kind.present ? kind.value : this.kind,
+    merchant: merchant.present ? merchant.value : this.merchant,
+    last4: last4.present ? last4.value : this.last4,
+    occurredAt: occurredAt.present ? occurredAt.value : this.occurredAt,
+    balanceAfter: balanceAfter.present ? balanceAfter.value : this.balanceAfter,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
+    instrumentId: instrumentId.present ? instrumentId.value : this.instrumentId,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    confidence: confidence ?? this.confidence,
+    status: status ?? this.status,
+    transactionId: transactionId.present
+        ? transactionId.value
+        : this.transactionId,
+    matchTransactionId: matchTransactionId.present
+        ? matchTransactionId.value
+        : this.matchTransactionId,
+    duplicateOfId: duplicateOfId.present
+        ? duplicateOfId.value
+        : this.duplicateOfId,
+    autoConfirmed: autoConfirmed ?? this.autoConfirmed,
+    createdAt: createdAt ?? this.createdAt,
+    resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+  );
+  DetectedPayment copyWithCompanion(DetectedPaymentsCompanion data) {
+    return DetectedPayment(
+      id: data.id.present ? data.id.value : this.id,
+      fingerprint: data.fingerprint.present
+          ? data.fingerprint.value
+          : this.fingerprint,
+      source: data.source.present ? data.source.value : this.source,
+      sender: data.sender.present ? data.sender.value : this.sender,
+      packageName: data.packageName.present
+          ? data.packageName.value
+          : this.packageName,
+      rawText: data.rawText.present ? data.rawText.value : this.rawText,
+      receivedAt: data.receivedAt.present
+          ? data.receivedAt.value
+          : this.receivedAt,
+      parsed: data.parsed.present ? data.parsed.value : this.parsed,
+      parserVersion: data.parserVersion.present
+          ? data.parserVersion.value
+          : this.parserVersion,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      direction: data.direction.present ? data.direction.value : this.direction,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      merchant: data.merchant.present ? data.merchant.value : this.merchant,
+      last4: data.last4.present ? data.last4.value : this.last4,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+      balanceAfter: data.balanceAfter.present
+          ? data.balanceAfter.value
+          : this.balanceAfter,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      toAccountId: data.toAccountId.present
+          ? data.toAccountId.value
+          : this.toAccountId,
+      instrumentId: data.instrumentId.present
+          ? data.instrumentId.value
+          : this.instrumentId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      status: data.status.present ? data.status.value : this.status,
+      transactionId: data.transactionId.present
+          ? data.transactionId.value
+          : this.transactionId,
+      matchTransactionId: data.matchTransactionId.present
+          ? data.matchTransactionId.value
+          : this.matchTransactionId,
+      duplicateOfId: data.duplicateOfId.present
+          ? data.duplicateOfId.value
+          : this.duplicateOfId,
+      autoConfirmed: data.autoConfirmed.present
+          ? data.autoConfirmed.value
+          : this.autoConfirmed,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      resolvedAt: data.resolvedAt.present
+          ? data.resolvedAt.value
+          : this.resolvedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DetectedPayment(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('source: $source, ')
+          ..write('sender: $sender, ')
+          ..write('packageName: $packageName, ')
+          ..write('rawText: $rawText, ')
+          ..write('receivedAt: $receivedAt, ')
+          ..write('parsed: $parsed, ')
+          ..write('parserVersion: $parserVersion, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('direction: $direction, ')
+          ..write('kind: $kind, ')
+          ..write('merchant: $merchant, ')
+          ..write('last4: $last4, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('balanceAfter: $balanceAfter, ')
+          ..write('accountId: $accountId, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('instrumentId: $instrumentId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('confidence: $confidence, ')
+          ..write('status: $status, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('matchTransactionId: $matchTransactionId, ')
+          ..write('duplicateOfId: $duplicateOfId, ')
+          ..write('autoConfirmed: $autoConfirmed, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('resolvedAt: $resolvedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    fingerprint,
+    source,
+    sender,
+    packageName,
+    rawText,
+    receivedAt,
+    parsed,
+    parserVersion,
+    amount,
+    currency,
+    direction,
+    kind,
+    merchant,
+    last4,
+    occurredAt,
+    balanceAfter,
+    accountId,
+    toAccountId,
+    instrumentId,
+    categoryId,
+    confidence,
+    status,
+    transactionId,
+    matchTransactionId,
+    duplicateOfId,
+    autoConfirmed,
+    createdAt,
+    resolvedAt,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DetectedPayment &&
+          other.id == this.id &&
+          other.fingerprint == this.fingerprint &&
+          other.source == this.source &&
+          other.sender == this.sender &&
+          other.packageName == this.packageName &&
+          other.rawText == this.rawText &&
+          other.receivedAt == this.receivedAt &&
+          other.parsed == this.parsed &&
+          other.parserVersion == this.parserVersion &&
+          other.amount == this.amount &&
+          other.currency == this.currency &&
+          other.direction == this.direction &&
+          other.kind == this.kind &&
+          other.merchant == this.merchant &&
+          other.last4 == this.last4 &&
+          other.occurredAt == this.occurredAt &&
+          other.balanceAfter == this.balanceAfter &&
+          other.accountId == this.accountId &&
+          other.toAccountId == this.toAccountId &&
+          other.instrumentId == this.instrumentId &&
+          other.categoryId == this.categoryId &&
+          other.confidence == this.confidence &&
+          other.status == this.status &&
+          other.transactionId == this.transactionId &&
+          other.matchTransactionId == this.matchTransactionId &&
+          other.duplicateOfId == this.duplicateOfId &&
+          other.autoConfirmed == this.autoConfirmed &&
+          other.createdAt == this.createdAt &&
+          other.resolvedAt == this.resolvedAt);
+}
+
+class DetectedPaymentsCompanion extends UpdateCompanion<DetectedPayment> {
+  final Value<int> id;
+  final Value<String> fingerprint;
+  final Value<String> source;
+  final Value<String?> sender;
+  final Value<String?> packageName;
+  final Value<String?> rawText;
+  final Value<DateTime> receivedAt;
+  final Value<String> parsed;
+  final Value<int> parserVersion;
+  final Value<String?> amount;
+  final Value<String?> currency;
+  final Value<String> direction;
+  final Value<String?> kind;
+  final Value<String?> merchant;
+  final Value<String?> last4;
+  final Value<DateTime?> occurredAt;
+  final Value<String?> balanceAfter;
+  final Value<int?> accountId;
+  final Value<int?> toAccountId;
+  final Value<int?> instrumentId;
+  final Value<int?> categoryId;
+  final Value<double> confidence;
+  final Value<String> status;
+  final Value<int?> transactionId;
+  final Value<int?> matchTransactionId;
+  final Value<int?> duplicateOfId;
+  final Value<bool> autoConfirmed;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> resolvedAt;
+  const DetectedPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.fingerprint = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sender = const Value.absent(),
+    this.packageName = const Value.absent(),
+    this.rawText = const Value.absent(),
+    this.receivedAt = const Value.absent(),
+    this.parsed = const Value.absent(),
+    this.parserVersion = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.direction = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.merchant = const Value.absent(),
+    this.last4 = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.balanceAfter = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.instrumentId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.status = const Value.absent(),
+    this.transactionId = const Value.absent(),
+    this.matchTransactionId = const Value.absent(),
+    this.duplicateOfId = const Value.absent(),
+    this.autoConfirmed = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+  });
+  DetectedPaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String fingerprint,
+    required String source,
+    this.sender = const Value.absent(),
+    this.packageName = const Value.absent(),
+    this.rawText = const Value.absent(),
+    required DateTime receivedAt,
+    required String parsed,
+    required int parserVersion,
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    required String direction,
+    this.kind = const Value.absent(),
+    this.merchant = const Value.absent(),
+    this.last4 = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.balanceAfter = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.instrumentId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    required double confidence,
+    this.status = const Value.absent(),
+    this.transactionId = const Value.absent(),
+    this.matchTransactionId = const Value.absent(),
+    this.duplicateOfId = const Value.absent(),
+    this.autoConfirmed = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+  }) : fingerprint = Value(fingerprint),
+       source = Value(source),
+       receivedAt = Value(receivedAt),
+       parsed = Value(parsed),
+       parserVersion = Value(parserVersion),
+       direction = Value(direction),
+       confidence = Value(confidence);
+  static Insertable<DetectedPayment> custom({
+    Expression<int>? id,
+    Expression<String>? fingerprint,
+    Expression<String>? source,
+    Expression<String>? sender,
+    Expression<String>? packageName,
+    Expression<String>? rawText,
+    Expression<DateTime>? receivedAt,
+    Expression<String>? parsed,
+    Expression<int>? parserVersion,
+    Expression<String>? amount,
+    Expression<String>? currency,
+    Expression<String>? direction,
+    Expression<String>? kind,
+    Expression<String>? merchant,
+    Expression<String>? last4,
+    Expression<DateTime>? occurredAt,
+    Expression<String>? balanceAfter,
+    Expression<int>? accountId,
+    Expression<int>? toAccountId,
+    Expression<int>? instrumentId,
+    Expression<int>? categoryId,
+    Expression<double>? confidence,
+    Expression<String>? status,
+    Expression<int>? transactionId,
+    Expression<int>? matchTransactionId,
+    Expression<int>? duplicateOfId,
+    Expression<bool>? autoConfirmed,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? resolvedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fingerprint != null) 'fingerprint': fingerprint,
+      if (source != null) 'source': source,
+      if (sender != null) 'sender': sender,
+      if (packageName != null) 'package_name': packageName,
+      if (rawText != null) 'raw_text': rawText,
+      if (receivedAt != null) 'received_at': receivedAt,
+      if (parsed != null) 'parsed': parsed,
+      if (parserVersion != null) 'parser_version': parserVersion,
+      if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
+      if (direction != null) 'direction': direction,
+      if (kind != null) 'kind': kind,
+      if (merchant != null) 'merchant': merchant,
+      if (last4 != null) 'last4': last4,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (balanceAfter != null) 'balance_after': balanceAfter,
+      if (accountId != null) 'account_id': accountId,
+      if (toAccountId != null) 'to_account_id': toAccountId,
+      if (instrumentId != null) 'instrument_id': instrumentId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (confidence != null) 'confidence': confidence,
+      if (status != null) 'status': status,
+      if (transactionId != null) 'transaction_id': transactionId,
+      if (matchTransactionId != null)
+        'match_transaction_id': matchTransactionId,
+      if (duplicateOfId != null) 'duplicate_of_id': duplicateOfId,
+      if (autoConfirmed != null) 'auto_confirmed': autoConfirmed,
+      if (createdAt != null) 'created_at': createdAt,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+    });
+  }
+
+  DetectedPaymentsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? fingerprint,
+    Value<String>? source,
+    Value<String?>? sender,
+    Value<String?>? packageName,
+    Value<String?>? rawText,
+    Value<DateTime>? receivedAt,
+    Value<String>? parsed,
+    Value<int>? parserVersion,
+    Value<String?>? amount,
+    Value<String?>? currency,
+    Value<String>? direction,
+    Value<String?>? kind,
+    Value<String?>? merchant,
+    Value<String?>? last4,
+    Value<DateTime?>? occurredAt,
+    Value<String?>? balanceAfter,
+    Value<int?>? accountId,
+    Value<int?>? toAccountId,
+    Value<int?>? instrumentId,
+    Value<int?>? categoryId,
+    Value<double>? confidence,
+    Value<String>? status,
+    Value<int?>? transactionId,
+    Value<int?>? matchTransactionId,
+    Value<int?>? duplicateOfId,
+    Value<bool>? autoConfirmed,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? resolvedAt,
+  }) {
+    return DetectedPaymentsCompanion(
+      id: id ?? this.id,
+      fingerprint: fingerprint ?? this.fingerprint,
+      source: source ?? this.source,
+      sender: sender ?? this.sender,
+      packageName: packageName ?? this.packageName,
+      rawText: rawText ?? this.rawText,
+      receivedAt: receivedAt ?? this.receivedAt,
+      parsed: parsed ?? this.parsed,
+      parserVersion: parserVersion ?? this.parserVersion,
+      amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
+      direction: direction ?? this.direction,
+      kind: kind ?? this.kind,
+      merchant: merchant ?? this.merchant,
+      last4: last4 ?? this.last4,
+      occurredAt: occurredAt ?? this.occurredAt,
+      balanceAfter: balanceAfter ?? this.balanceAfter,
+      accountId: accountId ?? this.accountId,
+      toAccountId: toAccountId ?? this.toAccountId,
+      instrumentId: instrumentId ?? this.instrumentId,
+      categoryId: categoryId ?? this.categoryId,
+      confidence: confidence ?? this.confidence,
+      status: status ?? this.status,
+      transactionId: transactionId ?? this.transactionId,
+      matchTransactionId: matchTransactionId ?? this.matchTransactionId,
+      duplicateOfId: duplicateOfId ?? this.duplicateOfId,
+      autoConfirmed: autoConfirmed ?? this.autoConfirmed,
+      createdAt: createdAt ?? this.createdAt,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fingerprint.present) {
+      map['fingerprint'] = Variable<String>(fingerprint.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (sender.present) {
+      map['sender'] = Variable<String>(sender.value);
+    }
+    if (packageName.present) {
+      map['package_name'] = Variable<String>(packageName.value);
+    }
+    if (rawText.present) {
+      map['raw_text'] = Variable<String>(rawText.value);
+    }
+    if (receivedAt.present) {
+      map['received_at'] = Variable<DateTime>(receivedAt.value);
+    }
+    if (parsed.present) {
+      map['parsed'] = Variable<String>(parsed.value);
+    }
+    if (parserVersion.present) {
+      map['parser_version'] = Variable<int>(parserVersion.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<String>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (direction.present) {
+      map['direction'] = Variable<String>(direction.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (merchant.present) {
+      map['merchant'] = Variable<String>(merchant.value);
+    }
+    if (last4.present) {
+      map['last4'] = Variable<String>(last4.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (balanceAfter.present) {
+      map['balance_after'] = Variable<String>(balanceAfter.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (toAccountId.present) {
+      map['to_account_id'] = Variable<int>(toAccountId.value);
+    }
+    if (instrumentId.present) {
+      map['instrument_id'] = Variable<int>(instrumentId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (transactionId.present) {
+      map['transaction_id'] = Variable<int>(transactionId.value);
+    }
+    if (matchTransactionId.present) {
+      map['match_transaction_id'] = Variable<int>(matchTransactionId.value);
+    }
+    if (duplicateOfId.present) {
+      map['duplicate_of_id'] = Variable<int>(duplicateOfId.value);
+    }
+    if (autoConfirmed.present) {
+      map['auto_confirmed'] = Variable<bool>(autoConfirmed.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DetectedPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('source: $source, ')
+          ..write('sender: $sender, ')
+          ..write('packageName: $packageName, ')
+          ..write('rawText: $rawText, ')
+          ..write('receivedAt: $receivedAt, ')
+          ..write('parsed: $parsed, ')
+          ..write('parserVersion: $parserVersion, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('direction: $direction, ')
+          ..write('kind: $kind, ')
+          ..write('merchant: $merchant, ')
+          ..write('last4: $last4, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('balanceAfter: $balanceAfter, ')
+          ..write('accountId: $accountId, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('instrumentId: $instrumentId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('confidence: $confidence, ')
+          ..write('status: $status, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('matchTransactionId: $matchTransactionId, ')
+          ..write('duplicateOfId: $duplicateOfId, ')
+          ..write('autoConfirmed: $autoConfirmed, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('resolvedAt: $resolvedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4310,6 +5920,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RecurringTransactionsTable recurringTransactions =
       $RecurringTransactionsTable(this);
   late final $GoalsTable goals = $GoalsTable(this);
+  late final $DetectedPaymentsTable detectedPayments = $DetectedPaymentsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4322,6 +5935,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     budgets,
     recurringTransactions,
     goals,
+    detectedPayments,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4394,6 +6008,48 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('goals', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'accounts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'accounts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'payment_instruments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'transactions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'transactions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -5049,6 +6705,29 @@ final class $$CategoriesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$DetectedPaymentsTable, List<DetectedPayment>>
+  _detectedPaymentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.detectedPayments,
+    aliasName: $_aliasNameGenerator(
+      db.categories.id,
+      db.detectedPayments.categoryId,
+    ),
+  );
+
+  $$DetectedPaymentsTableProcessedTableManager get detectedPaymentsRefs {
+    final manager = $$DetectedPaymentsTableTableManager(
+      $_db,
+      $_db.detectedPayments,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _detectedPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$CategoriesTableFilterComposer
@@ -5173,6 +6852,31 @@ class $$CategoriesTableFilterComposer
                     $removeJoinBuilderFromRootComposer,
               ),
         );
+    return f(composer);
+  }
+
+  Expression<bool> detectedPaymentsRefs(
+    Expression<bool> Function($$DetectedPaymentsTableFilterComposer f) f,
+  ) {
+    final $$DetectedPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
     return f(composer);
   }
 }
@@ -5335,6 +7039,31 @@ class $$CategoriesTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> detectedPaymentsRefs<T extends Object>(
+    Expression<T> Function($$DetectedPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$DetectedPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CategoriesTableTableManager
@@ -5354,6 +7083,7 @@ class $$CategoriesTableTableManager
             bool transactionsRefs,
             bool budgetsRefs,
             bool recurringTransactionsRefs,
+            bool detectedPaymentsRefs,
           })
         > {
   $$CategoriesTableTableManager(_$AppDatabase db, $CategoriesTable table)
@@ -5420,6 +7150,7 @@ class $$CategoriesTableTableManager
                 transactionsRefs = false,
                 budgetsRefs = false,
                 recurringTransactionsRefs = false,
+                detectedPaymentsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5427,6 +7158,7 @@ class $$CategoriesTableTableManager
                     if (transactionsRefs) db.transactions,
                     if (budgetsRefs) db.budgets,
                     if (recurringTransactionsRefs) db.recurringTransactions,
+                    if (detectedPaymentsRefs) db.detectedPayments,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5494,6 +7226,27 @@ class $$CategoriesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (detectedPaymentsRefs)
+                        await $_getPrefetchedData<
+                          Category,
+                          $CategoriesTable,
+                          DetectedPayment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CategoriesTableReferences
+                              ._detectedPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).detectedPaymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5518,6 +7271,7 @@ typedef $$CategoriesTableProcessedTableManager =
         bool transactionsRefs,
         bool budgetsRefs,
         bool recurringTransactionsRefs,
+        bool detectedPaymentsRefs,
       })
     >;
 typedef $$PaymentInstrumentsTableCreateCompanionBuilder =
@@ -5629,6 +7383,29 @@ final class $$PaymentInstrumentsTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _recurringTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DetectedPaymentsTable, List<DetectedPayment>>
+  _detectedPaymentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.detectedPayments,
+    aliasName: $_aliasNameGenerator(
+      db.paymentInstruments.id,
+      db.detectedPayments.instrumentId,
+    ),
+  );
+
+  $$DetectedPaymentsTableProcessedTableManager get detectedPaymentsRefs {
+    final manager = $$DetectedPaymentsTableTableManager(
+      $_db,
+      $_db.detectedPayments,
+    ).filter((f) => f.instrumentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _detectedPaymentsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -5771,6 +7548,31 @@ class $$PaymentInstrumentsTableFilterComposer
                     $removeJoinBuilderFromRootComposer,
               ),
         );
+    return f(composer);
+  }
+
+  Expression<bool> detectedPaymentsRefs(
+    Expression<bool> Function($$DetectedPaymentsTableFilterComposer f) f,
+  ) {
+    final $$DetectedPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.instrumentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
     return f(composer);
   }
 }
@@ -5978,6 +7780,31 @@ class $$PaymentInstrumentsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> detectedPaymentsRefs<T extends Object>(
+    Expression<T> Function($$DetectedPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$DetectedPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.instrumentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$PaymentInstrumentsTableTableManager
@@ -5997,6 +7824,7 @@ class $$PaymentInstrumentsTableTableManager
             bool accountId,
             bool transactionsRefs,
             bool recurringTransactionsRefs,
+            bool detectedPaymentsRefs,
           })
         > {
   $$PaymentInstrumentsTableTableManager(
@@ -6084,12 +7912,14 @@ class $$PaymentInstrumentsTableTableManager
                 accountId = false,
                 transactionsRefs = false,
                 recurringTransactionsRefs = false,
+                detectedPaymentsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (transactionsRefs) db.transactions,
                     if (recurringTransactionsRefs) db.recurringTransactions,
+                    if (detectedPaymentsRefs) db.detectedPayments,
                   ],
                   addJoins:
                       <
@@ -6169,6 +7999,27 @@ class $$PaymentInstrumentsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (detectedPaymentsRefs)
+                        await $_getPrefetchedData<
+                          PaymentInstrument,
+                          $PaymentInstrumentsTable,
+                          DetectedPayment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PaymentInstrumentsTableReferences
+                              ._detectedPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PaymentInstrumentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).detectedPaymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.instrumentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -6193,6 +8044,7 @@ typedef $$PaymentInstrumentsTableProcessedTableManager =
         bool accountId,
         bool transactionsRefs,
         bool recurringTransactionsRefs,
+        bool detectedPaymentsRefs,
       })
     >;
 typedef $$TransactionsTableCreateCompanionBuilder =
@@ -8409,6 +10261,1286 @@ typedef $$GoalsTableProcessedTableManager =
       Goal,
       PrefetchHooks Function({bool accountId})
     >;
+typedef $$DetectedPaymentsTableCreateCompanionBuilder =
+    DetectedPaymentsCompanion Function({
+      Value<int> id,
+      required String fingerprint,
+      required String source,
+      Value<String?> sender,
+      Value<String?> packageName,
+      Value<String?> rawText,
+      required DateTime receivedAt,
+      required String parsed,
+      required int parserVersion,
+      Value<String?> amount,
+      Value<String?> currency,
+      required String direction,
+      Value<String?> kind,
+      Value<String?> merchant,
+      Value<String?> last4,
+      Value<DateTime?> occurredAt,
+      Value<String?> balanceAfter,
+      Value<int?> accountId,
+      Value<int?> toAccountId,
+      Value<int?> instrumentId,
+      Value<int?> categoryId,
+      required double confidence,
+      Value<String> status,
+      Value<int?> transactionId,
+      Value<int?> matchTransactionId,
+      Value<int?> duplicateOfId,
+      Value<bool> autoConfirmed,
+      Value<DateTime> createdAt,
+      Value<DateTime?> resolvedAt,
+    });
+typedef $$DetectedPaymentsTableUpdateCompanionBuilder =
+    DetectedPaymentsCompanion Function({
+      Value<int> id,
+      Value<String> fingerprint,
+      Value<String> source,
+      Value<String?> sender,
+      Value<String?> packageName,
+      Value<String?> rawText,
+      Value<DateTime> receivedAt,
+      Value<String> parsed,
+      Value<int> parserVersion,
+      Value<String?> amount,
+      Value<String?> currency,
+      Value<String> direction,
+      Value<String?> kind,
+      Value<String?> merchant,
+      Value<String?> last4,
+      Value<DateTime?> occurredAt,
+      Value<String?> balanceAfter,
+      Value<int?> accountId,
+      Value<int?> toAccountId,
+      Value<int?> instrumentId,
+      Value<int?> categoryId,
+      Value<double> confidence,
+      Value<String> status,
+      Value<int?> transactionId,
+      Value<int?> matchTransactionId,
+      Value<int?> duplicateOfId,
+      Value<bool> autoConfirmed,
+      Value<DateTime> createdAt,
+      Value<DateTime?> resolvedAt,
+    });
+
+final class $$DetectedPaymentsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $DetectedPaymentsTable, DetectedPayment> {
+  $$DetectedPaymentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AccountsTable _accountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(db.detectedPayments.accountId, db.accounts.id),
+      );
+
+  $$AccountsTableProcessedTableManager? get accountId {
+    final $_column = $_itemColumn<int>('account_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AccountsTable _toAccountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(db.detectedPayments.toAccountId, db.accounts.id),
+      );
+
+  $$AccountsTableProcessedTableManager? get toAccountId {
+    final $_column = $_itemColumn<int>('to_account_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_toAccountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PaymentInstrumentsTable _instrumentIdTable(_$AppDatabase db) =>
+      db.paymentInstruments.createAlias(
+        $_aliasNameGenerator(
+          db.detectedPayments.instrumentId,
+          db.paymentInstruments.id,
+        ),
+      );
+
+  $$PaymentInstrumentsTableProcessedTableManager? get instrumentId {
+    final $_column = $_itemColumn<int>('instrument_id');
+    if ($_column == null) return null;
+    final manager = $$PaymentInstrumentsTableTableManager(
+      $_db,
+      $_db.paymentInstruments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_instrumentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $CategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(db.detectedPayments.categoryId, db.categories.id),
+      );
+
+  $$CategoriesTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<int>('category_id');
+    if ($_column == null) return null;
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TransactionsTable _transactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        $_aliasNameGenerator(
+          db.detectedPayments.transactionId,
+          db.transactions.id,
+        ),
+      );
+
+  $$TransactionsTableProcessedTableManager? get transactionId {
+    final $_column = $_itemColumn<int>('transaction_id');
+    if ($_column == null) return null;
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_transactionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TransactionsTable _matchTransactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        $_aliasNameGenerator(
+          db.detectedPayments.matchTransactionId,
+          db.transactions.id,
+        ),
+      );
+
+  $$TransactionsTableProcessedTableManager? get matchTransactionId {
+    final $_column = $_itemColumn<int>('match_transaction_id');
+    if ($_column == null) return null;
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_matchTransactionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DetectedPaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $DetectedPaymentsTable> {
+  $$DetectedPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sender => $composableBuilder(
+    column: $table.sender,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parsed => $composableBuilder(
+    column: $table.parsed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get parserVersion => $composableBuilder(
+    column: $table.parserVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchant => $composableBuilder(
+    column: $table.merchant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get last4 => $composableBuilder(
+    column: $table.last4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get balanceAfter => $composableBuilder(
+    column: $table.balanceAfter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get duplicateOfId => $composableBuilder(
+    column: $table.duplicateOfId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoConfirmed => $composableBuilder(
+    column: $table.autoConfirmed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AccountsTableFilterComposer get accountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableFilterComposer get toAccountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableFilterComposer get instrumentId {
+    final $$PaymentInstrumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.instrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CategoriesTableFilterComposer get categoryId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableFilterComposer get transactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.transactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableFilterComposer get matchTransactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectedPaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DetectedPaymentsTable> {
+  $$DetectedPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sender => $composableBuilder(
+    column: $table.sender,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parsed => $composableBuilder(
+    column: $table.parsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get parserVersion => $composableBuilder(
+    column: $table.parserVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get merchant => $composableBuilder(
+    column: $table.merchant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get last4 => $composableBuilder(
+    column: $table.last4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get balanceAfter => $composableBuilder(
+    column: $table.balanceAfter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get duplicateOfId => $composableBuilder(
+    column: $table.duplicateOfId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoConfirmed => $composableBuilder(
+    column: $table.autoConfirmed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AccountsTableOrderingComposer get accountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableOrderingComposer get toAccountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableOrderingComposer get instrumentId {
+    final $$PaymentInstrumentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.instrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CategoriesTableOrderingComposer get categoryId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableOrderingComposer get transactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.transactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableOrderingComposer get matchTransactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectedPaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DetectedPaymentsTable> {
+  $$DetectedPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get sender =>
+      $composableBuilder(column: $table.sender, builder: (column) => column);
+
+  GeneratedColumn<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawText =>
+      $composableBuilder(column: $table.rawText, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get parsed =>
+      $composableBuilder(column: $table.parsed, builder: (column) => column);
+
+  GeneratedColumn<int> get parserVersion => $composableBuilder(
+    column: $table.parserVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get direction =>
+      $composableBuilder(column: $table.direction, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get merchant =>
+      $composableBuilder(column: $table.merchant, builder: (column) => column);
+
+  GeneratedColumn<String> get last4 =>
+      $composableBuilder(column: $table.last4, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get balanceAfter => $composableBuilder(
+    column: $table.balanceAfter,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get duplicateOfId => $composableBuilder(
+    column: $table.duplicateOfId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoConfirmed => $composableBuilder(
+    column: $table.autoConfirmed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => column,
+  );
+
+  $$AccountsTableAnnotationComposer get accountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableAnnotationComposer get toAccountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableAnnotationComposer get instrumentId {
+    final $$PaymentInstrumentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.instrumentId,
+          referencedTable: $db.paymentInstruments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaymentInstrumentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paymentInstruments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$CategoriesTableAnnotationComposer get categoryId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableAnnotationComposer get transactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.transactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableAnnotationComposer get matchTransactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectedPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DetectedPaymentsTable,
+          DetectedPayment,
+          $$DetectedPaymentsTableFilterComposer,
+          $$DetectedPaymentsTableOrderingComposer,
+          $$DetectedPaymentsTableAnnotationComposer,
+          $$DetectedPaymentsTableCreateCompanionBuilder,
+          $$DetectedPaymentsTableUpdateCompanionBuilder,
+          (DetectedPayment, $$DetectedPaymentsTableReferences),
+          DetectedPayment,
+          PrefetchHooks Function({
+            bool accountId,
+            bool toAccountId,
+            bool instrumentId,
+            bool categoryId,
+            bool transactionId,
+            bool matchTransactionId,
+          })
+        > {
+  $$DetectedPaymentsTableTableManager(
+    _$AppDatabase db,
+    $DetectedPaymentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DetectedPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DetectedPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DetectedPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> fingerprint = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> sender = const Value.absent(),
+                Value<String?> packageName = const Value.absent(),
+                Value<String?> rawText = const Value.absent(),
+                Value<DateTime> receivedAt = const Value.absent(),
+                Value<String> parsed = const Value.absent(),
+                Value<int> parserVersion = const Value.absent(),
+                Value<String?> amount = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
+                Value<String> direction = const Value.absent(),
+                Value<String?> kind = const Value.absent(),
+                Value<String?> merchant = const Value.absent(),
+                Value<String?> last4 = const Value.absent(),
+                Value<DateTime?> occurredAt = const Value.absent(),
+                Value<String?> balanceAfter = const Value.absent(),
+                Value<int?> accountId = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<int?> instrumentId = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int?> transactionId = const Value.absent(),
+                Value<int?> matchTransactionId = const Value.absent(),
+                Value<int?> duplicateOfId = const Value.absent(),
+                Value<bool> autoConfirmed = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+              }) => DetectedPaymentsCompanion(
+                id: id,
+                fingerprint: fingerprint,
+                source: source,
+                sender: sender,
+                packageName: packageName,
+                rawText: rawText,
+                receivedAt: receivedAt,
+                parsed: parsed,
+                parserVersion: parserVersion,
+                amount: amount,
+                currency: currency,
+                direction: direction,
+                kind: kind,
+                merchant: merchant,
+                last4: last4,
+                occurredAt: occurredAt,
+                balanceAfter: balanceAfter,
+                accountId: accountId,
+                toAccountId: toAccountId,
+                instrumentId: instrumentId,
+                categoryId: categoryId,
+                confidence: confidence,
+                status: status,
+                transactionId: transactionId,
+                matchTransactionId: matchTransactionId,
+                duplicateOfId: duplicateOfId,
+                autoConfirmed: autoConfirmed,
+                createdAt: createdAt,
+                resolvedAt: resolvedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String fingerprint,
+                required String source,
+                Value<String?> sender = const Value.absent(),
+                Value<String?> packageName = const Value.absent(),
+                Value<String?> rawText = const Value.absent(),
+                required DateTime receivedAt,
+                required String parsed,
+                required int parserVersion,
+                Value<String?> amount = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
+                required String direction,
+                Value<String?> kind = const Value.absent(),
+                Value<String?> merchant = const Value.absent(),
+                Value<String?> last4 = const Value.absent(),
+                Value<DateTime?> occurredAt = const Value.absent(),
+                Value<String?> balanceAfter = const Value.absent(),
+                Value<int?> accountId = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<int?> instrumentId = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
+                required double confidence,
+                Value<String> status = const Value.absent(),
+                Value<int?> transactionId = const Value.absent(),
+                Value<int?> matchTransactionId = const Value.absent(),
+                Value<int?> duplicateOfId = const Value.absent(),
+                Value<bool> autoConfirmed = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+              }) => DetectedPaymentsCompanion.insert(
+                id: id,
+                fingerprint: fingerprint,
+                source: source,
+                sender: sender,
+                packageName: packageName,
+                rawText: rawText,
+                receivedAt: receivedAt,
+                parsed: parsed,
+                parserVersion: parserVersion,
+                amount: amount,
+                currency: currency,
+                direction: direction,
+                kind: kind,
+                merchant: merchant,
+                last4: last4,
+                occurredAt: occurredAt,
+                balanceAfter: balanceAfter,
+                accountId: accountId,
+                toAccountId: toAccountId,
+                instrumentId: instrumentId,
+                categoryId: categoryId,
+                confidence: confidence,
+                status: status,
+                transactionId: transactionId,
+                matchTransactionId: matchTransactionId,
+                duplicateOfId: duplicateOfId,
+                autoConfirmed: autoConfirmed,
+                createdAt: createdAt,
+                resolvedAt: resolvedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DetectedPaymentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                accountId = false,
+                toAccountId = false,
+                instrumentId = false,
+                categoryId = false,
+                transactionId = false,
+                matchTransactionId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (accountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.accountId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._accountIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._accountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (toAccountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.toAccountId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._toAccountIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._toAccountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (instrumentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.instrumentId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._instrumentIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._instrumentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (transactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.transactionId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._transactionIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._transactionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (matchTransactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.matchTransactionId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._matchTransactionIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._matchTransactionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$DetectedPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DetectedPaymentsTable,
+      DetectedPayment,
+      $$DetectedPaymentsTableFilterComposer,
+      $$DetectedPaymentsTableOrderingComposer,
+      $$DetectedPaymentsTableAnnotationComposer,
+      $$DetectedPaymentsTableCreateCompanionBuilder,
+      $$DetectedPaymentsTableUpdateCompanionBuilder,
+      (DetectedPayment, $$DetectedPaymentsTableReferences),
+      DetectedPayment,
+      PrefetchHooks Function({
+        bool accountId,
+        bool toAccountId,
+        bool instrumentId,
+        bool categoryId,
+        bool transactionId,
+        bool matchTransactionId,
+      })
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8427,4 +11559,6 @@ class $AppDatabaseManager {
       $$RecurringTransactionsTableTableManager(_db, _db.recurringTransactions);
   $$GoalsTableTableManager get goals =>
       $$GoalsTableTableManager(_db, _db.goals);
+  $$DetectedPaymentsTableTableManager get detectedPayments =>
+      $$DetectedPaymentsTableTableManager(_db, _db.detectedPayments);
 }

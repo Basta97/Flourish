@@ -21,10 +21,14 @@ class BackupService {
     'recurring_transactions',
     'goals',
     ...FinanceStore.tables,
+    'detected_payments',
   ];
 
   /// Schema version that introduced each table added after v6.
-  static const requiredSince = {'payment_instruments': 7};
+  static const requiredSince = {
+    'payment_instruments': 7,
+    'detected_payments': 8,
+  };
   static const settings = [
     'default_currency',
     'app_theme_mode',
@@ -35,12 +39,22 @@ class BackupService {
     'monthly_income_account_id',
     'monthly_income_category_id',
     'last_auto_income_month',
+    'detection_auto_confirm',
+    'detection_raw_text_days',
+    'detection_backup_raw_text',
+    'detection_notify',
   ];
   Future<Json> exportData() => db.transaction(() async {
     final tables = <String, dynamic>{};
+    // Message text stays on this device unless the person opted in.
+    final keepText = PreferencesService.getBool('detection_backup_raw_text');
     for (final table in tableNames) {
       tables[table] = (await db.customSelect('SELECT * FROM $table').get())
-          .map((r) => r.data)
+          .map(
+            (r) => table == 'detected_payments' && !keepText
+                ? {...r.data, 'raw_text': null}
+                : r.data,
+          )
           .toList();
     }
     final attachments = <String, String>{};

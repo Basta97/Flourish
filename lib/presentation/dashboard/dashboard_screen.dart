@@ -1,3 +1,4 @@
+import '../../shared/widgets/app_card.dart';
 import 'package:flourish/core/finance/transaction_classifier.dart';
 import '../../core/services/preferences_service.dart';
 import 'package:flutter/cupertino.dart';
@@ -84,7 +85,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _monthlyFuture = _monthly(tx, currency);
     }
 
+    final toReview = ref.watch(pendingDetectionsProvider).valueOrNull ?? 0;
     final sections = <Widget>[
+      if (toReview > 0) ...[
+        AppCard(
+          onTap: () => context.push('/inbox'),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Sp.lg,
+            vertical: Sp.md,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.mark_email_unread_outlined),
+              const SizedBox(width: Sp.md),
+              Expanded(
+                child: Text(
+                  toReview == 1
+                      ? '1 payment to review'
+                      : '$toReview payments to review',
+                  style: AppTextStyles.bodyMedium,
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+        const SizedBox(height: Sp.lg),
+      ],
       const NetWorthHero(),
       const SizedBox(height: Sp.xl),
       _MonthSummary(future: _monthlyFuture!, currency: currency),

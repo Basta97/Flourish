@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:csv/csv.dart' as csv;
 import 'package:excel/excel.dart' as xlsx;
-import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import '../../domain/finance/models.dart';
 import '../../data/database/database.dart';
 import 'financial_ledger_service.dart';
+import '../utils/fingerprint.dart' as fp;
 
 class ImportPreview {
   final List<Json> rows;
@@ -114,9 +114,7 @@ class SpreadsheetImportService {
           'note': field('note'),
           'destination': field('destination'),
         };
-        final fingerprint = (await Sha256().hash(
-          utf8.encode(jsonEncode(data)),
-        )).bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+        final fingerprint = await fp.fingerprint(jsonEncode(data));
         if (!seen.add(fingerprint) ||
             await ledger.store.get('imports', fingerprint) != null) {
           duplicates++;

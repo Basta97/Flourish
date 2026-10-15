@@ -11,6 +11,16 @@ import '../services/preferences_service.dart';
 class ReminderService {
   final plugin = FlutterLocalNotificationsPlugin();
   bool initialized = false;
+
+  /// Opens the screen a tapped notification points to (payload
+  /// `route:/inbox`, also used by the native detection notifications).
+  void Function(String route)? onRoute;
+
+  static String? _route(String? payload) =>
+      payload != null && payload.startsWith('route:')
+      ? payload.substring(6)
+      : null;
+
   Future<void> init() async {
     if (initialized) return;
     tzdata.initializeTimeZones();
@@ -23,8 +33,17 @@ class ReminderService {
           requestSoundPermission: false,
         ),
       ),
+      onDidReceiveNotificationResponse: (response) {
+        final route = _route(response.payload);
+        if (route != null) onRoute?.call(route);
+      },
     );
     initialized = true;
+    final launch = await plugin.getNotificationAppLaunchDetails();
+    final route = _route(launch?.notificationResponse?.payload);
+    if (launch?.didNotificationLaunchApp == true && route != null) {
+      onRoute?.call(route);
+    }
   }
 
   Future<void> enable() async {

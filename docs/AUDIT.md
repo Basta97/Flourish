@@ -79,4 +79,5 @@ can't receive contributions; "Reset all data" is not transactional.
 | 2A | Schema v7: cards & wallets, payment method/merchant/source on entries, FX purchases, refunds, cash advances, recurring transfers | done |
 | 2B–2D | Credit card terms (limit, APR, minimum due, fees), paid-with / foreign currency / refund in forms, card panel, reports by method/card/currency/fees | done |
 | 3A | English/Arabic bank & wallet message parser with 44 fixtures | done |
-| 3B–3E | Detection inbox, Android notification listener, iOS Shortcuts, settings | planned |
+| 3B | Detected-payments inbox (schema v8), matching, dedupe, auto-confirm, settings | done |
+| 3C–3E | Android notification listener, iOS Shortcuts queue, docs | planned |

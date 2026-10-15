@@ -184,6 +184,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/categories/manage'),
                 ),
                 _SettingTile(
+                  icon: Icons.mark_email_unread_outlined,
+                  tint: const Color(0xFF5B9DF5),
+                  title: 'Payment detection',
+                  subtitle: 'Find payments in bank and wallet alerts',
+                  onTap: () => context.push('/settings/detection'),
+                ),
+                _SettingTile(
                   icon: Icons.auto_awesome_outlined,
                   title: 'Smart Import',
                   subtitle: 'Paste bank alerts to create transactions',

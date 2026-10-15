@@ -1,3 +1,5 @@
+import 'package:flourish/presentation/detection/inbox_screen.dart';
+import 'package:flourish/presentation/detection/detection_settings_screen.dart';
 import 'package:flourish/presentation/payment_methods/payment_methods_screen.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -79,6 +81,16 @@ final appRouter = GoRouter(
       path: '/recurring',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const RecurringTransactionsScreen(),
+    ),
+    GoRoute(
+      path: '/inbox',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const InboxScreen(),
+    ),
+    GoRoute(
+      path: '/settings/detection',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const DetectionSettingsScreen(),
     ),
     GoRoute(
       path: '/payment-methods',

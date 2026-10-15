@@ -5,6 +5,8 @@ import '../../core/finance/financial_ledger_service.dart';
 import '../../core/finance/contract_service.dart';
 import '../../core/finance/recurring_service.dart';
 import '../../core/finance/credit_card_service.dart';
+import '../../core/detection/detection_bridge.dart';
+import '../../core/detection/detection_service.dart';
 import '../../data/database/database.dart';
 import '../../core/finance/market_data_service.dart';
 import '../../core/finance/valuation_service.dart';
@@ -108,3 +110,18 @@ final accountDetailsProvider = FutureProvider<Map<int, AccountDetails>>((
       row['accountId'] as int: AccountDetails.fromJson(row),
   };
 });
+
+final detectionServiceProvider = Provider(
+  (ref) => DetectionService(ref.watch(financialLedgerProvider)),
+);
+final detectionBridgeProvider = Provider<DetectionBridge>(
+  (ref) => MethodChannelDetectionBridge(),
+);
+
+/// Every detected payment, newest first.
+final detectedPaymentsProvider = StreamProvider<List<DetectedPayment>>(
+  (ref) => ref.watch(detectionServiceProvider).watch(),
+);
+final pendingDetectionsProvider = StreamProvider<int>(
+  (ref) => ref.watch(detectionServiceProvider).watchPendingCount(),
+);

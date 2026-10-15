@@ -1,6 +1,6 @@
 # Flourish finance and holdings implementation
 
-The app remains local-first. SQLite schema 6 extends the existing six Drift tables with exact account balances, immutable transaction conversion metadata, and versioned financial records. Existing uncommitted work was retained.
+The app remains local-first. SQLite schema 6 extends the existing six Drift tables with exact account balances, immutable transaction conversion metadata, and versioned financial records.
 
 ## Available flows
 

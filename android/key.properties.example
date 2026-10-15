@@ -1,4 +1,8 @@
-# Copy to key.properties and provide your private release keystore.
+# Copy to android/key.properties (gitignored). Never commit real credentials.
+#
+# storeFile is resolved relative to android/app/ unless you use an absolute path.
+# CI uses android/app/upload-keystore.jks with storeFile=upload-keystore.jks
+#
 storeFile=/absolute/path/to/flourish-release.jks
 storePassword=replace-with-keystore-password
 keyAlias=flourish

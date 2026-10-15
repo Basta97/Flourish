@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
+import '../../../core/constants/app_constants.dart';
 
 class Accounts extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get type => text()();
   RealColumn get balance => real().withDefault(const Constant(0))();
-  TextColumn get currency => text().withDefault(const Constant('USD'))();
+  TextColumn get currency =>
+      text().withDefault(const Constant(AppConstants.defaultCurrency))();
   IntColumn get color => integer()();
   TextColumn get icon => text()();
   // Filled in by the app on every insert. Databases upgraded through the v5

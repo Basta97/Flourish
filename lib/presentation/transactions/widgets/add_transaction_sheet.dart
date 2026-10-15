@@ -14,7 +14,8 @@ import 'package:flourish/core/motion/motion.dart';
 import 'package:flourish/presentation/transactions/widgets/transaction_form_parts.dart';
 import 'package:flourish/shared/widgets/segmented_pill.dart';
 import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
-import 'package:drift/drift.dart' hide Column;
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/error_text.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final String? initialType;
@@ -35,7 +36,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   final _noteController = TextEditingController();
   final _amountController = TextEditingController();
   final _destinationAmountController = TextEditingController();
-  final _feeController = TextEditingController(text: "0");
+  final _feeController = TextEditingController();
   String _mode = 'expense';
   int? _accountId;
   int? _toAccountId;
@@ -45,6 +46,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   String? _amountError;
   String? _accountError;
   String? _categoryError;
+  String? _destinationError;
+  String? _feeError;
 
   @override
   void initState() {
@@ -162,25 +165,35 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               color: tint,
               onSelected: (v) => setState(() => _toAccountId = v),
             ),
-            const SizedBox(height: Sp.lg),
-            TextField(
-              controller: _destinationAmountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+            if (_destinationCurrency(allAccounts, effectiveFrom)
+                case final toCurrency? when toCurrency != currency) ...[
+              const SizedBox(height: Sp.lg),
+              TextField(
+                controller: _destinationAmountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [AmountInputFormatter()],
+                decoration: InputDecoration(
+                  labelText: 'Amount received in $toCurrency',
+                  helperText: 'What actually arrived after conversion',
+                  errorText: _destinationError,
+                ),
+                onChanged: (_) => setState(() => _destinationError = null),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Amount received (required across currencies)',
-              ),
-            ),
+            ],
             const SizedBox(height: Sp.md),
             TextField(
               controller: _feeController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: [AmountInputFormatter()],
               decoration: InputDecoration(
-                labelText: 'Transfer fee in $currency',
+                labelText: 'Transfer fee in $currency (optional)',
+                errorText: _feeError,
               ),
+              onChanged: (_) => setState(() => _feeError = null),
             ),
           ],
         ] else ...[
@@ -286,12 +299,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     return categories.first.id;
   }
 
-  double? _parseAmount() {
-    final normalized = _amountController.text
-        .trim()
-        .replaceAll(',', '')
-        .replaceAll(RegExp(r'[^0-9.\-]'), '');
-    return double.tryParse(normalized);
+  String? _destinationCurrency(List<Account> accounts, int? fromId) {
+    if (fromId == null) return null;
+    final toId = _effectiveDestinationId(accounts, fromId);
+    return accounts.where((a) => a.id == toId).firstOrNull?.currency;
   }
 
   Future<void> _submit() async {
@@ -299,11 +310,18 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _amountError = null;
       _accountError = null;
       _categoryError = null;
+      _destinationError = null;
+      _feeError = null;
     });
 
-    final amount = _parseAmount();
     final accounts = ref.read(accountsProvider).valueOrNull ?? [];
     final accountId = _effectiveAccountId(accounts);
+    final account = accounts.where((a) => a.id == accountId).firstOrNull;
+    final currency = account?.currency ?? '';
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: currency,
+    );
     final categories = ref.read(categoriesProvider).valueOrNull ?? [];
     final filteredCategories = categories
         .where((category) => category.type == _mode)
@@ -314,10 +332,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final toAccountId = accountId == null
         ? null
         : _effectiveDestinationId(accounts, accountId);
+    final toCurrency = accounts
+        .where((a) => a.id == toAccountId)
+        .firstOrNull
+        ?.currency;
     bool hasError = false;
 
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Please enter a valid amount');
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       hasError = true;
     }
     if (accountId == null) {
@@ -325,6 +347,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       hasError = true;
     }
 
+    Amount? received, fee;
     if (_mode == 'transfer') {
       if (accounts.length < 2 || toAccountId == null) {
         setState(() => _accountError = 'Please select destination account');
@@ -337,6 +360,31 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         );
         hasError = true;
       }
+      if (toCurrency != null && toCurrency != currency) {
+        final result = AmountParser.parse(
+          _destinationAmountController.text,
+          currency: toCurrency,
+        );
+        if (result.isValid) {
+          received = result.value;
+        } else {
+          setState(() => _destinationError = result.error);
+          hasError = true;
+        }
+      }
+      if (_feeController.text.trim().isNotEmpty) {
+        final result = AmountParser.parse(
+          _feeController.text,
+          currency: currency,
+          allowZero: true,
+        );
+        if (result.isValid) {
+          fee = result.value;
+        } else {
+          setState(() => _feeError = result.error);
+          hasError = true;
+        }
+      }
     } else {
       if (categoryId == null) {
         setState(() => _categoryError = 'Please select a category');
@@ -344,43 +392,35 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     }
     if (hasError) return;
+    if (!await confirmFutureDate(context, _date)) return;
 
     setState(() => _submitState = SubmitState.busy);
+    final note = _noteController.text.trim().isEmpty
+        ? null
+        : _noteController.text.trim();
     try {
+      final ledger = ref.read(financialLedgerProvider);
       if (_mode == 'transfer') {
-        await ref
-            .read(financialLedgerProvider)
-            .transferBetweenAccounts(
-              fromAccountId: accountId!,
-              toAccountId: toAccountId!,
-              amount: amount!,
-              destinationAmount:
-                  _destinationAmountController.text.trim().isEmpty
-                  ? null
-                  : double.parse(_destinationAmountController.text.trim()),
-              fee: double.parse(_feeController.text.trim()),
-              note: _noteController.text.trim().isEmpty
-                  ? null
-                  : _noteController.text.trim(),
-              date: _date,
-            );
+        await ledger.transfer(
+          fromAccountId: accountId!,
+          toAccountId: toAccountId!,
+          amount: parsed.value!,
+          received: received,
+          fee: fee,
+          note: note,
+          date: _date,
+          expectCurrency: currency,
+        );
       } else {
-        await ref
-            .read(financialLedgerProvider)
-            .insertTransactionAndUpdateBalance(
-              TransactionsCompanion.insert(
-                accountId: accountId!,
-                categoryId: categoryId!,
-                amount: amount!,
-                type: _mode,
-                note: Value(
-                  _noteController.text.trim().isEmpty
-                      ? null
-                      : _noteController.text.trim(),
-                ),
-                transactionDate: _date,
-              ),
-            );
+        await ledger.recordCash(
+          accountId: accountId!,
+          amount: parsed.value!,
+          type: _mode,
+          categoryId: categoryId!,
+          note: note,
+          date: _date,
+          expectCurrency: currency,
+        );
       }
 
       ref.invalidate(transactionsProvider);
@@ -397,19 +437,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             : const Duration(milliseconds: 420),
       );
       if (mounted) Navigator.pop(context);
-    } on TransactionLogicException catch (e) {
-      if (mounted) {
-        setState(() => _submitState = SubmitState.idle);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
-      }
     } catch (e) {
       if (mounted) {
         setState(() => _submitState = SubmitState.idle);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }

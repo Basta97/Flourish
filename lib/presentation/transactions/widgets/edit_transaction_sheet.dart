@@ -15,7 +15,9 @@ import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
 import 'package:flourish/shared/widgets/segmented_pill.dart';
 import 'package:flourish/core/motion/motion.dart';
 import 'transaction_form_parts.dart';
-import 'package:drift/drift.dart' hide Column;
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/currency_formatter.dart';
+import 'package:flourish/core/utils/error_text.dart';
 
 class EditTransactionSheet extends ConsumerStatefulWidget {
   final Transaction transaction;
@@ -36,6 +38,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
   late DateTime _date;
   SubmitState _submitState = SubmitState.idle;
   String? _amountError;
+  String? _currencyNote;
 
   @override
   void initState() {
@@ -45,8 +48,53 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     _accountId = t.accountId;
     _categoryId = t.categoryId;
     _date = t.transactionDate;
-    _amountController.text = t.amount.toStringAsFixed(2);
+    _amountController.text = '${Amount.fromNum(t.amount)}';
     if (t.note != null) _noteController.text = t.note!;
+    // The REAL column is a rounded projection; edit the exact stored value.
+    ref.read(financeStoreProvider).transactionDetails(t.id).then((details) {
+      final exact = details?['amount'];
+      if (exact != null && mounted && _accountId == t.accountId) {
+        _amountController.text = '$exact';
+      }
+    });
+  }
+
+  /// Moving an entry to an account in another currency converts the amount
+  /// at the transaction date's rate instead of silently relabelling it.
+  Future<void> _changeAccount(int id, List<Account> accounts) async {
+    final from = accounts.where((a) => a.id == _accountId).firstOrNull;
+    final to = accounts.where((a) => a.id == id).firstOrNull;
+    setState(() => _accountId = id);
+    if (from == null || to == null || from.currency == to.currency) {
+      setState(() => _currencyNote = null);
+      return;
+    }
+    final current = AmountParser.parse(
+      _amountController.text,
+      currency: from.currency,
+    ).value;
+    final converted = current == null
+        ? null
+        : await ref
+              .read(valuationProvider)
+              .convert(current, from.currency, to.currency, at: _date);
+    if (!mounted) return;
+    setState(() {
+      if (converted == null) {
+        _amountController.clear();
+        _currencyNote =
+            'No ${from.currency}→${to.currency} rate for this date. '
+            'Enter the amount in ${to.currency}.';
+      } else {
+        final rounded = converted.rounded(
+          CurrencyFormatter.decimalsFor(to.currency),
+        );
+        _amountController.text = '$rounded';
+        _currencyNote =
+            'Converted ${from.currency} ${current!} to ${to.currency} at the '
+            'rate for this date. Check it matches what was charged.';
+      }
+    });
   }
 
   @override
@@ -134,8 +182,15 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
                 ? _accountId
                 : accounts.first.id,
             color: tint,
-            onSelected: (v) => setState(() => _accountId = v),
+            onSelected: (v) => _changeAccount(v, accounts),
           ),
+          if (_currencyNote != null) ...[
+            const SizedBox(height: Sp.sm),
+            Text(
+              _currencyNote!,
+              style: AppTextStyles.caption.copyWith(color: palette.warning),
+            ),
+          ],
           const SizedBox(height: Sp.lg),
         ],
         const FormLabel('Category'),
@@ -197,12 +252,11 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     final incoming = widget.transaction.type == 'income'
         ? widget.transaction
         : other;
-    final details = await ref
-        .read(financeStoreProvider)
-        .transactionDetails(out.id);
-    final feeTx = details?['feeId'] == null
+    final store = ref.read(financeStoreProvider);
+    final details = await store.transactionDetails(out.id);
+    final feeDetails = details?['feeId'] == null
         ? null
-        : await db.getTransactionById(details!['feeId'] as int);
+        : await store.transactionDetails(details!['feeId'] as int);
     final accounts = await db.getAllAccounts();
     if (!mounted) return;
     final saved = await financeForm(
@@ -228,19 +282,21 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         FinanceField(
           'amount',
           'Source amount',
-          initial: '${out.amount}',
+          initial: '${details?['sourceAmount'] ?? Amount.fromNum(out.amount)}',
           numeric: true,
         ),
         FinanceField(
           'received',
           'Destination amount',
-          initial: '${incoming.amount}',
+          initial:
+              '${details?['destinationAmount'] ?? Amount.fromNum(incoming.amount)}',
           numeric: true,
         ),
         FinanceField(
           'fee',
           'Source-currency fee',
-          initial: '${feeTx?.amount ?? 0}',
+          initial: '${feeDetails?['amount'] ?? 0}',
+          required: false,
           numeric: true,
         ),
         FinanceField(
@@ -258,7 +314,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
             toAccountId: int.parse(j['to']!),
             amount: number(j, 'amount'),
             received: number(j, 'received'),
-            fee: number(j, 'fee'),
+            fee: j['fee']!.isEmpty ? null : number(j, 'fee'),
             date: DateTime.parse(j['date']!),
             note: j['note'],
             editId: out.id,
@@ -292,12 +348,12 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
                 if (mounted) {
                   Navigator.pop(context);
                 }
-              } on TransactionLogicException catch (e) {
+              } catch (e) {
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text(e.message)));
+                  ).showSnackBar(SnackBar(content: Text(describeError(e))));
                 }
               }
             },
@@ -312,29 +368,34 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
   }
 
   Future<void> _submit() async {
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Please enter a valid amount');
+    final accounts = ref.read(accountsProvider).valueOrNull ?? const [];
+    final currency =
+        accounts.where((a) => a.id == _accountId).firstOrNull?.currency ?? '';
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: currency,
+    );
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       return;
     }
+    if (!await confirmFutureDate(context, _date)) return;
 
     setState(() => _submitState = SubmitState.busy);
     try {
       await ref
           .read(financialLedgerProvider)
-          .updateTransactionAndUpdateBalance(
-            widget.transaction.copyWith(
-              accountId: _accountId,
-              categoryId: _categoryId,
-              amount: amount,
-              type: _type,
-              note: Value(
-                _noteController.text.trim().isEmpty
-                    ? null
-                    : _noteController.text.trim(),
-              ),
-              transactionDate: _date,
-            ),
+          .updateCash(
+            widget.transaction.id,
+            accountId: _accountId,
+            amount: parsed.value!,
+            type: _type,
+            categoryId: _categoryId,
+            note: _noteController.text.trim().isEmpty
+                ? null
+                : _noteController.text.trim(),
+            date: _date,
+            expectCurrency: currency,
           );
       ref.invalidate(transactionsProvider);
       ref.invalidate(accountsProvider);
@@ -348,19 +409,12 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
             : const Duration(milliseconds: 420),
       );
       if (mounted) Navigator.pop(context);
-    } on TransactionLogicException catch (e) {
-      if (mounted) {
-        setState(() => _submitState = SubmitState.idle);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
-      }
     } catch (e) {
       if (mounted) {
         setState(() => _submitState = SubmitState.idle);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }

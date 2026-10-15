@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/enums.dart';
 import '../../core/services/preferences_service.dart';
 
@@ -27,7 +28,10 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
 });
 
 final defaultCurrencyProvider = StateProvider<String>((ref) {
-  return PreferencesService.getString('default_currency', defaultValue: 'EGP');
+  return PreferencesService.getString(
+    'default_currency',
+    defaultValue: AppConstants.defaultCurrency,
+  );
 });
 
 final monthlyAutoIncomeProvider = StateProvider<bool>((ref) {

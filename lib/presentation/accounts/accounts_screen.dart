@@ -1,3 +1,5 @@
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import '../providers/finance_providers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -159,11 +161,12 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
   String _type = 'bank';
-  String _currency = 'USD';
+  late String _currency;
   int _color = AppColors.primary.toARGB32();
   String _icon = 'account_balance';
   bool _isSubmitting = false;
   String? _nameError;
+  String? _balanceError;
 
   @override
   void initState() {
@@ -196,11 +199,22 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         TextField(
           controller: _balanceController,
           decoration: InputDecoration(
-            labelText: 'Initial Balance',
-            hintText: '0.00',
+            labelText: _type == 'credit'
+                ? 'Amount you owe now'
+                : 'Current balance',
+            helperText: _type == 'credit'
+                ? 'Enter debt as a positive number; 0 for a paid-off card'
+                : 'Leave empty for 0',
+            helperMaxLines: 2,
+            hintText: '0',
             prefixText: '${CurrencyFormatter.symbolFor(_currency)} ',
+            errorText: _balanceError,
           ),
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(
+            decimal: true,
+            signed: true,
+          ),
+          onChanged: (_) => setState(() => _balanceError = null),
         ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
@@ -338,6 +352,21 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
       return;
     }
 
+    Amount balance = Amount.zero;
+    if (_balanceController.text.trim().isNotEmpty) {
+      try {
+        balance = AmountParser.decimal(_balanceController.text);
+        if (balance.value.scale > CurrencyFormatter.decimalsFor(_currency)) {
+          throw ArgumentError(
+            'Use at most ${CurrencyFormatter.decimalsFor(_currency)} decimals',
+          );
+        }
+      } catch (e) {
+        setState(() => _balanceError = describeError(e));
+        return;
+      }
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final dao = ref.read(accountDaoProvider);
@@ -345,7 +374,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         AccountsCompanion.insert(
           name: _nameController.text.trim(),
           type: _type,
-          balance: Value(double.tryParse(_balanceController.text) ?? 0),
+          balance: Value(balance.toDouble()),
           currency: Value(_currency),
           color: _color,
           icon: _icon,
@@ -357,7 +386,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to add account: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }

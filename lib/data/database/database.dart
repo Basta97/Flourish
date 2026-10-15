@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../../core/constants/app_constants.dart';
 import 'tables/accounts_table.dart';
 import 'tables/transactions_table.dart';
 import 'tables/categories_table.dart';
@@ -425,12 +426,14 @@ class AppDatabase extends _$AppDatabase {
         AccountsCompanion.insert(
           name: 'Cash',
           type: 'cash',
+          currency: const Value(AppConstants.defaultCurrency),
           color: 0xFF10B981,
           icon: 'account_balance_wallet',
         ),
         AccountsCompanion.insert(
           name: 'Bank Account',
           type: 'bank',
+          currency: const Value(AppConstants.defaultCurrency),
           color: 0xFF3B82F6,
           icon: 'account_balance',
         ),
@@ -452,6 +455,13 @@ class AppDatabase extends _$AppDatabase {
       (select(accounts)..where((a) => a.id.equals(id))).getSingleOrNull();
 
   Future<int> insertAccount(AccountsCompanion entry) => transaction(() async {
+    // Upgraded databases still carry the old 'USD' column default, so never
+    // rely on it.
+    if (!entry.currency.present) {
+      entry = entry.copyWith(
+        currency: const Value(AppConstants.defaultCurrency),
+      );
+    }
     final id = await into(accounts).insert(entry);
     final balance = entry.balance.present
         ? Amount.fromNum(entry.balance.value)
@@ -477,6 +487,46 @@ class AppDatabase extends _$AppDatabase {
     );
     notifyFinanceChanged();
   }
+
+  /// Whether anything references the account's currency: transactions,
+  /// recurring rules, goals, contracts or holdings bought through it.
+  Future<bool> accountHasHistory(int id) async {
+    final tx =
+        await (select(transactions)
+              ..where((t) => t.accountId.equals(id))
+              ..limit(1))
+            .get();
+    if (tx.isNotEmpty) return true;
+    final rules =
+        await (select(recurringTransactions)
+              ..where((r) => r.accountId.equals(id))
+              ..limit(1))
+            .get();
+    final linkedGoals =
+        await (select(goals)
+              ..where((g) => g.accountId.equals(id))
+              ..limit(1))
+            .get();
+    if (rules.isNotEmpty || linkedGoals.isNotEmpty) return true;
+    final store = FinanceStore(this);
+    final contracts = await store.list('contracts');
+    return contracts.any(
+      (c) => c['accountId'] == id || c['cardAccountId'] == id,
+    );
+  }
+
+  Future<void> changeAccountCurrency(int id, String currency) =>
+      transaction(() async {
+        if (await accountHasHistory(id)) {
+          throw const TransactionLogicException(
+            'The currency of an account with history cannot change.',
+          );
+        }
+        await (update(accounts)..where((a) => a.id.equals(id))).write(
+          AccountsCompanion(currency: Value(currency)),
+        );
+        notifyFinanceChanged();
+      });
 
   Future<int> deleteAccount(int id) => transaction(() async {
     final contracts = await FinanceStore(this).list('contracts');

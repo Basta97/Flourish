@@ -1,6 +1,7 @@
 import '../../domain/finance/models.dart';
 import '../../data/finance/finance_store.dart';
 import 'financial_ledger_service.dart';
+import '../utils/currency_formatter.dart';
 
 DateTime monthFrom(DateTime anchor, int months) {
   final first = DateTime(anchor.year, anchor.month + months, 1);
@@ -48,11 +49,7 @@ class ContractService {
     final rawInstallment = rate == Amount.zero
         ? c.principal / Amount('${dates.length}')
         : c.principal * rate * factor / (factor - Amount.one);
-    final digits = ['JPY', 'KRW'].contains(c.currency)
-        ? 0
-        : ['KWD', 'BHD', 'OMR'].contains(c.currency)
-        ? 3
-        : 2;
+    final digits = CurrencyFormatter.decimalsFor(c.currency);
     final installment = rawInstallment.rounded(digits);
     var remaining = c.principal;
     final payments = <ScheduledPayment>[];

@@ -227,12 +227,23 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
   final stored = await ref
       .read(financeStoreProvider)
       .get('accountDetails', '${a.id}');
+  final db = ref.read(databaseProvider);
+  // The currency defines every stored amount, so it can only change before
+  // anything has been recorded against the account.
+  final currencyLocked = await db.accountHasHistory(a.id);
   if (!context.mounted) return;
   await financeForm(
     context,
     title: 'Manage ${a.name}',
     fields: [
       FinanceField('name', 'Account name', initial: a.name),
+      if (!currencyLocked)
+        FinanceField(
+          'currency',
+          'Currency',
+          initial: a.currency,
+          options: currencies,
+        ),
       FinanceField(
         'institution',
         'Institution',
@@ -257,21 +268,26 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
         initial: stored?['included'] == false ? 'no' : 'yes',
         options: const {'yes': 'Include', 'no': 'Exclude'},
       ),
-      const FinanceField(
+      FinanceField(
         'balance',
-        'Reconciled balance (optional)',
+        a.type == 'credit'
+            ? 'Amount owed per statement (optional)'
+            : 'Reconciled balance (optional)',
         required: false,
         numeric: true,
       ),
       const FinanceField('reason', 'Reconciliation reason', required: false),
     ],
     save: (j) async {
-      final store = ref.read(financeStoreProvider),
-          db = ref.read(databaseProvider);
+      final store = ref.read(financeStoreProvider);
       await db.transaction(() async {
         final current = await db.getAccountById(a.id);
         if (current == null) throw StateError('Account no longer exists');
         await db.updateAccount(current.copyWith(name: j['name']));
+        if (j['currency'] case final currency?
+            when currency != current.currency) {
+          await db.changeAccountCurrency(a.id, currency);
+        }
         if (j['balance']!.isNotEmpty) {
           await ref
               .read(financialLedgerProvider)
@@ -388,7 +404,9 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
                 FinanceField(
                   'base',
                   'From',
-                  initial: 'USD',
+                  initial: 'USD' == ref.read(defaultCurrencyProvider)
+                      ? 'EUR'
+                      : 'USD',
                   options: currencies,
                 ),
                 FinanceField(

@@ -23,6 +23,7 @@ class FinancialLedgerService {
     DateTime? date,
     String kind = 'cash',
     Json? extra,
+    String? expectCurrency,
   }) => db.transaction(() async {
     positive(amount);
     if (!['income', 'expense'].contains(type)) {
@@ -30,6 +31,7 @@ class FinancialLedgerService {
     }
     final account = await db.getAccountById(accountId);
     if (account == null) throw StateError('Account no longer exists');
+    _checkCurrency(account, expectCurrency);
     final details = await store.get('accountDetails', '$accountId');
     if (details?['archived'] == true) {
       throw StateError('Unarchive this account first');
@@ -75,13 +77,25 @@ class FinancialLedgerService {
     return id;
   });
 
+  /// The amount was entered in [expected]; refuse to book it in another
+  /// currency, which would silently relabel e.g. USD 100 as EGP 100.
+  void _checkCurrency(Account account, String? expected) {
+    if (expected != null && expected != account.currency) {
+      throw TransactionLogicException(
+        '${account.name} is in ${account.currency}, but the amount was '
+        'entered in $expected. Convert it before saving.',
+      );
+    }
+  }
+
   Future<void> _snapshot(
     int id,
     Amount amount,
     String currency,
     DateTime date,
-    String kind,
-  ) async {
+    String kind, {
+    Json? keep,
+  }) async {
     final rates = (await store.list('fx'))
         .map(MarketObservation.fromJson)
         .where(
@@ -101,6 +115,7 @@ class FinancialLedgerService {
       snapshots.putIfAbsent(r.currency, () => '${r.value}');
     }
     await store.setTransactionDetails(id, {
+      ...?keep,
       'amount': '$amount',
       'currency': currency,
       'date': date.toIso8601String(),
@@ -137,73 +152,99 @@ class FinancialLedgerService {
   }
 
   Future<void> updateTransactionAndUpdateBalance(Transaction updated) =>
-      db.transaction(() async {
-        final existing = await db.getTransactionById(updated.id);
-        if (existing == null) throw StateError('Transaction no longer exists');
-        if (existing.linkedTransactionId != null) {
-          throw StateError('Use Edit transfer to update both accounts');
-        }
-        final details = await store.transactionDetails(existing.id);
-        if (details?['contractPaymentId'] != null ||
-            details?['transferOwner'] != null ||
-            details?['holdingFeeFor'] != null) {
-          throw StateError('Manage this entry through its linked operation');
-        }
-        if (details != null && !['cash', 'fee'].contains(details['kind'])) {
-          throw StateError('Manage this entry from its holding or contract');
-        }
-        positive(Amount.fromNum(updated.amount));
-        final a = await db.getAccountById(updated.accountId);
-        final old = await db.getAccountById(existing.accountId);
-        final category = await db.getCategoryById(updated.categoryId);
-        if (a == null || old == null || category?.type != updated.type) {
-          throw ArgumentError('Select a valid account and matching category');
-        }
-        if ((await store.get('accountDetails', '${a.id}'))?['archived'] ==
-            true) {
-          throw StateError('Unarchive the account before editing');
-        }
-        final priorAmount = details == null
-            ? Amount.fromNum(existing.amount)
-            : amountOf(details['amount']);
-        final oldSign = (existing.type == 'income') != (old.type == 'credit')
-            ? Amount.one
-            : -Amount.one;
-        final newSign = (updated.type == 'income') != (a.type == 'credit')
-            ? Amount.one
-            : -Amount.one;
-        await store.changeBalance(old.id, -(priorAmount * oldSign));
-        await db.updateTransaction(updated);
-        final amount = Amount.fromNum(updated.amount);
-        await store.changeBalance(a.id, amount * newSign);
-        for (final event in await store.list('activity')) {
-          if (event['transactionId'] == updated.id &&
-              ['dividend', 'interest', 'rent'].contains(event['kind'])) {
-            await store.put('activity', event['id'], {
-              ...event,
-              'amount': '$amount',
-              'currency': a.currency,
-              'date': updated.transactionDate.toIso8601String(),
-            });
-          }
-        }
-        if (details != null &&
-            existing.accountId == updated.accountId &&
-            existing.transactionDate == updated.transactionDate) {
-          await store.setTransactionDetails(updated.id, {
-            ...details,
-            'amount': '$amount',
-          });
-        } else {
-          await _snapshot(
-            updated.id,
-            amount,
-            a.currency,
-            updated.transactionDate,
-            details?['kind'] ?? 'cash',
-          );
-        }
-      });
+      updateCash(
+        updated.id,
+        accountId: updated.accountId,
+        amount: Amount.fromNum(updated.amount),
+        type: updated.type,
+        categoryId: updated.categoryId,
+        note: updated.note,
+        date: updated.transactionDate,
+      );
+
+  /// Edits a plain income/expense entry, moving its balance effect between
+  /// accounts when needed. [expectCurrency] is the currency the amount was
+  /// entered in.
+  Future<void> updateCash(
+    int id, {
+    required int accountId,
+    required Amount amount,
+    required String type,
+    required int categoryId,
+    String? note,
+    required DateTime date,
+    String? expectCurrency,
+  }) => db.transaction(() async {
+    final existing = await db.getTransactionById(id);
+    if (existing == null) throw StateError('Transaction no longer exists');
+    if (existing.linkedTransactionId != null) {
+      throw StateError('Use Edit transfer to update both accounts');
+    }
+    final details = await store.transactionDetails(existing.id);
+    if (details?['contractPaymentId'] != null ||
+        details?['transferOwner'] != null ||
+        details?['holdingFeeFor'] != null) {
+      throw StateError('Manage this entry through its linked operation');
+    }
+    if (details != null && !['cash', 'fee'].contains(details['kind'])) {
+      throw StateError('Manage this entry from its holding or contract');
+    }
+    positive(amount);
+    final a = await db.getAccountById(accountId);
+    final old = await db.getAccountById(existing.accountId);
+    final category = await db.getCategoryById(categoryId);
+    if (a == null || old == null || category?.type != type) {
+      throw ArgumentError('Select a valid account and matching category');
+    }
+    _checkCurrency(a, expectCurrency);
+    if ((await store.get('accountDetails', '${a.id}'))?['archived'] == true) {
+      throw StateError('Unarchive the account before editing');
+    }
+    final priorAmount = details == null
+        ? Amount.fromNum(existing.amount)
+        : amountOf(details['amount']);
+    await store.changeBalance(
+      old.id,
+      -(priorAmount * _sign(existing.type, old.type)),
+    );
+    await db.updateTransaction(
+      existing.copyWith(
+        accountId: accountId,
+        amount: amount.toDouble(),
+        type: type,
+        categoryId: categoryId,
+        note: Value(note),
+        transactionDate: date,
+      ),
+    );
+    await store.changeBalance(a.id, amount * _sign(type, a.type));
+    for (final event in await store.list('activity')) {
+      if (event['transactionId'] == id &&
+          ['dividend', 'interest', 'rent'].contains(event['kind'])) {
+        await store.put('activity', event['id'], {
+          ...event,
+          'amount': '$amount',
+          'currency': a.currency,
+          'date': date.toIso8601String(),
+        });
+      }
+    }
+    if (details != null &&
+        existing.accountId == accountId &&
+        existing.transactionDate == date) {
+      await store.setTransactionDetails(id, {...details, 'amount': '$amount'});
+    } else {
+      await _snapshot(
+        id,
+        amount,
+        a.currency,
+        date,
+        details?['kind'] ?? 'cash',
+        keep: details,
+      );
+    }
+  });
+
   Future<void> deleteTransactionAndUpdateBalance(int id) =>
       db.transaction(() async {
         await _guardUserDelete(id);
@@ -400,6 +441,7 @@ class FinancialLedgerService {
     String? note,
     DateTime? date,
     int? editId,
+    String? expectCurrency,
   }) => db.transaction(() async {
     positive(amount);
     final charge = fee ?? Amount.zero;
@@ -412,9 +454,17 @@ class FinancialLedgerService {
     if (from == null || to == null) {
       throw StateError('Account no longer exists');
     }
+    _checkCurrency(from, expectCurrency);
     if (from.currency != to.currency && received == null) {
       throw ArgumentError(
         'Enter the actual destination amount for this currency',
+      );
+    }
+    if (from.currency == to.currency &&
+        received != null &&
+        received != amount) {
+      throw ArgumentError(
+        'Same-currency transfers arrive in full; record any difference as a fee',
       );
     }
     final destination = received ?? amount;

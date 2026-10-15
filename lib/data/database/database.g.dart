@@ -65,7 +65,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('USD'),
+    defaultValue: const Constant(AppConstants.defaultCurrency),
   );
   static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override

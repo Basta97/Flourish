@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/error_text.dart';
 
 class FinanceField {
   final String key, label, initial;
@@ -169,10 +170,7 @@ class _FinanceFormState extends State<_FinanceForm> {
                   if (mounted) {
                     setState(() {
                       saving = false;
-                      error = e.toString().replaceFirst(
-                        'Invalid argument(s): ',
-                        '',
-                      );
+                      error = describeError(e);
                     });
                   }
                 }

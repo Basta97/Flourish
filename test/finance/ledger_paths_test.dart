@@ -230,6 +230,85 @@ void main() {
     );
   });
 
+  group('currency guards', () {
+    test('amounts entered in another currency are refused', () async {
+      final usd = await account('Dollar card', currency: 'USD');
+      await expectLater(
+        ledger.recordCash(
+          accountId: usd,
+          amount: Amount('100'),
+          type: 'expense',
+          expectCurrency: 'EGP',
+        ),
+        throwsA(isA<TransactionLogicException>()),
+      );
+      final egp = await account('Bank');
+      final tx = await ledger.recordCash(
+        accountId: egp,
+        amount: Amount('100'),
+        type: 'expense',
+        expectCurrency: 'EGP',
+      );
+      await expectLater(
+        ledger.updateCash(
+          tx,
+          accountId: usd,
+          amount: Amount('100'),
+          type: 'expense',
+          categoryId: (await db.getTransactionById(tx))!.categoryId,
+          date: DateTime.now(),
+          expectCurrency: 'EGP',
+        ),
+        throwsA(isA<TransactionLogicException>()),
+      );
+      expect(await store.balance(egp), Amount('900'));
+      expect(await store.balance(usd), Amount('1000'));
+    });
+
+    test('same-currency transfers must arrive in full', () async {
+      final a = await account('A'), b = await account('B');
+      await expectLater(
+        ledger.transfer(
+          fromAccountId: a,
+          toAccountId: b,
+          amount: Amount('100'),
+          received: Amount('90'),
+        ),
+        throwsArgumentError,
+      );
+      expect(await db.getAllTransactions(), isEmpty);
+    });
+
+    test('currency is editable only until the account has history', () async {
+      final id = await account('Fresh', currency: 'USD');
+      await db.changeAccountCurrency(id, 'EGP');
+      expect((await db.getAccountById(id))!.currency, 'EGP');
+      await ledger.recordCash(
+        accountId: id,
+        amount: Amount('1'),
+        type: 'expense',
+      );
+      await expectLater(
+        db.changeAccountCurrency(id, 'USD'),
+        throwsA(isA<TransactionLogicException>()),
+      );
+    });
+
+    test('accounts without a currency use the app default', () async {
+      final id = await db.insertAccount(
+        AccountsCompanion.insert(
+          name: 'Plain',
+          type: 'cash',
+          color: 0,
+          icon: 'wallet',
+        ),
+      );
+      expect((await db.getAccountById(id))!.currency, 'EGP');
+      final seeded = await db.getAllAccounts();
+      expect(seeded.where((a) => a.name == 'Cash').single.currency, 'EGP');
+    });
+  });
+
   test('databases upgraded through v5 stay readable', () async {
     await db.close();
     final folder = await Directory.systemTemp.createTemp('flourish-v4');

@@ -12,7 +12,7 @@ class AmountText extends StatelessWidget {
   const AmountText({
     super.key,
     required this.amount,
-    this.currency = 'USD',
+    required this.currency,
     this.compact = false,
     this.showColor = true,
   });

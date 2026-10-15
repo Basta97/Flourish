@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import '../../core/constants/app_constants.dart';
 import '../providers/finance_providers.dart';
 import '../wealth/finance_form.dart';
@@ -421,10 +422,12 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
         ),
       ],
       save: (j) async {
-        final amount = double.parse(j['amount']!);
-        if (!amount.isFinite || amount <= 0) {
-          throw ArgumentError('Enter a positive amount');
-        }
+        final parsed = AmountParser.parse(
+          j['amount']!,
+          currency: j['currency']!,
+        );
+        if (!parsed.isValid) throw ArgumentError(parsed.error);
+        final amount = parsed.value!.toDouble();
         final store = ref.read(financeStoreProvider);
         final unit = j['currency']!;
         if (await store.get('budgetVersions', '${budget.id}:opening') == null) {
@@ -689,12 +692,16 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
       setState(() => _categoryError = 'Please select a category');
       hasError = true;
     }
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Please enter a valid amount');
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: ref.read(defaultCurrencyProvider),
+    );
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       hasError = true;
     }
     if (hasError) return;
+    final amount = parsed.value!.toDouble();
 
     setState(() => _isSubmitting = true);
     try {
@@ -702,7 +709,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
       final budgetId = await dao.insertBudget(
         BudgetsCompanion.insert(
           categoryId: _categoryId!,
-          amount: amount!,
+          amount: amount,
           period: _period,
           startDate: DateTime.now(),
         ),

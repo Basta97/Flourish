@@ -270,9 +270,8 @@ class _MonthSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = FlourishPalette.of(context);
-    // formatCompact drops the sign above 1,000, so apply it explicitly.
     String fmt(double v) =>
-        '${v < 0 ? '-' : ''}${CurrencyFormatter.formatCompact(v.abs(), currency: currency)}';
+        CurrencyFormatter.formatCompact(v, currency: currency);
 
     return FutureBuilder<(Amount, Amount, int)>(
       future: future,

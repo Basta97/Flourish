@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import '../../core/finance/backup_service.dart';
 import '../../data/finance/finance_store.dart';
 import '../wealth/finance_tools_view.dart';
@@ -50,6 +51,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _incomeAmountController.dispose();
     _incomeDayController.dispose();
     super.dispose();
+  }
+
+  String _incomeCurrency() {
+    final id = ref.read(monthlyIncomeAccountIdProvider);
+    return ref
+            .read(accountsProvider)
+            .valueOrNull
+            ?.where((a) => a.id == id)
+            .firstOrNull
+            ?.currency ??
+        ref.read(defaultCurrencyProvider);
   }
 
   @override
@@ -206,9 +218,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             labelText: 'Monthly Income Amount',
                             hintText: 'e.g. 5000',
                           ),
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [AmountInputFormatter()],
                           onChanged: (v) {
-                            final amt = double.tryParse(v) ?? 0;
+                            final amt =
+                                AmountParser.parse(
+                                  v,
+                                  currency: _incomeCurrency(),
+                                ).value?.toDouble() ??
+                                0;
                             ref
                                     .read(monthlyIncomeAmountProvider.notifier)
                                     .state =
@@ -535,7 +555,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       name: Value(item['name'] as String),
                       type: Value(item['type'] as String),
                       balance: Value((item['balance'] as num).toDouble()),
-                      currency: Value(item['currency'] as String? ?? 'USD'),
+                      currency: Value(
+                        item['currency'] as String? ??
+                            ref.read(defaultCurrencyProvider),
+                      ),
                       color: Value(item['color'] as int),
                       icon: Value(item['icon'] as String),
                       createdAt: _dateValue(item['createdAt']),

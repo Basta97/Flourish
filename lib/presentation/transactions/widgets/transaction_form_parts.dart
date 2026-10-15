@@ -1,5 +1,6 @@
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:flourish/core/motion/motion.dart';
 import 'package:flourish/core/theme/app_colors.dart';
@@ -89,13 +90,13 @@ class AmountInput extends StatelessWidget {
             autofocus: autofocus,
             textAlign: TextAlign.center,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-            ],
+            inputFormatters: [AmountInputFormatter()],
             cursorColor: tint,
             style: AppTextStyles.numberHero.copyWith(color: tint),
             decoration: InputDecoration(
-              hintText: '0.00',
+              hintText: CurrencyFormatter.decimalsFor(currency) == 0
+                  ? '0'
+                  : '0.${'0' * CurrencyFormatter.decimalsFor(currency)}',
               hintStyle: AppTextStyles.numberHero.copyWith(
                 color: palette.textLow.withValues(alpha: 0.35),
               ),
@@ -491,4 +492,39 @@ class SubmitButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Future-dated entries change balances immediately; make sure that is
+/// intended. Returns false when the user backs out.
+Future<bool> confirmFutureDate(BuildContext context, DateTime date) async {
+  final now = DateTime.now();
+  if (!DateTime(
+    date.year,
+    date.month,
+    date.day,
+  ).isAfter(DateTime(now.year, now.month, now.day))) {
+    return true;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Date is in the future'),
+      content: Text(
+        'This entry is dated ${DateFormat.yMMMd().format(date)} but changes '
+        'the account balance now. For a payment that has not happened yet, '
+        'a recurring payment or reminder may fit better.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Change date'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Save anyway'),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
 }

@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish/core/motion/motion.dart';
@@ -336,7 +337,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             hintText: '0.00',
             errorText: _amountError,
           ),
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [AmountInputFormatter()],
           onChanged: (_) => setState(() => _amountError = null),
         ),
         const SizedBox(height: Sp.md),
@@ -496,11 +498,23 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   Future<void> _submit() async {
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Enter a valid amount');
+    final currency =
+        ref
+            .read(accountsProvider)
+            .valueOrNull
+            ?.where((a) => a.id == _accountId)
+            .firstOrNull
+            ?.currency ??
+        '';
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: currency,
+    );
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       return;
     }
+    final amount = parsed.value!.toDouble();
     if (_accountId == null || _categoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select account and category')),

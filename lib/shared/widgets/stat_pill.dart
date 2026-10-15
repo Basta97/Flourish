@@ -15,7 +15,7 @@ class StatPill extends StatelessWidget {
     required this.tone,
     required this.value,
     this.exactText,
-    this.format,
+    required this.format,
   });
 
   final String label;
@@ -23,7 +23,7 @@ class StatPill extends StatelessWidget {
   final Color tone;
   final double? value;
   final String? exactText;
-  final String Function(double value)? format;
+  final String Function(double value) format;
 
   @override
   Widget build(BuildContext context) {

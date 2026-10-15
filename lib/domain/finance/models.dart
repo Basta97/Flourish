@@ -147,6 +147,68 @@ class MarketObservation {
   );
 }
 
+/// A credit card's terms. Percentages and amounts are exact decimals in the
+/// card's currency; [FinanceContract.annualRate] stays the purchase APR.
+class CardTerms {
+  final Amount creditLimit, minPaymentPercent, minPaymentFloor;
+  final Amount fxFeePercent, cashAdvanceFeePercent, cashAdvanceFeeMin;
+  final Amount cashAdvanceApr, lateFee;
+  CardTerms({
+    required this.creditLimit,
+    Amount? minPaymentPercent,
+    Amount? minPaymentFloor,
+    Amount? fxFeePercent,
+    Amount? cashAdvanceFeePercent,
+    Amount? cashAdvanceFeeMin,
+    Amount? cashAdvanceApr,
+    Amount? lateFee,
+  }) : minPaymentPercent = minPaymentPercent ?? Amount('5'),
+       minPaymentFloor = minPaymentFloor ?? Amount.zero,
+       fxFeePercent = fxFeePercent ?? Amount.zero,
+       cashAdvanceFeePercent = cashAdvanceFeePercent ?? Amount.zero,
+       cashAdvanceFeeMin = cashAdvanceFeeMin ?? Amount.zero,
+       cashAdvanceApr = cashAdvanceApr ?? Amount.zero,
+       lateFee = lateFee ?? Amount.zero;
+
+  /// Rejects terms no card would have.
+  void validate() {
+    final percents = [
+      minPaymentPercent,
+      fxFeePercent,
+      cashAdvanceFeePercent,
+      cashAdvanceApr,
+    ];
+    if (creditLimit < Amount.zero ||
+        minPaymentFloor < Amount.zero ||
+        cashAdvanceFeeMin < Amount.zero ||
+        lateFee < Amount.zero ||
+        percents.any((p) => p < Amount.zero || p > Amount('100'))) {
+      throw ArgumentError('Check the card limit, fees and percentages');
+    }
+  }
+
+  Json toJson() => {
+    'creditLimit': '$creditLimit',
+    'minPaymentPercent': '$minPaymentPercent',
+    'minPaymentFloor': '$minPaymentFloor',
+    'fxFeePercent': '$fxFeePercent',
+    'cashAdvanceFeePercent': '$cashAdvanceFeePercent',
+    'cashAdvanceFeeMin': '$cashAdvanceFeeMin',
+    'cashAdvanceApr': '$cashAdvanceApr',
+    'lateFee': '$lateFee',
+  };
+  factory CardTerms.fromJson(Json j) => CardTerms(
+    creditLimit: amountOf(j['creditLimit']),
+    minPaymentPercent: amountOf(j['minPaymentPercent'] ?? '5'),
+    minPaymentFloor: amountOf(j['minPaymentFloor']),
+    fxFeePercent: amountOf(j['fxFeePercent']),
+    cashAdvanceFeePercent: amountOf(j['cashAdvanceFeePercent']),
+    cashAdvanceFeeMin: amountOf(j['cashAdvanceFeeMin']),
+    cashAdvanceApr: amountOf(j['cashAdvanceApr']),
+    lateFee: amountOf(j['lateFee']),
+  );
+}
+
 class FinanceContract {
   final String id, name, currency, counterparty, interestMethod;
   final ContractKind kind;
@@ -155,6 +217,9 @@ class FinanceContract {
   final int paymentsPerYear;
   final int? accountId, cardAccountId;
   final int statementDay, paymentDay;
+
+  /// Present on credit card contracts once their terms are set.
+  final CardTerms? card;
   const FinanceContract({
     required this.id,
     required this.name,
@@ -171,6 +236,7 @@ class FinanceContract {
     this.cardAccountId,
     this.statementDay = 1,
     this.paymentDay = 15,
+    this.card,
   });
   bool get isDebt =>
       kind == ContractKind.loan || kind == ContractKind.creditCard;
@@ -190,6 +256,7 @@ class FinanceContract {
     'cardAccountId': cardAccountId,
     'statementDay': statementDay,
     'paymentDay': paymentDay,
+    if (card != null) 'card': card!.toJson(),
   };
   factory FinanceContract.fromJson(Json j) => FinanceContract(
     id: j['id'],
@@ -207,6 +274,9 @@ class FinanceContract {
     cardAccountId: j['cardAccountId'],
     statementDay: j['statementDay'] ?? 1,
     paymentDay: j['paymentDay'] ?? 15,
+    card: j['card'] is Map
+        ? CardTerms.fromJson(Map<String, dynamic>.from(j['card'] as Map))
+        : null,
   );
 }
 

@@ -1,3 +1,4 @@
+import '../../core/finance/payment_methods.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -852,17 +853,39 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
       'Amount',
       'Currency',
       'Note',
+      // Added after the original seven columns so older importers still
+      // read the file.
+      'Merchant',
+      'Paid with',
+      'Original amount',
+      'Original currency',
     ],
   ];
-  for (final t in await db.getAllTransactions()) {
+  final rows = await db.getAllTransactions();
+  final details = await ref
+      .read(financeStoreProvider)
+      .transactionDetailsFor(rows.map((t) => t.id));
+  final instruments = {
+    for (final i in await db.getPaymentInstruments()) i.id: i,
+  };
+  for (final t in rows) {
+    final d = details[t.id];
+    final original = d?['original'] as Map?;
     lines.add([
       t.transactionDate.toIso8601String(),
       t.type,
       accounts[t.accountId]?.name,
       categories[t.categoryId]?.name,
-      t.amount,
+      d?['amount'] ?? t.amount,
       accounts[t.accountId]?.currency,
       t.note,
+      t.merchant,
+      instruments[t.paymentInstrumentId]?.label ??
+          (t.paymentMethod == null
+              ? null
+              : PaymentMethods.label(t.paymentMethod!)),
+      original?['amount'],
+      original?['currency'],
     ]);
   }
   final file = File(

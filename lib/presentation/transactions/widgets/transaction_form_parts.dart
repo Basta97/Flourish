@@ -1,4 +1,5 @@
 import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/finance/payment_methods.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -527,4 +528,74 @@ Future<bool> confirmFutureDate(BuildContext context, DateTime date) async {
     ),
   );
   return ok == true;
+}
+
+/// What paid for an entry: one of the account's saved cards/wallets, or a
+/// general method that fits the account. Selecting the active chip clears it.
+class PaidWithChips extends StatelessWidget {
+  const PaidWithChips({
+    super.key,
+    required this.account,
+    required this.instruments,
+    required this.instrumentId,
+    required this.method,
+    required this.onChanged,
+    required this.color,
+  });
+
+  final Account account;
+  final List<PaymentInstrument> instruments;
+  final int? instrumentId;
+  final String? method;
+  final void Function(int? instrumentId, String? method) onChanged;
+  final Color color;
+
+  static List<String> genericMethods(String accountType) =>
+      switch (accountType) {
+        'cash' => const ['cash'],
+        'credit' => const ['credit_card'],
+        'ewallet' => const ['mobile_wallet', 'instapay'],
+        _ => const ['debit_card', 'bank_transfer', 'instapay'],
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final mine = instruments
+        .where((i) => i.accountId == account.id && !i.archived)
+        .toList();
+    // Generic methods already covered by a saved card are not repeated.
+    final generic = genericMethods(
+      account.type,
+    ).where((m) => !mine.any((i) => i.kind == m)).toList();
+    Widget chip(String label, bool selected, VoidCallback onTap) => ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: color.withValues(alpha: 0.16),
+      side: BorderSide(color: selected ? color : Colors.transparent),
+      showCheckmark: false,
+    );
+    return Wrap(
+      spacing: Sp.sm,
+      runSpacing: Sp.sm,
+      children: [
+        for (final i in mine)
+          chip(
+            i.label,
+            instrumentId == i.id,
+            () => instrumentId == i.id
+                ? onChanged(null, null)
+                : onChanged(i.id, i.kind),
+          ),
+        for (final m in generic)
+          chip(
+            PaymentMethods.label(m),
+            instrumentId == null && method == m,
+            () => instrumentId == null && method == m
+                ? onChanged(null, null)
+                : onChanged(null, m),
+          ),
+      ],
+    );
+  }
 }

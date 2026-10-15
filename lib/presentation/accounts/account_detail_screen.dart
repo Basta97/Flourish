@@ -1,5 +1,7 @@
 import '../wealth/finance_tools_view.dart';
 import 'package:flutter/material.dart';
+import 'widgets/credit_card_panel.dart';
+import 'widgets/payment_instruments_section.dart';
 import 'package:flourish/core/utils/error_text.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -80,6 +82,30 @@ class AccountDetailScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (account.type == 'credit')
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Sp.screenH,
+                    Sp.xl,
+                    Sp.screenH,
+                    0,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: CreditCardPanel(account: account),
+                  ),
+                ),
+              if (account.type != 'cash')
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Sp.screenH,
+                    Sp.lg,
+                    Sp.screenH,
+                    0,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: PaymentInstrumentsSection(account: account),
+                  ),
+                ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
                   Sp.screenH,

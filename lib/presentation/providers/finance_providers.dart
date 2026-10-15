@@ -4,12 +4,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/finance/financial_ledger_service.dart';
 import '../../core/finance/contract_service.dart';
 import '../../core/finance/recurring_service.dart';
+import '../../core/finance/credit_card_service.dart';
+import '../../data/database/database.dart';
 import '../../core/finance/market_data_service.dart';
 import '../../core/finance/valuation_service.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
-import 'database_provider.dart';
 import 'theme_providers.dart';
+import 'transaction_providers.dart';
 export '../../domain/finance/models.dart';
 
 final financeStoreProvider = Provider(
@@ -21,6 +23,33 @@ final financialLedgerProvider = Provider(
 final recurringServiceProvider = Provider(
   (ref) => RecurringService(ref.watch(financialLedgerProvider)),
 );
+final creditCardServiceProvider = Provider(
+  (ref) => CreditCardService(ref.watch(financialLedgerProvider)),
+);
+
+/// Every card and wallet, defaults first.
+final paymentInstrumentsProvider = StreamProvider<List<PaymentInstrument>>(
+  (ref) => ref.watch(databaseProvider).watchPaymentInstruments(),
+);
+
+/// Conversion and linkage details of one transaction.
+final transactionDetailsProvider = FutureProvider.family<Json?, int>((ref, id) {
+  ref.watch(transactionsProvider);
+  return ref.watch(financeStoreProvider).transactionDetails(id);
+});
+
+/// A credit card's live status, refreshed whenever finances change.
+final creditStatusProvider = StreamProvider.family<CreditStatus, int>((
+  ref,
+  accountId,
+) async* {
+  final service = ref.watch(creditCardServiceProvider);
+  yield await service.status(accountId);
+  await for (final _ in ref.watch(databaseProvider).financeChanges.stream) {
+    yield await service.status(accountId);
+  }
+});
+
 final contractServiceProvider = Provider(
   (ref) => ContractService(ref.watch(financialLedgerProvider)),
 );

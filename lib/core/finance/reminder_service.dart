@@ -1,4 +1,5 @@
-import 'contract_service.dart';
+import 'credit_card_service.dart';
+import '../utils/currency_formatter.dart';
 import 'financial_ledger_service.dart';
 import '../../domain/finance/models.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -50,25 +51,43 @@ class ReminderService {
     await init();
     await plugin.cancelAllPendingNotifications();
     final contracts = await ContractRepository(store).getAll();
-    final upcoming = <({String name, DateTime date})>[];
+    final upcoming = <({String name, DateTime date, String body})>[];
     for (final c in contracts) {
       for (final p in await ContractRepository(store).payments(c.id)) {
         if (!p.paid) {
-          upcoming.add((name: c.name, date: p.date));
+          upcoming.add((
+            name: c.name,
+            date: p.date,
+            body: '${c.name}: review the scheduled payment.',
+          ));
         }
       }
     }
+    final cards = CreditCardService(FinancialLedgerService(store.db));
     for (final c in contracts) {
       if (c.kind == ContractKind.creditCard && c.cardAccountId != null) {
-        final statement = await ContractService(
-          FinancialLedgerService(store.db),
-        ).cardStatement(c);
-        if (amountOf(statement['outstanding']) > Amount.zero) {
-          upcoming.add((
-            name: '${c.name} payment due',
-            date: DateTime.parse(statement['due']),
-          ));
+        final status = await cards.status(c.cardAccountId!);
+        if (status.statementRemaining <= Amount.zero || status.due == null) {
+          continue;
         }
+        final digits = CurrencyFormatter.decimalsFor(c.currency);
+        final body = status.terms == null
+            ? '${c.name}: ${c.currency} ${status.statementRemaining.fixed(digits)} '
+                  'of the last statement is unpaid.'
+            : '${c.name}: pay at least ${c.currency} '
+                  '${status.minimumDue.fixed(digits)}, or '
+                  '${status.statementRemaining.fixed(digits)} in full to avoid '
+                  'interest.';
+        upcoming.add((
+          name: '${c.name} payment due',
+          date: status.due!,
+          body: body,
+        ));
+        upcoming.add((
+          name: '${c.name} payment due in 3 days',
+          date: status.due!.subtract(const Duration(days: 3)),
+          body: body,
+        ));
       } else {
         final outstanding =
             c.principal -
@@ -77,7 +96,11 @@ class ReminderService {
                 .fold(Amount.zero, (sum, p) => sum + p.principal);
         if (outstanding > Amount.zero &&
             !upcoming.any((p) => p.name == c.name && p.date == c.maturity)) {
-          upcoming.add((name: '${c.name} maturity', date: c.maturity));
+          upcoming.add((
+            name: '${c.name} maturity',
+            date: c.maturity,
+            body: '${c.name} maturity: review the scheduled payment.',
+          ));
         }
       }
     }
@@ -94,7 +117,7 @@ class ReminderService {
       await plugin.zonedSchedule(
         id: id++,
         title: 'Flourish payment reminder',
-        body: '${entry.name}: review the scheduled payment.',
+        body: entry.body,
         scheduledDate: tz.TZDateTime.from(date.toUtc(), tz.UTC),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         notificationDetails: const NotificationDetails(

@@ -206,6 +206,11 @@ class BackupService {
           (c.cardAccountId != null && !accounts.containsKey(c.cardAccountId))) {
         throw const FormatException('Invalid contract references or amounts');
       }
+      try {
+        c.card?.validate();
+      } on ArgumentError {
+        throw const FormatException('Invalid credit card terms');
+      }
       contracts[c.id] = c;
     }
     for (final j in await store.list('payments')) {

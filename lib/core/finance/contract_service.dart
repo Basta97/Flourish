@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Variable;
 import '../../domain/finance/models.dart';
 import '../../data/finance/finance_store.dart';
 import 'financial_ledger_service.dart';
@@ -131,6 +132,7 @@ class ContractService {
     if (c.kind == ContractKind.creditCard && c.cardAccountId == null) {
       throw ArgumentError('Select the linked credit card');
     }
+    c.card?.validate();
     final payments = schedule(c);
     if (fundNow) {
       if (c.accountId == null || c.kind == ContractKind.creditCard) {
@@ -267,35 +269,43 @@ class ContractService {
         }
       });
 
-  Future<Json> cardStatement(FinanceContract c, {DateTime? now}) async {
-    if (c.cardAccountId == null) throw StateError('No linked card');
-    final date = now ?? DateTime.now();
-    DateTime cutoff(int month) {
-      final start = DateTime(date.year, month, 1),
-          last = DateTime(date.year, month + 1, 0).day;
-      return DateTime(
-        start.year,
-        start.month,
-        c.statementDay > last ? last : c.statementDay,
-      );
+  /// The latest statement closing on or before [date], the one before it,
+  /// and the payment due date of the latest statement.
+  static ({DateTime closing, DateTime previous, DateTime due}) statementDates(
+    FinanceContract c,
+    DateTime date,
+  ) {
+    DateTime onDay(int year, int month, int day) {
+      final first = DateTime(year, month, 1);
+      final last = DateTime(first.year, first.month + 1, 0).day;
+      return DateTime(first.year, first.month, day > last ? last : day);
     }
 
-    var closing = cutoff(date.month);
-    if (closing.isAfter(date)) closing = cutoff(date.month - 1);
-    final prior = DateTime(closing.year, closing.month - 1, 1);
-    final priorLast = DateTime(prior.year, prior.month + 1, 0).day;
-    final previous = DateTime(
-      prior.year,
-      prior.month,
-      c.statementDay > priorLast ? priorLast : c.statementDay,
+    var closing = onDay(date.year, date.month, c.statementDay);
+    if (closing.isAfter(date)) {
+      closing = onDay(date.year, date.month - 1, c.statementDay);
+    }
+    final previous = onDay(closing.year, closing.month - 1, c.statementDay);
+    final due = onDay(
+      closing.year,
+      c.paymentDay <= c.statementDay ? closing.month + 1 : closing.month,
+      c.paymentDay,
     );
+    return (closing: closing, previous: previous, due: due);
+  }
+
+  Future<Json> cardStatement(FinanceContract c, {DateTime? now}) async {
+    if (c.cardAccountId == null) throw StateError('No linked card');
+    final dates = statementDates(c, now ?? DateTime.now());
+    final closing = dates.closing, previous = dates.previous;
     var billed = Amount.zero,
         unbilled = Amount.zero,
         older = Amount.zero,
         credit = Amount.zero;
     final openingRows = await ledger.db
         .customSelect(
-          'SELECT opening FROM exact_balances WHERE account_id = ${c.cardAccountId!}',
+          'SELECT opening FROM exact_balances WHERE account_id = ?',
+          variables: [Variable(c.cardAccountId!)],
         )
         .get();
     final opening = openingRows.isEmpty
@@ -343,16 +353,7 @@ class ContractService {
     final balance = await store.balance(c.cardAccountId!);
     final unallocated = balance - (older + billed + unbilled - credit);
     older += unallocated;
-    final dueMonth = c.paymentDay <= c.statementDay
-        ? closing.month + 1
-        : closing.month;
-    final dueStart = DateTime(closing.year, dueMonth, 1),
-        dueLast = DateTime(closing.year, dueMonth + 1, 0).day;
-    final due = DateTime(
-      dueStart.year,
-      dueStart.month,
-      c.paymentDay > dueLast ? dueLast : c.paymentDay,
-    );
+    final due = dates.due;
     return {
       'billed': '$billed',
       'unbilled': '$unbilled',

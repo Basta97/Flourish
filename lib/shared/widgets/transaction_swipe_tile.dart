@@ -10,6 +10,7 @@ import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flourish/core/utils/date_formatter.dart';
 import 'package:flourish/core/utils/error_text.dart';
+import 'package:flourish/core/finance/payment_methods.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
@@ -94,7 +95,23 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
     final isIncome = t.type == 'income';
     final isTransfer = t.linkedTransactionId != null;
     final tone = isIncome ? palette.income : palette.textHigh;
+    final instrument = t.paymentInstrumentId == null
+        ? null
+        : (ref.watch(paymentInstrumentsProvider).valueOrNull ?? const [])
+              .where((i) => i.id == t.paymentInstrumentId)
+              .firstOrNull;
+    final paidWith =
+        instrument?.label ??
+        (t.paymentMethod == null
+            ? null
+            : PaymentMethods.label(t.paymentMethod!));
+    final merchant = t.merchant?.trim() ?? '';
+    final original =
+        ref.watch(transactionDetailsProvider(t.id)).valueOrNull?['original']
+            as Map?;
     final meta = [
+      if (merchant.isNotEmpty && widget.category != null) widget.category!.name,
+      ?paidWith,
       if ((widget.accountName ?? '').trim().isNotEmpty) widget.accountName!,
       if ((t.note ?? '').trim().isNotEmpty) t.note!.trim(),
     ].join(' · ');
@@ -122,12 +139,14 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.category?.name ??
-                        (isTransfer
-                            ? 'Transfer'
-                            : isIncome
-                            ? 'Income'
-                            : 'Expense'),
+                    merchant.isNotEmpty
+                        ? merchant
+                        : widget.category?.name ??
+                              (isTransfer
+                                  ? 'Transfer'
+                                  : isIncome
+                                  ? 'Income'
+                                  : 'Expense'),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: palette.textHigh,
                     ),
@@ -168,6 +187,13 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                       ),
                     ),
                   ),
+                  if (original != null)
+                    Text(
+                      '${original['currency']} ${original['amount']}',
+                      style: AppTextStyles.caption.copyWith(
+                        color: palette.textLow,
+                      ),
+                    ),
                   const SizedBox(height: Sp.xs),
                   Text(
                     widget.showTime

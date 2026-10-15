@@ -171,6 +171,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/recurring'),
                 ),
                 _SettingTile(
+                  icon: Icons.credit_card_rounded,
+                  tint: const Color(0xFFEF4444),
+                  title: 'Cards & wallets',
+                  subtitle: 'Debit and credit cards, wallets, InstaPay',
+                  onTap: () => context.push('/payment-methods'),
+                ),
+                _SettingTile(
                   icon: Icons.category_outlined,
                   title: 'Categories',
                   subtitle: 'Add, edit, or delete transaction categories',

@@ -16,6 +16,8 @@ import 'package:flourish/shared/widgets/segmented_pill.dart';
 import 'package:flourish/core/motion/motion.dart';
 import 'transaction_form_parts.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/finance/payment_methods.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flourish/core/utils/error_text.dart';
 
@@ -39,6 +41,11 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
   SubmitState _submitState = SubmitState.idle;
   String? _amountError;
   String? _currencyNote;
+  int? _instrumentId;
+  String? _method;
+  final _merchantController = TextEditingController();
+  bool _refund = false;
+  String? _originalNote;
 
   @override
   void initState() {
@@ -50,12 +57,25 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     _date = t.transactionDate;
     _amountController.text = '${Amount.fromNum(t.amount)}';
     if (t.note != null) _noteController.text = t.note!;
+    _instrumentId = t.paymentInstrumentId;
+    _method = t.paymentMethod;
+    _merchantController.text = t.merchant ?? '';
     // The REAL column is a rounded projection; edit the exact stored value.
     ref.read(financeStoreProvider).transactionDetails(t.id).then((details) {
+      if (!mounted) return;
       final exact = details?['amount'];
-      if (exact != null && mounted && _accountId == t.accountId) {
-        _amountController.text = '$exact';
-      }
+      final original = details?['original'] as Map?;
+      setState(() {
+        if (exact != null && _accountId == t.accountId) {
+          _amountController.text = '$exact';
+        }
+        _refund = details?['kind'] == 'refund';
+        if (original != null) {
+          _originalNote =
+              'Paid ${original['currency']} ${original['amount']}'
+              '${details?['fxFeePercent'] != null ? '; the ${details!['fxFeePercent']}% foreign transaction fee follows this amount' : ''}.';
+        }
+      });
     });
   }
 
@@ -64,7 +84,16 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
   Future<void> _changeAccount(int id, List<Account> accounts) async {
     final from = accounts.where((a) => a.id == _accountId).firstOrNull;
     final to = accounts.where((a) => a.id == id).firstOrNull;
-    setState(() => _accountId = id);
+    setState(() {
+      _accountId = id;
+      // A card belongs to one account; keep only a method that still fits.
+      _instrumentId = null;
+      if (to != null &&
+          _method != null &&
+          !PaymentMethods.fitsAccount(_method!, to.type)) {
+        _method = null;
+      }
+    });
     if (from == null || to == null || from.currency == to.currency) {
       setState(() => _currencyNote = null);
       return;
@@ -101,6 +130,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
   void dispose() {
     _noteController.dispose();
     _amountController.dispose();
+    _merchantController.dispose();
     super.dispose();
   }
 
@@ -155,16 +185,23 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         style: TextButton.styleFrom(foregroundColor: AppColors.danger),
       ),
       children: [
-        SegmentedPill(
-          labels: const ['Expense', 'Income'],
-          selectedIndex: _type == 'income' ? 1 : 0,
-          activeColor: tint,
-          height: 44,
-          onChanged: (i) => setState(() {
-            _type = i == 1 ? 'income' : 'expense';
-            _categoryId = -1;
-          }),
-        ),
+        if (_refund)
+          Text(
+            'Refund · reduces spending in its category',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyMedium.copyWith(color: palette.income),
+          )
+        else
+          SegmentedPill(
+            labels: const ['Expense', 'Income'],
+            selectedIndex: _type == 'income' ? 1 : 0,
+            activeColor: tint,
+            height: 44,
+            onChanged: (i) => setState(() {
+              _type = i == 1 ? 'income' : 'expense';
+              _categoryId = -1;
+            }),
+          ),
         const SizedBox(height: Sp.xl),
         AmountInput(
           controller: _amountController,
@@ -184,6 +221,31 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
             color: tint,
             onSelected: (v) => _changeAccount(v, accounts),
           ),
+          if (_type == 'expense' || _refund)
+            if (accounts.where((a) => a.id == _accountId).firstOrNull
+                case final account?) ...[
+              const SizedBox(height: Sp.lg),
+              const FormLabel('Paid with'),
+              PaidWithChips(
+                account: account,
+                instruments:
+                    ref.watch(paymentInstrumentsProvider).valueOrNull ?? [],
+                instrumentId: _instrumentId,
+                method: _method,
+                color: tint,
+                onChanged: (id, method) => setState(() {
+                  _instrumentId = id;
+                  _method = method;
+                }),
+              ),
+            ],
+          if (_originalNote != null) ...[
+            const SizedBox(height: Sp.sm),
+            Text(
+              _originalNote!,
+              style: AppTextStyles.caption.copyWith(color: palette.textLow),
+            ),
+          ],
           if (_currencyNote != null) ...[
             const SizedBox(height: Sp.sm),
             Text(
@@ -196,7 +258,9 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         const FormLabel('Category'),
         categoriesAsync.when(
           data: (cats) {
-            final filtered = cats.where((c) => c.type == _type).toList();
+            final filtered = cats
+                .where((c) => c.type == (_refund ? 'expense' : _type))
+                .toList();
             final valid =
                 _categoryId > 0 && filtered.any((c) => c.id == _categoryId);
             if (filtered.isNotEmpty && !valid) {
@@ -217,6 +281,17 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
           loading: () => const SizedBox(height: 84),
           error: (error, stackTrace) => const SizedBox(height: 84),
         ),
+        if (_type == 'expense' || _refund) ...[
+          const SizedBox(height: Sp.lg),
+          TextField(
+            controller: _merchantController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              hintText: 'Merchant or payee (optional)',
+              prefixIcon: Icon(Icons.storefront_outlined, size: 20),
+            ),
+          ),
+        ],
         const SizedBox(height: Sp.lg),
         TextField(
           controller: _noteController,
@@ -396,6 +471,13 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
                 : _noteController.text.trim(),
             date: _date,
             expectCurrency: currency,
+            instrumentId: Value(
+              _type == 'expense' || _refund ? _instrumentId : null,
+            ),
+            paymentMethod: Value(
+              _type == 'expense' || _refund ? _method : null,
+            ),
+            merchant: Value(_merchantController.text),
           );
       ref.invalidate(transactionsProvider);
       ref.invalidate(accountsProvider);

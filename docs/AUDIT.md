@@ -80,4 +80,5 @@ can't receive contributions; "Reset all data" is not transactional.
 | 2B–2D | Credit card terms (limit, APR, minimum due, fees), paid-with / foreign currency / refund in forms, card panel, reports by method/card/currency/fees | done |
 | 3A | English/Arabic bank & wallet message parser with 44 fixtures | done |
 | 3B | Detected-payments inbox (schema v8), matching, dedupe, auto-confirm, settings | done |
-| 3C–3E | Android notification listener, iOS Shortcuts queue, docs | planned |
+| 3C | Android notification listener + durable queue (compile-checked; needs device test) | done |
+| 3D–3E | iOS Shortcuts queue, docs | planned |

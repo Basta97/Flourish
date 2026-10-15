@@ -63,4 +63,6 @@ flutter {
 
 dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    // NotificationCompat.MessagingStyle for reading SMS notifications.
+    implementation("androidx.core:core-ktx:1.13.1")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") }

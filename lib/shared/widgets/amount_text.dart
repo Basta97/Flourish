@@ -25,11 +25,12 @@ class AmountText extends StatelessWidget {
     return Text(
       compact
           ? CurrencyFormatter.formatCompact(amount, currency: currency)
-          : CurrencyFormatter.format(amount, currency: currency, showSign: true),
-      style: AppTextStyles.numberMono.copyWith(
-        color: color,
-        fontSize: 14,
-      ),
+          : CurrencyFormatter.format(
+              amount,
+              currency: currency,
+              showSign: true,
+            ),
+      style: AppTextStyles.numberSmall.copyWith(color: color),
     );
   }
 }

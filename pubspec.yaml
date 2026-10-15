@@ -1,5 +1,5 @@
-name: bastasaving
-description: "BastaSaving - Multi-Account Cost Tracker"
+name: flourish
+description: "Flourish - Smart Multi-Account Finance Tracker"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -23,8 +23,25 @@ dependencies:
   flutter_animate: ^4.5.2
   uuid: ^4.5.1
   share_plus: ^10.1.4
+  shared_preferences: ^2.3.4
+  shimmer: ^3.0.0
+  file_picker: ^8.0.0
+  flutter_slidable: ^3.1.1
+  decimal: ^3.2.6
+  http: ^1.6.0
+  local_auth: ^3.0.2
+  flutter_secure_storage: ^10.3.4
+  cryptography: ^2.9.0
+  archive: ^3.6.1
+  excel: ^4.0.6
+  csv: ^8.0.0
+  flutter_local_notifications: ^22.3.2
+  timezone: ^0.11.2
 
 dev_dependencies:
+  path_provider_platform_interface: ^2.1.2
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
@@ -34,3 +51,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Bundled so google_fonts never fetches over the network. File names must
+  # match google_fonts' "<Family>-<Weight>.ttf" convention to be picked up.
+  assets:
+    - assets/fonts/manrope/
+    - assets/fonts/space_grotesk/

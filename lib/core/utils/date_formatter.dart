@@ -37,6 +37,6 @@ class DateFormatter {
   }
 
   static DateTime endOfMonth(DateTime date) {
-    return DateTime(date.year, date.month + 1, 0);
+    return DateTime(date.year, date.month + 1, 0, 23, 59, 59, 999);
   }
 }

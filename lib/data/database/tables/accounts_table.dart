@@ -11,5 +11,7 @@ class Accounts extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
-  Set<Column> get primaryKey => {id};
+  List<String> get customConstraints => [
+    "CHECK (type IN ('bank', 'cash', 'ewallet', 'credit'))",
+  ];
 }

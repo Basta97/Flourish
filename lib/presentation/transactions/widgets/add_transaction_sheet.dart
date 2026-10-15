@@ -1,15 +1,19 @@
+import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bastasaving/core/theme/app_colors.dart';
-import 'package:bastasaving/core/theme/app_text_styles.dart';
-import 'package:bastasaving/core/utils/date_formatter.dart' as date_utils;
-import 'package:bastasaving/core/utils/currency_formatter.dart';
-import 'package:bastasaving/data/database/database.dart';
-import 'package:bastasaving/presentation/providers/transaction_providers.dart';
-import 'package:bastasaving/presentation/providers/category_providers.dart';
-import 'package:bastasaving/presentation/providers/account_providers.dart';
-import 'package:bastasaving/presentation/providers/theme_providers.dart';
-import 'package:bastasaving/shared/widgets/category_icon_widget.dart';
+import 'package:flourish/core/theme/app_colors.dart';
+import 'package:flourish/core/theme/app_text_styles.dart';
+import 'package:flourish/core/theme/app_spacing.dart';
+import 'package:flourish/core/services/insights_service.dart';
+import 'package:flourish/data/database/database.dart';
+import 'package:flourish/presentation/providers/category_providers.dart';
+import 'package:flourish/presentation/providers/account_providers.dart';
+import 'package:flourish/presentation/providers/transaction_providers.dart';
+import 'package:flourish/presentation/providers/theme_providers.dart';
+import 'package:flourish/core/motion/motion.dart';
+import 'package:flourish/presentation/transactions/widgets/transaction_form_parts.dart';
+import 'package:flourish/shared/widgets/segmented_pill.dart';
+import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
@@ -23,258 +27,390 @@ class AddTransactionSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AddTransactionSheet> createState() => _AddTransactionSheetState();
+  ConsumerState<AddTransactionSheet> createState() =>
+      _AddTransactionSheetState();
 }
 
 class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   final _noteController = TextEditingController();
   final _amountController = TextEditingController();
-  String _type = 'expense';
+  final _destinationAmountController = TextEditingController();
+  final _feeController = TextEditingController(text: "0");
+  String _mode = 'expense';
   int? _accountId;
+  int? _toAccountId;
   int? _categoryId;
   DateTime _date = DateTime.now();
+  SubmitState _submitState = SubmitState.idle;
+  String? _amountError;
+  String? _accountError;
+  String? _categoryError;
 
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType ?? 'expense';
+    _mode = widget.initialType ?? 'expense';
     _accountId = widget.initialAccountId;
+    _noteController.addListener(_onNoteChanged);
   }
 
   @override
   void dispose() {
+    _noteController.removeListener(_onNoteChanged);
     _noteController.dispose();
     _amountController.dispose();
+    _destinationAmountController.dispose();
+    _feeController.dispose();
     super.dispose();
   }
+
+  void _onNoteChanged() {
+    if (_categoryId != null || _mode == 'transfer') return;
+    final note = _noteController.text.trim();
+    if (note.length < 3) return;
+    final transactions = ref.read(transactionsProvider).valueOrNull ?? [];
+    final cats = ref.read(categoriesProvider).valueOrNull ?? [];
+    final suggested = InsightsService.suggestCategoryFromNote(
+      note,
+      transactions,
+      categories: cats,
+      type: _mode,
+    );
+    if (suggested != null) {
+      final hasCategory = cats.any((c) => c.id == suggested && c.type == _mode);
+      if (hasCategory && suggested != _categoryId) {
+        setState(() => _categoryId = suggested);
+      }
+    }
+  }
+
+  void _selectMode(String mode) {
+    if (_mode == mode) return;
+    setState(() {
+      _mode = mode;
+      _categoryId = null;
+      _toAccountId = null;
+      _accountError = null;
+      _categoryError = null;
+    });
+  }
+
+  static const _modes = ['expense', 'income', 'transfer'];
 
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
-    final currency = ref.watch(defaultCurrencyProvider);
-
-    return Container(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.all(20),
-        children: [
-          Center(
-            child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textSecondaryLight.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+    final allAccounts = accountsAsync.valueOrNull ?? [];
+    final effectiveFrom = _effectiveAccountId(allAccounts);
+    final chosen = allAccounts.where((a) => a.id == effectiveFrom).firstOrNull;
+    final currency =
+        chosen?.currency ?? ref.watch<String>(defaultCurrencyProvider);
+    final tint = modeColor(context, _mode);
+    return BottomSheetScaffold(
+      title: 'New Transaction',
+      children: [
+        SegmentedPill(
+          labels: const ['Expense', 'Income', 'Transfer'],
+          selectedIndex: _modes.indexOf(_mode),
+          activeColor: tint,
+          height: 44,
+          onChanged: (i) => _selectMode(_modes[i]),
+        ),
+        const SizedBox(height: Sp.xl),
+        AmountInput(
+          controller: _amountController,
+          currency: currency,
+          color: tint,
+          errorText: _amountError,
+          autofocus: true,
+          onChanged: (_) => setState(() => _amountError = null),
+        ),
+        const SizedBox(height: Sp.lg),
+        if (allAccounts.isEmpty)
+          Text(
+            accountsAsync.isLoading
+                ? ''
+                : 'No accounts available. Please add an account first.',
+            style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+          )
+        else if (_mode == 'transfer') ...[
+          if (allAccounts.length < 2)
+            Text(
+              'Add at least 2 accounts to transfer.',
+              style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+            )
+          else ...[
+            const FormLabel('From'),
+            AccountChips(
+              accounts: allAccounts,
+              selectedId: effectiveFrom,
+              color: tint,
+              onSelected: (v) => setState(() {
+                _accountId = v;
+                if (_toAccountId == v) _toAccountId = null;
+                _accountError = null;
+              }),
+            ),
+            const SizedBox(height: Sp.lg),
+            const FormLabel('To'),
+            AccountChips(
+              accounts: allAccounts
+                  .where((a) => a.id != effectiveFrom)
+                  .toList(),
+              selectedId: _effectiveDestinationId(allAccounts, effectiveFrom!),
+              color: tint,
+              onSelected: (v) => setState(() => _toAccountId = v),
+            ),
+            const SizedBox(height: Sp.lg),
+            TextField(
+              controller: _destinationAmountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Amount received (required across currencies)',
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _TypeToggle(
-                label: 'Expense',
-                icon: Icons.arrow_downward,
-                selected: _type == 'expense',
-                color: AppColors.expense,
-                onTap: () => setState(() => _type = 'expense'),
+            const SizedBox(height: Sp.md),
+            TextField(
+              controller: _feeController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              const SizedBox(width: 12),
-              _TypeToggle(
-                label: 'Income',
-                icon: Icons.arrow_upward,
-                selected: _type == 'income',
-                color: AppColors.income,
-                onTap: () => setState(() => _type = 'income'),
+              decoration: InputDecoration(
+                labelText: 'Transfer fee in $currency',
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _amountController,
-            decoration: InputDecoration(
-              labelText: 'Amount',
-              prefixText: '${CurrencyFormatter.symbolFor(currency)} ',
-              hintText: '0.00',
             ),
-            keyboardType: TextInputType.number,
-            autofocus: true,
+          ],
+        ] else ...[
+          const FormLabel('Account'),
+          AccountChips(
+            accounts: allAccounts,
+            selectedId: effectiveFrom,
+            color: tint,
+            onSelected: (v) => setState(() {
+              _accountId = v;
+              _accountError = null;
+            }),
           ),
-          const SizedBox(height: 12),
-          accountsAsync.when(
-            data: (accounts) => DropdownButtonFormField<int>(
-              value: _accountId ?? (accounts.isNotEmpty ? accounts.first.id : null),
-              decoration: const InputDecoration(labelText: 'Account'),
-              items: accounts.map((a) => DropdownMenuItem(
-                value: a.id,
-                child: Text(a.name),
-              )).toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _accountId = v);
-              },
-            ),
-            loading: () => const SizedBox(height: 60),
-            error: (_, __) => const SizedBox(height: 60),
+          const SizedBox(height: Sp.lg),
+          FormLabel(
+            'Category',
+            trailing: _categoryError == null
+                ? null
+                : Text(
+                    _categoryError!,
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.danger,
+                    ),
+                  ),
           ),
-          const SizedBox(height: 12),
           categoriesAsync.when(
             data: (cats) {
-              final filtered = cats.where((c) => c.type == _type).toList();
-              if (filtered.isEmpty) return const SizedBox(height: 60);
-              return DropdownButtonFormField<int>(
-                value: _categoryId ?? (filtered.isNotEmpty ? filtered.first.id : null),
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: filtered.map((c) => DropdownMenuItem(
-                  value: c.id,
-                  child: Row(
-                    children: [
-                      CategoryIconWidget(
-                        iconName: c.icon,
-                        color: Color(c.color),
-                        size: 28,
-                        iconSize: 14,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(c.name),
-                    ],
-                  ),
-                )).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _categoryId = v);
-                },
+              final filtered = cats.where((c) => c.type == _mode).toList();
+              return CategoryGrid(
+                categories: filtered,
+                selectedId: _effectiveCategoryId(filtered),
+                onSelected: (v) => setState(() {
+                  _categoryId = v;
+                  _categoryError = null;
+                }),
               );
             },
-            loading: () => const SizedBox(height: 60),
-            error: (_, __) => const SizedBox(height: 60),
+            loading: () => const SizedBox(height: 84),
+            error: (error, stackTrace) => const SizedBox(height: 84),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _noteController,
-            decoration: const InputDecoration(labelText: 'Note (optional)', hintText: 'Add a note...'),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _date,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-              );
-              if (picked != null) setState(() => _date = picked);
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Date'),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 18),
-                  const SizedBox(width: 8),
-                  Text(date_utils.DateFormatter.formatFull(_date)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _submit,
-            style: FilledButton.styleFrom(
-              backgroundColor: _type == 'expense' ? AppColors.expense : AppColors.income,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(
-              'Add ${_type == 'expense' ? 'Expense' : 'Income'}',
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
-      ),
+        if (_accountError != null) ...[
+          const SizedBox(height: Sp.sm),
+          Text(
+            _accountError!,
+            style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+          ),
+        ],
+        const SizedBox(height: Sp.lg),
+        TextField(
+          controller: _noteController,
+          decoration: const InputDecoration(
+            hintText: 'Add a note',
+            prefixIcon: Icon(Icons.notes_rounded, size: 20),
+          ),
+          minLines: 1,
+          maxLines: 2,
+        ),
+        const SizedBox(height: Sp.md),
+        DatePills(value: _date, onChanged: (d) => setState(() => _date = d)),
+        const SizedBox(height: Sp.xl),
+        SubmitButton(
+          label: _mode == 'transfer'
+              ? 'Transfer'
+              : 'Add ${_mode == 'expense' ? 'Expense' : 'Income'}',
+          color: tint,
+          state: _submitState,
+          onPressed: _submit,
+        ),
+      ],
     );
+  }
+
+  int? _effectiveAccountId(List<Account> accounts) {
+    if (accounts.isEmpty) return null;
+    final selected = _accountId;
+    if (selected != null && accounts.any((account) => account.id == selected)) {
+      return selected;
+    }
+    return accounts.first.id;
+  }
+
+  int? _effectiveDestinationId(List<Account> accounts, int fromAccountId) {
+    final destinations = accounts
+        .where((account) => account.id != fromAccountId)
+        .toList();
+    if (destinations.isEmpty) return null;
+    final selected = _toAccountId;
+    if (selected != null &&
+        destinations.any((account) => account.id == selected)) {
+      return selected;
+    }
+    return destinations.first.id;
+  }
+
+  int? _effectiveCategoryId(List<Category> categories) {
+    if (categories.isEmpty) return null;
+    final selected = _categoryId;
+    if (selected != null &&
+        categories.any((category) => category.id == selected)) {
+      return selected;
+    }
+    return categories.first.id;
+  }
+
+  double? _parseAmount() {
+    final normalized = _amountController.text
+        .trim()
+        .replaceAll(',', '')
+        .replaceAll(RegExp(r'[^0-9.\-]'), '');
+    return double.tryParse(normalized);
   }
 
   Future<void> _submit() async {
-    if (_accountId == null || _categoryId == null) return;
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) return;
+    setState(() {
+      _amountError = null;
+      _accountError = null;
+      _categoryError = null;
+    });
 
-    final db = ref.read(transactionDaoProvider);
+    final amount = _parseAmount();
+    final accounts = ref.read(accountsProvider).valueOrNull ?? [];
+    final accountId = _effectiveAccountId(accounts);
+    final categories = ref.read(categoriesProvider).valueOrNull ?? [];
+    final filteredCategories = categories
+        .where((category) => category.type == _mode)
+        .toList();
+    final categoryId = _mode == 'transfer'
+        ? null
+        : _effectiveCategoryId(filteredCategories);
+    final toAccountId = accountId == null
+        ? null
+        : _effectiveDestinationId(accounts, accountId);
+    bool hasError = false;
 
-    await db.insertTransaction(TransactionsCompanion.insert(
-      accountId: _accountId!,
-      categoryId: _categoryId!,
-      amount: amount,
-      type: _type,
-      note: Value(_noteController.text.trim().isEmpty ? null : _noteController.text.trim()),
-      transactionDate: _date,
-    ));
-
-    final account = await db.getAccountById(_accountId!);
-    if (account != null) {
-      final newBalance = _type == 'income'
-          ? account.balance + amount
-          : account.balance - amount;
-      await db.updateAccount(account.copyWith(balance: newBalance));
+    if (amount == null || amount <= 0) {
+      setState(() => _amountError = 'Please enter a valid amount');
+      hasError = true;
+    }
+    if (accountId == null) {
+      setState(() => _accountError = 'Please select an account');
+      hasError = true;
     }
 
-    if (mounted) Navigator.pop(context);
-  }
-}
+    if (_mode == 'transfer') {
+      if (accounts.length < 2 || toAccountId == null) {
+        setState(() => _accountError = 'Please select destination account');
+        hasError = true;
+      }
+      if (toAccountId != null && toAccountId == accountId) {
+        setState(
+          () => _accountError =
+              'Transfer source and destination must be different',
+        );
+        hasError = true;
+      }
+    } else {
+      if (categoryId == null) {
+        setState(() => _categoryError = 'Please select a category');
+        hasError = true;
+      }
+    }
+    if (hasError) return;
 
-class _TypeToggle extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _TypeToggle({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? color : (Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.08)),
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: selected ? color : null, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: selected ? color : null,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+    setState(() => _submitState = SubmitState.busy);
+    try {
+      if (_mode == 'transfer') {
+        await ref
+            .read(financialLedgerProvider)
+            .transferBetweenAccounts(
+              fromAccountId: accountId!,
+              toAccountId: toAccountId!,
+              amount: amount!,
+              destinationAmount:
+                  _destinationAmountController.text.trim().isEmpty
+                  ? null
+                  : double.parse(_destinationAmountController.text.trim()),
+              fee: double.parse(_feeController.text.trim()),
+              note: _noteController.text.trim().isEmpty
+                  ? null
+                  : _noteController.text.trim(),
+              date: _date,
+            );
+      } else {
+        await ref
+            .read(financialLedgerProvider)
+            .insertTransactionAndUpdateBalance(
+              TransactionsCompanion.insert(
+                accountId: accountId!,
+                categoryId: categoryId!,
+                amount: amount!,
+                type: _mode,
+                note: Value(
+                  _noteController.text.trim().isEmpty
+                      ? null
+                      : _noteController.text.trim(),
                 ),
+                transactionDate: _date,
               ),
-            ],
-          ),
-        ),
-      ),
-    );
+            );
+      }
+
+      ref.invalidate(transactionsProvider);
+      ref.invalidate(accountsProvider);
+      ref.invalidate(categoriesProvider);
+
+      // Let the button morph into a check before the sheet drops away.
+      Haptics.success();
+      if (!mounted) return;
+      setState(() => _submitState = SubmitState.done);
+      await Future<void>.delayed(
+        Motion.reduced(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 420),
+      );
+      if (mounted) Navigator.pop(context);
+    } on TransactionLogicException catch (e) {
+      if (mounted) {
+        setState(() => _submitState = SubmitState.idle);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitState = SubmitState.idle);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
   }
 }

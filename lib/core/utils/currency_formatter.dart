@@ -1,10 +1,18 @@
 import 'package:intl/intl.dart';
 
 class CurrencyFormatter {
-  static String format(double amount, {String currency = 'USD', bool showSign = false}) {
+  static String format(
+    double amount, {
+    String currency = 'USD',
+    bool showSign = false,
+  }) {
     final formatter = NumberFormat.currency(
       symbol: symbolFor(currency),
-      decimalDigits: 2,
+      decimalDigits: currency == 'JPY' || currency == 'KRW'
+          ? 0
+          : ['KWD', 'BHD', 'OMR'].contains(currency)
+          ? 3
+          : 2,
     );
     final formatted = formatter.format(amount.abs());
     if (showSign && amount != 0) {
@@ -26,18 +34,30 @@ class CurrencyFormatter {
 
   static String symbolFor(String currency) {
     switch (currency) {
-      case 'USD': return '\$';
-      case 'EUR': return '€';
-      case 'GBP': return '£';
-      case 'JPY': return '¥';
-      case 'CNY': return '¥';
-      case 'INR': return '₹';
-      case 'IDR': return 'Rp';
-      case 'MYR': return 'RM';
-      case 'SAR': return '﷼';
-      case 'AED': return 'د.إ';
-      case 'EGP': return 'E£';
-      default: return '\$';
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      case 'JPY':
+        return '¥';
+      case 'CNY':
+        return '¥';
+      case 'INR':
+        return '₹';
+      case 'IDR':
+        return 'Rp';
+      case 'MYR':
+        return 'RM';
+      case 'SAR':
+        return '﷼';
+      case 'AED':
+        return 'د.إ';
+      case 'EGP':
+        return 'EGP ';
+      default:
+        return '$currency ';
     }
   }
 }

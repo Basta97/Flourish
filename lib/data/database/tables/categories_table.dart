@@ -10,5 +10,7 @@ class Categories extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
   @override
-  Set<Column> get primaryKey => {id};
+  List<String> get customConstraints => [
+    "CHECK (type IN ('income', 'expense'))",
+  ];
 }

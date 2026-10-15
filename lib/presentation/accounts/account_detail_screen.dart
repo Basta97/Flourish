@@ -1,20 +1,24 @@
+import '../wealth/finance_tools_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:bastasaving/core/theme/app_colors.dart';
-import 'package:bastasaving/core/theme/app_text_styles.dart';
-import 'package:bastasaving/core/utils/currency_formatter.dart';
-import 'package:bastasaving/data/database/database.dart';
-import 'package:bastasaving/presentation/providers/account_providers.dart';
-import 'package:bastasaving/presentation/providers/transaction_providers.dart';
-import 'package:bastasaving/presentation/providers/category_providers.dart';
-import 'package:bastasaving/presentation/providers/theme_providers.dart';
-import 'package:bastasaving/shared/widgets/glass_card.dart';
-import 'package:bastasaving/shared/widgets/section_header.dart';
-import 'package:bastasaving/shared/widgets/empty_state.dart';
-import 'package:bastasaving/shared/widgets/animated_counter.dart';
-import 'package:bastasaving/shared/widgets/category_icon_widget.dart';
-import 'package:bastasaving/presentation/transactions/widgets/add_transaction_sheet.dart';
+import 'package:flourish/core/theme/app_colors.dart';
+import 'package:flourish/core/theme/app_text_styles.dart';
+import 'package:flourish/core/theme/app_spacing.dart';
+import 'package:flourish/data/database/database.dart';
+import 'package:flourish/presentation/providers/account_providers.dart';
+import 'package:flourish/presentation/providers/transaction_providers.dart';
+import 'package:flourish/presentation/providers/category_providers.dart';
+import 'package:flourish/shared/widgets/empty_state.dart';
+import 'package:flourish/core/motion/motion.dart';
+import 'package:flourish/shared/widgets/animated_list_item.dart';
+import 'package:flourish/shared/widgets/shimmer_loading.dart';
+import 'package:flourish/shared/widgets/stat_pill.dart';
+import 'package:flourish/core/utils/currency_formatter.dart';
+import 'package:flourish/presentation/accounts/widgets/account_card.dart';
+import 'package:flourish/shared/widgets/transaction_swipe_tile.dart';
+import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
+import 'package:flourish/presentation/transactions/widgets/add_transaction_sheet.dart';
 
 class AccountDetailScreen extends ConsumerWidget {
   final int accountId;
@@ -23,71 +27,150 @@ class AccountDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accountAsync = ref.watch(accountByIdProvider(accountId));
-    final transactionsAsync = ref.watch(transactionsByAccountProvider(accountId));
-    final currency = ref.watch(defaultCurrencyProvider);
+    final transactionsAsync = ref.watch(
+      transactionsByAccountProvider(accountId),
+    );
+
+    final palette = FlourishPalette.of(context);
+    final account = accountAsync.valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: accountAsync.when(
-          data: (a) => Text(a?.name ?? 'Account'),
-          loading: () => const Text('Account'),
-          error: (_, __) => const Text('Account'),
-        ),
-        actions: [
-          if (accountAsync.valueOrNull != null)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _confirmDelete(context, ref, accountAsync.valueOrNull!),
-            ),
-        ],
-      ),
       body: accountAsync.when(
         data: (account) {
-          if (account == null) return const EmptyState(icon: Icons.error, title: 'Account not found');
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 80),
-            children: [
-              _AccountHero(account: account, currency: currency),
-              const SizedBox(height: 16),
-              SectionHeader(title: 'Transactions', trailing: TextButton.icon(
-                onPressed: () => _addTransaction(context, ref, account),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add'),
-              )),
+          if (account == null) {
+            return const EmptyState(
+              icon: Icons.error_outline_rounded,
+              title: 'Account not found',
+            );
+          }
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                title: Text(account.name),
+                actions: [
+                  IconButton(
+                    tooltip: 'Manage account',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => editAccount(context, ref, account),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    tooltip: 'Delete account',
+                    onPressed: () => _confirmDelete(context, ref, account),
+                  ),
+                  const SizedBox(width: Sp.xs),
+                ],
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  Sp.screenH,
+                  Sp.sm,
+                  Sp.screenH,
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Hero(
+                    tag: accountHeroTag(account.id),
+                    child: AccountCard(account: account, large: true),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  Sp.screenH,
+                  Sp.xl,
+                  Sp.screenH,
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: AnimatedBody(
+                    delay: const Duration(milliseconds: 180),
+                    child: _MonthFlow(
+                      account: account,
+                      transactions: transactionsAsync.valueOrNull,
+                    ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  Sp.screenH,
+                  Sp.xxl,
+                  Sp.screenH - Sp.sm,
+                  Sp.sm,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Transactions',
+                          style: AppTextStyles.title.copyWith(
+                            color: palette.textHigh,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _addTransaction(context, ref, account),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               transactionsAsync.when(
                 data: (transactions) => _TransactionList(
                   transactions: transactions,
                   account: account,
-                  ref: ref,
                 ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const EmptyState(icon: Icons.error, title: 'Error loading transactions'),
+                loading: () => SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: Sp.screenH),
+                  sliver: SliverList.list(
+                    children: [
+                      for (var i = 0; i < 4; i++) ShimmerLoading.listItem(),
+                    ],
+                  ),
+                ),
+                error: (error, stackTrace) => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmptyState(
+                    icon: Icons.error_outline_rounded,
+                    title: 'Error loading transactions',
+                  ),
+                ),
               ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const EmptyState(icon: Icons.error, title: 'Error loading account'),
+        error: (error, stackTrace) => const EmptyState(
+          icon: Icons.error_outline_rounded,
+          title: 'Error loading account',
+        ),
       ),
-      floatingActionButton: accountAsync.valueOrNull != null
+      floatingActionButton: account != null
           ? FloatingActionButton.extended(
-              onPressed: () => _addTransaction(context, ref, accountAsync.valueOrNull!),
-              icon: const Icon(Icons.add),
+              onPressed: () => _addTransaction(context, ref, account),
+              icon: const Icon(Icons.add_rounded),
               label: const Text('Transaction'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Rad.full),
+              ),
             )
           : null,
     );
   }
 
   void _addTransaction(BuildContext context, WidgetRef ref, Account account) {
-    showModalBottomSheet(
+    showSpringBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => ProviderScope(
-        overrides: [],
-        child: AddTransactionSheet(initialAccountId: account.id),
-      ),
+      builder: (ctx) => AddTransactionSheet(initialAccountId: account.id),
     );
   }
 
@@ -98,15 +181,38 @@ class AccountDetailScreen extends ConsumerWidget {
         title: const Text('Delete Account'),
         content: Text('Delete "${account.name}" and all its transactions?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
-              final dao = ref.read(accountDaoProvider);
-              await dao.deleteAccount(account.id);
+              final db = ref.read(accountDaoProvider);
+              try {
+                if ((await db.getTransactionsByAccount(
+                  account.id,
+                )).isNotEmpty) {
+                  throw StateError(
+                    'This account has financial history. Archive it through Manage account instead.',
+                  );
+                }
+                await db.deleteAccount(account.id);
+              } catch (e) {
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('$e')));
+                }
+                return;
+              }
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) context.pop();
             },
-            child: const Text('Delete', style: TextStyle(color: AppColors.danger)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.danger),
+            ),
           ),
         ],
       ),
@@ -114,181 +220,138 @@ class AccountDetailScreen extends ConsumerWidget {
   }
 }
 
-class _AccountHero extends StatelessWidget {
-  final Account account;
-  final String currency;
+/// This month's money in and out of the account, in its own currency.
+class _MonthFlow extends StatelessWidget {
+  const _MonthFlow({required this.account, required this.transactions});
 
-  const _AccountHero({required this.account, required this.currency});
+  final Account account;
+  final List<Transaction>? transactions;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: GlassCard(
-        gradient: AppColors.accountGradients[AppColors.accountGradientIndex(account.icon)],
-        padding: const EdgeInsets.all(24),
-        borderRadius: 20,
-        elevation: 6,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                _iconData(account.icon),
-                color: Colors.white.withValues(alpha: 0.95),
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              account.name,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontSize: 18,
-                color: Colors.white.withValues(alpha: 0.9),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              account.type.toUpperCase(),
-              style: AppTextStyles.caption.copyWith(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 11,
-              ),
-            ),
-            const SizedBox(height: 10),
-            AnimatedCounter(
-              value: account.balance,
-              currency: account.currency,
-              style: AppTextStyles.numberBold.copyWith(fontSize: 34, color: Colors.white),
-              duration: const Duration(milliseconds: 600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _iconData(String name) {
-    switch (name) {
-      case 'account_balance': return Icons.account_balance;
-      case 'account_balance_wallet': return Icons.account_balance_wallet;
-      case 'credit_card': return Icons.credit_card;
-      case 'savings': return Icons.savings;
-      case 'wallet': return Icons.wallet;
-      default: return Icons.account_balance_wallet;
+    final palette = FlourishPalette.of(context);
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month);
+    double? income, expense;
+    if (transactions != null) {
+      income = 0;
+      expense = 0;
+      for (final t in transactions!) {
+        if (t.transactionDate.isBefore(start)) continue;
+        if (t.type == 'income') {
+          income = income! + t.amount;
+        } else if (t.type == 'expense') {
+          expense = expense! + t.amount;
+        }
+      }
     }
+    String fmt(double v) =>
+        CurrencyFormatter.formatCompact(v, currency: account.currency);
+    return Row(
+      children: [
+        Expanded(
+          child: StatPill(
+            label: 'In this month',
+            icon: Icons.south_west_rounded,
+            tone: palette.income,
+            value: income,
+            format: fmt,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: StatPill(
+            label: 'Out this month',
+            icon: Icons.north_east_rounded,
+            tone: palette.expense,
+            value: expense,
+            format: fmt,
+          ),
+        ),
+      ],
+    );
   }
 }
 
+/// The account's transactions as one grouped card: each row is its own sliver
+/// item (so long histories stay lazy) with the ends rounded off.
 class _TransactionList extends ConsumerWidget {
   final List<Transaction> transactions;
   final Account account;
-  final WidgetRef ref;
 
-  const _TransactionList({
-    required this.transactions,
-    required this.account,
-    required this.ref,
-  });
+  const _TransactionList({required this.transactions, required this.account});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (transactions.isEmpty) {
-      return const EmptyState(
-        icon: Icons.receipt_long,
-        title: 'No transactions',
-        subtitle: 'Add a transaction to get started',
+      return const SliverToBoxAdapter(
+        child: EmptyState(
+          icon: Icons.receipt_long_rounded,
+          title: 'No transactions',
+          subtitle: 'Add a transaction to get started.',
+        ),
       );
     }
 
-    final categoriesAsync = ref.watch(categoriesProvider);
-
-    return categoriesAsync.when(
-      data: (categories) => Column(
-        children: transactions.map((t) => _TransactionItem(
-          transaction: t,
-          category: categories.cast<Category?>().firstWhere(
-            (c) => c?.id == t.categoryId,
-            orElse: () => null,
-          ),
-          account: account,
-        )).toList(),
-      ),
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _TransactionItem extends ConsumerWidget {
-  final Transaction transaction;
-  final Category? category;
-  final Account account;
-
-  const _TransactionItem({
-    required this.transaction,
-    this.category,
-    required this.account,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isIncome = transaction.type == 'income';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-          child: Row(
-            children: [
-              CategoryIconWidget(
-                iconName: category?.icon ?? 'more_horiz',
-                color: Color(category?.color ?? 0xFF6B7280),
-                size: 42,
+    final palette = FlourishPalette.of(context);
+    final catMap = {
+      for (final c in ref.watch(categoriesProvider).valueOrNull ?? <Category>[])
+        c.id: c,
+    };
+    final last = transactions.length - 1;
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: Sp.screenH),
+      sliver: SliverList.builder(
+        itemCount: transactions.length,
+        itemBuilder: (context, index) {
+          final t = transactions[index];
+          final radius = BorderRadius.vertical(
+            top: index == 0 ? const Radius.circular(Rad.lg) : Radius.zero,
+            bottom: index == last ? const Radius.circular(Rad.lg) : Radius.zero,
+          );
+          final row = Container(
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: radius,
+              border: Border(
+                left: BorderSide(color: palette.stroke),
+                right: BorderSide(color: palette.stroke),
+                top: index == 0
+                    ? BorderSide(color: palette.stroke)
+                    : BorderSide.none,
+                bottom: index == last
+                    ? BorderSide(color: palette.stroke)
+                    : BorderSide.none,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(category?.name ?? 'Unknown',
-                        style: AppTextStyles.bodyMedium.copyWith(fontSize: 14)),
-                    if (transaction.note != null && transaction.note!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(transaction.note!,
-                          style: AppTextStyles.caption.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                          )),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: (isIncome ? AppColors.income : AppColors.expense).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${isIncome ? '+' : '-'}${CurrencyFormatter.formatCompact(transaction.amount, currency: account.currency)}',
-                  style: AppTextStyles.numberMono.copyWith(
-                    fontSize: 13,
-                    color: isIncome ? AppColors.income : AppColors.expense,
+            ),
+            child: ClipRRect(
+              borderRadius: radius,
+              child: Column(
+                children: [
+                  if (index > 0)
+                    Divider(height: 1, indent: 66, color: palette.stroke),
+                  TransactionSwipeTile(
+                    transaction: t,
+                    category: catMap[t.categoryId],
+                    currency: account.currency,
+                    compact: true,
+                    margin: const EdgeInsets.symmetric(horizontal: Sp.xs),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+          // Only the first screenful staggers in; rows reached by scrolling
+          // appear immediately.
+          return index < Motion.maxStaggered
+              ? AnimatedListItem(
+                  key: ValueKey(t.id),
+                  index: index,
+                  delay: const Duration(milliseconds: 220),
+                  child: row,
+                )
+              : KeyedSubtree(key: ValueKey(t.id), child: row);
+        },
       ),
     );
   }

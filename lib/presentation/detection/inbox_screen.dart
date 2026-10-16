@@ -177,6 +177,21 @@ class _DetectedCard extends ConsumerWidget {
   const _DetectedCard({required this.row});
   final DetectedPayment row;
 
+  static String _chargeText(
+    AsyncValue<ChargeEstimate?> estimate,
+    String currency,
+  ) {
+    final e = estimate.valueOrNull;
+    if (e == null) {
+      return estimate.isLoading
+          ? 'Converting to $currency…'
+          : 'No exchange rate yet · tap Edit to enter the $currency amount';
+    }
+    final fee = e.fee > Amount.zero ? ' + ${e.feePercent}% card fee' : '';
+    return '≈ ${CurrencyFormatter.format(e.amount.toDouble(), currency: currency)}'
+        '$fee · exchange rate estimate';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = FlourishPalette.of(context);
@@ -196,6 +211,11 @@ class _DetectedCard extends ConsumerWidget {
     final amount = row.amount == null
         ? '—'
         : '${income ? '+' : '−'}${CurrencyFormatter.format(double.parse(row.amount!), currency: currency)}';
+    final foreign =
+        account != null &&
+        row.currency != null &&
+        row.currency != account.currency &&
+        p.bookedCurrency != account.currency;
     final when = row.occurredAt ?? row.receivedAt;
     final from = Issuers.byId(p.issuerId)?.name ?? row.sender ?? row.source;
     final details = [
@@ -233,6 +253,16 @@ class _DetectedCard extends ConsumerWidget {
                           color: palette.textLow,
                         ),
                       ),
+                      if (foreign && pending)
+                        Text(
+                          _chargeText(
+                            ref.watch(detectionChargeProvider(row)),
+                            account.currency,
+                          ),
+                          style: AppTextStyles.caption.copyWith(
+                            color: palette.textLow,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -370,6 +400,7 @@ class _DetectedCard extends ConsumerWidget {
     final account = accounts.where((a) => a.id == row.accountId).firstOrNull;
     final foreign =
         p.currency != null && account != null && p.currency != account.currency;
+    final bankFigure = foreign && p.bookedCurrency == account.currency;
     final saved = await financeForm(
       context,
       title: error ?? 'Review payment',
@@ -384,15 +415,19 @@ class _DetectedCard extends ConsumerWidget {
         ),
         FinanceField(
           'amount',
-          foreign
+          !foreign
+              ? 'Amount'
+              : bankFigure
               ? 'Charged to the account (${account.currency}); paid ${p.currency} ${p.amount}'
-              : 'Amount',
-          initial: foreign
-              ? (p.bookedCurrency == account.currency
-                    ? '${p.bookedAmount}'
-                    : '')
-              : (row.amount ?? ''),
+              : 'Charged in ${account.currency} (empty: exchange rate + card fee); '
+                    'paid ${p.currency} ${p.amount}',
+          initial: !foreign
+              ? (row.amount ?? '')
+              : bankFigure
+              ? '${p.bookedAmount}'
+              : '',
           numeric: true,
+          required: !foreign || bankFigure,
         ),
         if (!moves || p.kind == 'card_payment')
           FinanceField(

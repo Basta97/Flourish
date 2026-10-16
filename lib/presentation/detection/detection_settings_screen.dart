@@ -263,8 +263,10 @@ class _DetectionSettingsScreenState
                 const SizedBox(height: Sp.sm),
                 for (final step in const [
                   'Open Shortcuts › Automation › New Automation › Message.',
-                  'Message Contains: EGP (make one automation each for '
-                      'جنيه and ج.م too). Choose Run Immediately.',
+                  'Message Contains: EGP. Choose Run Immediately. Make one '
+                      'more automation for each word your bank uses: جنيه, '
+                      'ج.م, and the currencies you pay in abroad or online, '
+                      'such as USD, دولار, EUR, SAR.',
                   'Add the action "Import Transaction Text" from Flourish and '
                       'pass it the Message and Sender.',
                   'For Apple Pay: New Automation › Wallet › choose your cards '

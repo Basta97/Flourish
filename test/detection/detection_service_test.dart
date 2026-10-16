@@ -185,6 +185,80 @@ void main() {
     expect(await ledger.store.balance(bank), Amount('9349.8'));
   });
 
+  Future<void> rate(String from, String to, String value) => ledger.store.put(
+    'fx',
+    '$from/$to:${DateTime(2026, 10, 14)}:false',
+    MarketObservation(
+      key: '$from/$to',
+      currency: to,
+      source: 'test',
+      value: Amount(value),
+      effectiveAt: DateTime(2026, 10, 14),
+      retrievedAt: DateTime(2026, 10, 14),
+    ).toJson(),
+  );
+
+  group('a foreign purchase without the bank\'s EGP figure', () {
+    setUp(
+      () => (db.update(db.paymentInstruments)..where((i) => i.id.equals(card)))
+          .write(
+            const PaymentInstrumentsCompanion(
+              terms: Value('{"fxFeePercent":"3"}'),
+            ),
+          ),
+    );
+
+    test('is converted at the day\'s rate plus the card fee', () async {
+      await rate('USD', 'EGP', '50');
+      final row = await detection.ingest(
+        sms('Card xxxx1234 Purchase USD 20.00 at NETFLIX.COM'),
+      );
+      final estimate = await detection.charge(row!);
+      expect(estimate!.amount, Amount('1000'));
+      expect(estimate.fromRate, isTrue);
+      expect(estimate.fee, Amount('30'));
+      final result = await detection.confirm(row.id);
+      final details = await ledger.store.transactionDetails(
+        result.transactionId,
+      );
+      expect(details!['original'], {'amount': '20', 'currency': 'USD'});
+      // 1,000 for the purchase and 30 for the card's 3% fee.
+      expect(await ledger.store.balance(bank), Amount('8970'));
+    });
+
+    test('goes through USD when there is no direct rate', () async {
+      await rate('USD', 'EGP', '50');
+      await rate('USD', 'SAR', '3.75');
+      final row = await detection.ingest(
+        sms('Card xxxx1234 Purchase SAR 150.00 at JARIR'),
+      );
+      expect((await detection.charge(row!))!.amount, Amount('2000'));
+    });
+
+    test('asks for the amount when no rate is known', () async {
+      final row = await detection.ingest(
+        sms('Card xxxx1234 Purchase EUR 10.00 at ZARA'),
+      );
+      expect(await detection.charge(row!), isNull);
+      await expectLater(detection.confirm(row.id), throwsArgumentError);
+      final result = await detection.confirm(
+        row.id,
+        draft: DetectionDraft(amount: Amount('560')),
+      );
+      expect(result.transactionId, isPositive);
+      expect(await ledger.store.balance(bank), Amount('9440'));
+    });
+
+    test('is never auto-confirmed', () async {
+      await rate('USD', 'EGP', '50');
+      final row = await detection.ingest(
+        sms('Card xxxx1234 Purchase USD 20.00 at NETFLIX.COM'),
+        autoConfirm: true,
+      );
+      expect((await detection.get(row!.id))!.status, 'pending');
+    });
+  });
+
   test('an ATM withdrawal moves money into cash', () async {
     final row = await detection.ingest(
       sms('ATM cash withdrawal of EGP 2,000.00 from card xx1234'),

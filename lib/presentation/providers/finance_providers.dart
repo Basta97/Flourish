@@ -122,6 +122,14 @@ final detectionBridgeProvider = Provider<DetectionBridge>(
 final detectedPaymentsProvider = StreamProvider<List<DetectedPayment>>(
   (ref) => ref.watch(detectionServiceProvider).watch(),
 );
+
+/// What a detected payment costs in its account's currency (converted at
+/// the day's exchange rate when the bank did not say).
+final detectionChargeProvider = FutureProvider.autoDispose
+    .family<ChargeEstimate?, DetectedPayment>((ref, row) {
+      ref.watch(financeRevisionProvider);
+      return ref.watch(detectionServiceProvider).charge(row);
+    });
 final pendingDetectionsProvider = StreamProvider<int>(
   (ref) => ref.watch(detectionServiceProvider).watchPendingCount(),
 );

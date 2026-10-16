@@ -313,6 +313,59 @@ final fixtures = <Fixture>[
     amount: '100',
     merchant: 'GOOGLE *YouTube',
   ),
+  // Other currencies.
+  Fixture(
+    'Apple Pay purchase of US\$12.99 at Netflix',
+    kind: 'purchase',
+    currency: 'USD',
+    amount: '12.99',
+    merchant: 'Netflix',
+  ),
+  Fixture(
+    'Card ending 1234 Purchase SAR 150.00 at JARIR BOOKSTORE',
+    kind: 'purchase',
+    currency: 'SAR',
+    amount: '150',
+    last4: '1234',
+    merchant: 'JARIR BOOKSTORE',
+  ),
+  Fixture(
+    'تم خصم 45 دولار من بطاقتك المنتهية ب 1234 لدى AMAZON',
+    kind: 'purchase',
+    currency: 'USD',
+    amount: '45',
+    last4: '1234',
+    merchant: 'AMAZON',
+  ),
+  Fixture(
+    'تم خصم 300 ريال سعودي من بطاقتك لدى NOON',
+    kind: 'purchase',
+    currency: 'SAR',
+    amount: '300',
+    merchant: 'NOON',
+  ),
+  Fixture(
+    'Card 1234 used for THB 1,250.00 at 7-ELEVEN',
+    kind: 'purchase',
+    currency: 'THB',
+    amount: '1250',
+    last4: '1234',
+    merchant: '7-ELEVEN',
+  ),
+  Fixture(
+    'Apple Pay purchase of CA\$20.00 at TIM HORTONS',
+    kind: 'purchase',
+    currency: 'CAD',
+    amount: '20',
+    merchant: 'TIM HORTONS',
+  ),
+  Fixture(
+    'تم خصم 1,500 ليرة تركية لدى MIGROS',
+    kind: 'purchase',
+    currency: 'TRY',
+    amount: '1500',
+    merchant: 'MIGROS',
+  ),
 
   // ── Real messages (numbers, card digits and codes changed) ───────────
   // Banque Misr credit card: words glued together without spaces.

@@ -5,7 +5,9 @@ import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
 import '../finance/financial_ledger_service.dart';
 import '../finance/system_categories.dart';
+import '../finance/valuation_service.dart';
 import '../services/category_suggester.dart';
+import '../utils/currency_formatter.dart';
 import '../utils/fingerprint.dart';
 import 'issuers.dart';
 import 'normalizer.dart';
@@ -29,6 +31,22 @@ class DetectionDraft {
     this.merchant,
     this.date,
   });
+}
+
+/// What a payment costs in its account's currency.
+class ChargeEstimate {
+  /// The amount booked to the account, before any card fee.
+  final Amount amount;
+
+  /// The card's foreign-currency fee, added on top when [fromRate].
+  final Amount feePercent;
+
+  /// True when [amount] comes from an exchange rate, not from the bank.
+  final bool fromRate;
+  const ChargeEstimate(this.amount, this.feePercent, {this.fromRate = false});
+
+  Amount get fee =>
+      fromRate ? amount * feePercent / Amount('100') : Amount.zero;
 }
 
 class ConfirmResult {
@@ -129,6 +147,50 @@ class DetectionService {
       }
     }
     return row;
+  }
+
+  /// What [row] costs in the currency of [accountId] (default: its matched
+  /// account). A foreign-currency payment without the bank's own figure is
+  /// converted at that day's exchange rate (through USD when there is no
+  /// direct rate); null when no rate is known.
+  Future<ChargeEstimate?> charge(DetectedPayment row, {int? accountId}) async {
+    final id = accountId ?? row.accountId;
+    if (id == null) return null;
+    final account = await db.getAccountById(id);
+    final p = parsedOf(row);
+    if (account == null || p.amount == null) return null;
+    if (p.currency == null || p.currency == account.currency) {
+      return ChargeEstimate(p.amount!, Amount.zero);
+    }
+    if (p.bookedCurrency == account.currency && p.bookedAmount != null) {
+      return ChargeEstimate(p.bookedAmount!, Amount.zero);
+    }
+    final date = row.occurredAt ?? row.receivedAt;
+    final valuation = ValuationService(store);
+    var value = await valuation.convert(
+      p.amount!,
+      p.currency!,
+      account.currency,
+      at: date,
+    );
+    if (value == null && p.currency != 'USD' && account.currency != 'USD') {
+      final usd = await valuation.convert(
+        p.amount!,
+        p.currency!,
+        'USD',
+        at: date,
+      );
+      if (usd != null) {
+        value = await valuation.convert(usd, 'USD', account.currency, at: date);
+      }
+    }
+    if (value == null) return null;
+    final instrumentId = id == row.accountId ? row.instrumentId : null;
+    return ChargeEstimate(
+      value.rounded(CurrencyFormatter.decimalsFor(account.currency)),
+      await ledger.fxFeePercentFor(account, instrumentId),
+      fromRate: true,
+    );
   }
 
   Future<DetectedPayment?> get(int id) => (db.select(
@@ -371,16 +433,18 @@ class DetectionService {
     final note = _note(p);
     final foreign = p.currency != null && p.currency != account.currency;
     var amount = draft.amount;
+    var fromRate = false;
     if (amount == null) {
-      if (!foreign) {
-        amount = p.amount;
-      } else if (p.bookedCurrency == account.currency) {
-        amount = p.bookedAmount;
-      }
+      final estimate = await charge(row, accountId: account.id);
+      amount = estimate?.amount;
+      fromRate = estimate?.fromRate ?? false;
     }
     if (amount == null) {
       throw ArgumentError(
-        'Enter what ${account.name} was charged in ${account.currency}',
+        foreign
+            ? 'No ${p.currency} exchange rate yet. Enter what ${account.name} '
+                  'was charged in ${account.currency}'
+            : 'Enter the amount',
       );
     }
     final categoryId = draft.categoryId ?? row.categoryId;
@@ -435,10 +499,12 @@ class DetectionService {
             amount: amount,
             categoryId: category,
             original: Money('${p.amount}', p.currency!),
-            fxFeePercent: Amount.zero,
+            // The bank's own figure already is the charge; a converted one
+            // gets the card's foreign-currency fee on top.
+            fxFeePercent: fromRate ? null : Amount.zero,
             instrumentId: instrumentId,
             merchant: merchant,
-            note: note,
+            note: fromRate ? '$note (exchange rate estimate)' : note,
             date: date,
             source: 'detected',
             sourceRef: row.fingerprint,

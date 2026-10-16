@@ -5,9 +5,16 @@ class MessageNormalizer {
   MessageNormalizer._();
 
   /// ASCII digits and separators, plain spaces, single-spaced, trimmed. Case
-  /// and letters are kept so merchant names read naturally.
-  static String clean(String input) =>
-      TextNormalizer.digits(input).replaceAll(RegExp(r'\s+'), ' ').trim();
+  /// and letters are kept so merchant names read naturally. Arabic words
+  /// glued to Latin words or numbers ("فيFACEBK", "المتاحEGP") are split, as
+  /// some banks send them without spaces.
+  static String clean(String input) => TextNormalizer.digits(
+    input,
+  ).replaceAll(_scriptJoin, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  static final _scriptJoin = RegExp(
+    r'(?<=[\u0621-\u0652])(?=[A-Za-z0-9])|(?<=[A-Za-z0-9])(?=[\u0621-\u064A])',
+  );
 
   /// A matching form of [cleaned] with the same length: lower case, and the
   /// Arabic letters people and banks write interchangeably folded together

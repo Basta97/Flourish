@@ -12,7 +12,7 @@ class Fixture {
   final String text;
   final String? sender;
   final String? kind, currency, amount, last4, merchant, counterparty;
-  final String? balance, booked, fee, ignore, issuer;
+  final String? balance, available, booked, fee, ignore, issuer;
   final String direction;
   final DateTime? date;
   const Fixture(
@@ -25,6 +25,7 @@ class Fixture {
     this.merchant,
     this.counterparty,
     this.balance,
+    this.available,
     this.booked,
     this.fee,
     this.ignore,
@@ -36,7 +37,7 @@ class Fixture {
 
 final received = DateTime(2026, 10, 15, 14, 30);
 
-const fixtures = <Fixture>[
+final fixtures = <Fixture>[
   // ── English ──────────────────────────────────────────────────────────
   Fixture(
     'Your CIB credit card ending with 1234 was charged EGP 1,250.50 at CARREFOUR MAADI on 14/10/2026 18:22. Available limit EGP 23,749.50',
@@ -306,6 +307,27 @@ const fixtures = <Fixture>[
     amount: '99.99',
     merchant: 'BOOKING.COM',
   ),
+  Fixture(
+    'Purchase EGP 100.00 at GOOGLE *YouTube',
+    kind: 'purchase',
+    amount: '100',
+    merchant: 'GOOGLE *YouTube',
+  ),
+
+  // ── Real messages (numbers, card digits and codes changed) ───────────
+  // Banque Misr credit card: words glued together without spaces.
+  Fixture(
+    'عميلناالعزيز،شكرًا لاستخدامكم بطاقة بنك مصر الائتمانية*****4827 تم خصم '
+    'مبلغ EGP 2000 فيFACEBK *K7RTZP2بتاريخ 14/10/2026،الرصيدالمتاحEGP '
+    '512.40،وحدالاستخدام الدولي المتاحEGP41250.75للمزيداتصل 19888',
+    kind: 'purchase',
+    amount: '2000',
+    last4: '4827',
+    merchant: 'FACEBK',
+    available: '512.4',
+    issuer: 'banque_misr',
+    date: DateTime(2026, 10, 14),
+  ),
 ];
 
 void main() {
@@ -344,11 +366,19 @@ void main() {
       if (f.balance != null) {
         expect(p.balanceAfter, Amount(f.balance!), reason: 'balance');
       }
+      if (f.available != null) {
+        expect(p.availableCredit, Amount(f.available!), reason: 'available');
+        expect(p.balanceAfter, isNull, reason: 'credit balance is no balance');
+      }
       if (f.booked != null) {
         expect(p.bookedAmount, Amount(f.booked!), reason: 'booked');
       }
       if (f.fee != null) expect(p.fee, Amount(f.fee!), reason: 'fee');
       if (f.issuer != null) expect(p.issuerId, f.issuer, reason: 'issuer');
+      if (f.date != null) {
+        final d = p.occurredAt!;
+        expect(DateTime(d.year, d.month, d.day), f.date, reason: 'date');
+      }
     });
   }
 

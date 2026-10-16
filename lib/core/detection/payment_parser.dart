@@ -19,6 +19,12 @@ class PaymentMessageParser {
   static final _amountWord = RegExp(
     r'(amount|value|sum|of|مبلغ|بمبلغ|بقيمه|قيمه|قدره)\s*:?\s*$',
   );
+  static final _creditCard = RegExp(
+    r'credit card|بطاقه (?:\S+ ){0,3}الائتمان|البطاقه الائتمانيه|ائتمانيه',
+  );
+  static final _limitWord = RegExp(
+    r'limit|\bcredit\b|(?:^|\s|[,.])(?:و|ال|وال)?حد\s',
+  );
   static final _arabicLetter = RegExp(r'[؀-ۿ]');
   static final _latinLetter = RegExp(r'[a-z]');
 
@@ -46,8 +52,13 @@ class PaymentMessageParser {
     final booked = candidates
         .where((c) => c.role == _Role.equivalent)
         .firstOrNull;
-    final balance = candidates.where((c) => c.role == _Role.balance);
-    final limit = candidates.where((c) => c.role == _Role.limit).firstOrNull;
+    var balance = candidates.where((c) => c.role == _Role.balance).firstOrNull;
+    var limit = candidates.where((c) => c.role == _Role.limit).firstOrNull;
+    // On a credit card the "available balance" is the credit left.
+    if (balance != null && _creditCard.hasMatch(f)) {
+      limit = balance;
+      balance = null;
+    }
     final fee = candidates.where((c) => c.role == _Role.fee).firstOrNull;
     final issuer = Issuers.match(sender: message.sender, text: text);
 
@@ -97,7 +108,7 @@ class PaymentMessageParser {
       reference: reference,
       issuerId: issuer?.id,
       occurredAt: occurredAt ?? message.receivedAt,
-      balanceAfter: balance.firstOrNull?.value,
+      balanceAfter: balance?.value,
       availableCredit: limit?.value,
       confidence: confidence > 0.99 ? 0.99 : confidence,
     );
@@ -176,15 +187,17 @@ class PaymentMessageParser {
           : Lexicon.feeLabel.hasMatch(window)
           ? _Role.fee
           : Lexicon.balanceLabel.hasMatch(window)
-          ? (RegExp(r'limit|credit|الحد').hasMatch(
-                  window.substring(window.length > 24 ? window.length - 24 : 0),
-                )
-                ? _Role.limit
-                : _Role.balance)
+          ? (_limitWord.hasMatch(_label(window)) ? _Role.limit : _Role.balance)
           : _Role.amount;
       out.add(_Candidate(parsed.value!, currency, start, end, role));
     }
     return out;
+  }
+
+  /// The words since the previous number, at most 40 characters.
+  static String _label(String window) {
+    final label = window.split(RegExp(r'\d')).last;
+    return label.length > 40 ? label.substring(label.length - 40) : label;
   }
 
   static String? _last4(String f) {
@@ -222,6 +235,7 @@ class PaymentMessageParser {
     return null;
   }
 
+  static final _chargeCode = RegExp(r'\s*\*\s*(?=[A-Z0-9]*\d)[A-Z0-9]{5,}$');
   static final _leading = RegExp(
     r'^(?:from|to|at|for|من|الي|الى|إلى|لدى|لدي|عند|في|على|علي)\s+',
     caseSensitive: false,
@@ -246,6 +260,8 @@ class PaymentMessageParser {
         .substring(at, end == null ? text.length : at + end.start)
         .trim();
     if (_notName.hasMatch(name)) return null;
+    // "FACEBK *Q9AWVA6": the processor's per-charge code is not the name.
+    name = name.replaceFirst(_chargeCode, '');
     if (name.length > 40) name = name.substring(0, 40).trim();
     final phone = RegExp(r'^\+?\d{10,15}$').hasMatch(name);
     if (name.length < 2 ||

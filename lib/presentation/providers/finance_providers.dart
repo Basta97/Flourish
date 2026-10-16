@@ -3,12 +3,17 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/finance/financial_ledger_service.dart';
 import '../../core/finance/contract_service.dart';
+import '../../core/finance/recurring_service.dart';
+import '../../core/finance/credit_card_service.dart';
+import '../../core/detection/detection_bridge.dart';
+import '../../core/detection/detection_service.dart';
+import '../../data/database/database.dart';
 import '../../core/finance/market_data_service.dart';
 import '../../core/finance/valuation_service.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
-import 'database_provider.dart';
 import 'theme_providers.dart';
+import 'transaction_providers.dart';
 export '../../domain/finance/models.dart';
 
 final financeStoreProvider = Provider(
@@ -17,6 +22,36 @@ final financeStoreProvider = Provider(
 final financialLedgerProvider = Provider(
   (ref) => FinancialLedgerService(ref.watch(databaseProvider)),
 );
+final recurringServiceProvider = Provider(
+  (ref) => RecurringService(ref.watch(financialLedgerProvider)),
+);
+final creditCardServiceProvider = Provider(
+  (ref) => CreditCardService(ref.watch(financialLedgerProvider)),
+);
+
+/// Every card and wallet, defaults first.
+final paymentInstrumentsProvider = StreamProvider<List<PaymentInstrument>>(
+  (ref) => ref.watch(databaseProvider).watchPaymentInstruments(),
+);
+
+/// Conversion and linkage details of one transaction.
+final transactionDetailsProvider = FutureProvider.family<Json?, int>((ref, id) {
+  ref.watch(transactionsProvider);
+  return ref.watch(financeStoreProvider).transactionDetails(id);
+});
+
+/// A credit card's live status, refreshed whenever finances change.
+final creditStatusProvider = StreamProvider.family<CreditStatus, int>((
+  ref,
+  accountId,
+) async* {
+  final service = ref.watch(creditCardServiceProvider);
+  yield await service.status(accountId);
+  await for (final _ in ref.watch(databaseProvider).financeChanges.stream) {
+    yield await service.status(accountId);
+  }
+});
+
 final contractServiceProvider = Provider(
   (ref) => ContractService(ref.watch(financialLedgerProvider)),
 );
@@ -75,3 +110,26 @@ final accountDetailsProvider = FutureProvider<Map<int, AccountDetails>>((
       row['accountId'] as int: AccountDetails.fromJson(row),
   };
 });
+
+final detectionServiceProvider = Provider(
+  (ref) => DetectionService(ref.watch(financialLedgerProvider)),
+);
+final detectionBridgeProvider = Provider<DetectionBridge>(
+  (ref) => MethodChannelDetectionBridge(),
+);
+
+/// Every detected payment, newest first.
+final detectedPaymentsProvider = StreamProvider<List<DetectedPayment>>(
+  (ref) => ref.watch(detectionServiceProvider).watch(),
+);
+
+/// What a detected payment costs in its account's currency (converted at
+/// the day's exchange rate when the bank did not say).
+final detectionChargeProvider = FutureProvider.autoDispose
+    .family<ChargeEstimate?, DetectedPayment>((ref, row) {
+      ref.watch(financeRevisionProvider);
+      return ref.watch(detectionServiceProvider).charge(row);
+    });
+final pendingDetectionsProvider = StreamProvider<int>(
+  (ref) => ref.watch(detectionServiceProvider).watchPendingCount(),
+);

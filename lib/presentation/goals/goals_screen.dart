@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flourish/core/theme/app_colors.dart';
@@ -364,12 +365,24 @@ class _GoalCardState extends ConsumerState<_GoalCard>
             const SizedBox(height: Sp.xxl),
             FilledButton(
               onPressed: () async {
-                final amount = double.tryParse(controller.text);
-                if (amount == null || amount <= 0) {
+                final currency =
+                    ref
+                        .read(accountsProvider)
+                        .valueOrNull
+                        ?.where((a) => a.id == goal.accountId)
+                        .firstOrNull
+                        ?.currency ??
+                    '';
+                final parsed = AmountParser.parse(
+                  controller.text,
+                  currency: currency,
+                );
+                if (!parsed.isValid) {
                   Haptics.warning();
-                  setSheetState(() => error = 'Enter a positive amount');
+                  setSheetState(() => error = parsed.error);
                   return;
                 }
+                final amount = parsed.value!.toDouble();
                 try {
                   await ref
                       .read(databaseProvider)
@@ -495,7 +508,9 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
         ),
         const SizedBox(height: Sp.md),
         accountsAsync.when(
-          data: (accounts) {
+          data: (all) {
+            // Goals earmark cash; a card's credit line cannot be set aside.
+            final accounts = all.where((a) => a.type != 'credit').toList();
             if (_accountId == -1 && accounts.isNotEmpty) {
               _accountId = accounts.first.id;
             }
@@ -573,18 +588,33 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
       setState(() => _nameError = 'Please enter a name');
       hasError = true;
     }
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Enter a valid amount');
+    final account = ref
+        .read(accountsProvider)
+        .valueOrNull
+        ?.where((a) => a.id == _accountId && a.type != 'credit')
+        .firstOrNull;
+    if (account == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add a cash or bank account first')),
+      );
+      return;
+    }
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: account.currency,
+    );
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       hasError = true;
     }
     if (hasError) return;
+    final amount = parsed.value!.toDouble();
 
     final db = ref.read(databaseProvider);
     await db.insertGoal(
       GoalsCompanion.insert(
         name: _nameController.text.trim(),
-        targetAmount: amount!,
+        targetAmount: amount,
         deadline: _deadline,
         accountId: _accountId,
         color: _color,

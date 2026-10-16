@@ -9,11 +9,13 @@ import java.time.Instant
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.flourish.app.detect.DetectionChannel
 
 class MainActivity : FlutterFragmentActivity() {
     private var pending: Map<String, Any>? = null
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        DetectionChannel.register(this, flutterEngine)
         capture(intent)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "flourish/imports").setMethodCallHandler { call, result ->
             if (call.method == "consumePendingImport") {
@@ -37,8 +39,23 @@ class MainActivity : FlutterFragmentActivity() {
         setIntent(intent)
         capture(intent)
     }
+
+    override fun onResume() {
+        super.onResume()
+        DetectionChannel.foreground = true
+    }
+
+    override fun onPause() {
+        DetectionChannel.foreground = false
+        super.onPause()
+    }
     @Suppress("DEPRECATION")
     private fun capture(intent: Intent?) {
+        // Tapping a detected-payment notification opens the inbox.
+        intent?.getStringExtra(DetectionChannel.ROUTE_EXTRA)?.let {
+            DetectionChannel.pendingRoute = it
+            intent.removeExtra(DetectionChannel.ROUTE_EXTRA)
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
         var imagePath = ""

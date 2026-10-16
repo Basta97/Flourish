@@ -1,11 +1,11 @@
+import '../../shared/widgets/app_card.dart';
+import 'package:flourish/core/finance/transaction_classifier.dart';
 import '../../core/services/preferences_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/motion/motion.dart';
-import '../../core/services/shared_import_service.dart';
-import '../../core/models/shared_import_draft.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -32,50 +32,11 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen>
-    with WidgetsBindingObserver {
-  bool checking = false;
-
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // The monthly totals walk every transaction through valuation, so the
   // future is cached and only rebuilt when its inputs change.
   Future<(Amount, Amount, int)>? _monthlyFuture;
   Object? _monthlyKey;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _import());
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _import();
-  }
-
-  Future<void> _import() async {
-    if (checking) return;
-    checking = true;
-    try {
-      final SharedImportDraft? draft =
-          await SharedImportService.consumePendingImport();
-      if (mounted &&
-          draft != null &&
-          (draft.bestText.isNotEmpty || draft.imagePath != null)) {
-        context.push('/smart-import', extra: draft);
-      }
-    } catch (e) {
-      debugPrint('Shared import unavailable: $e');
-    } finally {
-      checking = false;
-    }
-  }
 
   Future<void> _refresh() async {
     final currency = ref.read(defaultCurrencyProvider);
@@ -124,7 +85,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       _monthlyFuture = _monthly(tx, currency);
     }
 
+    final toReview = ref.watch(pendingDetectionsProvider).valueOrNull ?? 0;
     final sections = <Widget>[
+      if (toReview > 0) ...[
+        AppCard(
+          onTap: () => context.push('/inbox'),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Sp.lg,
+            vertical: Sp.md,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.mark_email_unread_outlined),
+              const SizedBox(width: Sp.md),
+              Expanded(
+                child: Text(
+                  toReview == 1
+                      ? '1 payment to review'
+                      : '$toReview payments to review',
+                  style: AppTextStyles.bodyMedium,
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+        const SizedBox(height: Sp.lg),
+      ],
       const NetWorthHero(),
       const SizedBox(height: Sp.xl),
       _MonthSummary(future: _monthlyFuture!, currency: currency),
@@ -206,22 +193,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     var income = Amount.zero, expense = Amount.zero, missing = 0;
     final store = ref.read(financeStoreProvider),
         valuation = ref.read(valuationProvider);
-    for (final t in transactions) {
-      if (t.transactionDate.isBefore(start) ||
-          !t.transactionDate.isBefore(end) ||
-          t.linkedTransactionId != null) {
-        continue;
-      }
-      final details = await store.transactionDetails(t.id);
-      if (['asset', 'principal', 'transfer'].contains(details?['kind'])) {
-        continue;
-      }
+    final inRange = transactions
+        .where(
+          (t) =>
+              !t.transactionDate.isBefore(start) &&
+              t.transactionDate.isBefore(end),
+        )
+        .toList();
+    final details = await store.transactionDetailsFor(inRange.map((t) => t.id));
+    final categories = {
+      for (final c in await ref.read(databaseProvider).getAllCategories())
+        c.id: c,
+    };
+    for (final t in inRange) {
+      final flow = TransactionClassifier.classify(
+        t,
+        details[t.id],
+        categories[t.categoryId],
+      );
+      if (!flow.isCashFlow) continue;
       final value = await valuation.transactionValue(t.id, currency);
       if (value == null) {
         missing++;
-      } else if (t.type == 'income') {
+      } else if (flow == FlowClass.income) {
         income += value;
-      } else if (t.type == 'expense') {
+      } else if (flow == FlowClass.refund) {
+        expense -= value;
+      } else {
         expense += value;
       }
     }
@@ -270,9 +268,8 @@ class _MonthSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = FlourishPalette.of(context);
-    // formatCompact drops the sign above 1,000, so apply it explicitly.
     String fmt(double v) =>
-        '${v < 0 ? '-' : ''}${CurrencyFormatter.formatCompact(v.abs(), currency: currency)}';
+        CurrencyFormatter.formatCompact(v, currency: currency);
 
     return FutureBuilder<(Amount, Amount, int)>(
       future: future,

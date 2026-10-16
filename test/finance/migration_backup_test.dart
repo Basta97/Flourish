@@ -74,7 +74,7 @@ void main() {
           icon: 'wallet',
         ),
       );
-      await legacy.transferBetweenAccounts(
+      await FinancialLedgerService(legacy).transferBetweenAccounts(
         fromAccountId: id,
         toAccountId: other,
         amount: 100,
@@ -309,4 +309,54 @@ void main() {
       expect(accepted.rows.single['type'], 'expense');
     },
   );
+
+  test('v6 backups restore into v7 and cards survive a round trip', () async {
+    final id = await cash();
+    final card = await db.savePaymentInstrument(
+      PaymentInstrumentsCompanion.insert(
+        accountId: id,
+        name: 'CIB',
+        kind: 'debit_card',
+        last4: const Value('4321'),
+      ),
+    );
+    await ledger.recordCash(
+      accountId: id,
+      amount: Amount('10'),
+      type: 'expense',
+      instrumentId: card,
+      merchant: 'Talabat',
+    );
+    final backup = BackupService(db);
+    final data = await backup.exportData();
+    await backup.restore(data);
+    final row = (await db.getAllTransactions()).single;
+    expect(row.paymentInstrumentId, card);
+    expect(row.merchant, 'Talabat');
+
+    final old = Map<String, dynamic>.from(data);
+    final tables = Map<String, dynamic>.from(old['tables'] as Map)
+      ..remove('payment_instruments');
+    tables['transactions'] = [
+      for (final r in tables['transactions'] as List)
+        {
+          for (final e in (r as Map).entries)
+            if (![
+              'payment_instrument_id',
+              'payment_method',
+              'merchant',
+              'source',
+              'source_ref',
+            ].contains(e.key))
+              e.key: e.value,
+        },
+    ];
+    old['tables'] = tables;
+    old['databaseVersion'] = 6;
+    await backup.restore(old);
+    expect(await db.getPaymentInstruments(), isEmpty);
+    expect((await db.getAllTransactions()).single.amount, 10);
+    old['databaseVersion'] = 7;
+    await expectLater(backup.restore(old), throwsFormatException);
+  });
 }

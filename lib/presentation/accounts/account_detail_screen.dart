@@ -1,5 +1,8 @@
 import '../wealth/finance_tools_view.dart';
 import 'package:flutter/material.dart';
+import 'widgets/credit_card_panel.dart';
+import 'widgets/payment_instruments_section.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flourish/core/theme/app_colors.dart';
@@ -79,6 +82,30 @@ class AccountDetailScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (account.type == 'credit')
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Sp.screenH,
+                    Sp.xl,
+                    Sp.screenH,
+                    0,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: CreditCardPanel(account: account),
+                  ),
+                ),
+              if (account.type != 'cash')
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Sp.screenH,
+                    Sp.lg,
+                    Sp.screenH,
+                    0,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: PaymentInstrumentsSection(account: account),
+                  ),
+                ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
                   Sp.screenH,
@@ -179,7 +206,10 @@ class AccountDetailScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Account'),
-        content: Text('Delete "${account.name}" and all its transactions?'),
+        content: Text(
+          'Delete "${account.name}"? Accounts with transactions must be '
+          'archived instead, so their history stays in your reports.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -189,20 +219,13 @@ class AccountDetailScreen extends ConsumerWidget {
             onPressed: () async {
               final db = ref.read(accountDaoProvider);
               try {
-                if ((await db.getTransactionsByAccount(
-                  account.id,
-                )).isNotEmpty) {
-                  throw StateError(
-                    'This account has financial history. Archive it through Manage account instead.',
-                  );
-                }
                 await db.deleteAccount(account.id);
               } catch (e) {
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('$e')));
+                  ).showSnackBar(SnackBar(content: Text(describeError(e))));
                 }
                 return;
               }

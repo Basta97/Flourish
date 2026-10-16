@@ -63,8 +63,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final accountsAsync = ref.watch(accountsProvider);
-    final currency = ref.watch(defaultCurrencyProvider);
-
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -159,7 +157,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 transaction: t,
                                 category: cat,
                                 accountName: account?.name,
-                                currency: currency,
+                                currency:
+                                    account?.currency ??
+                                    ref.watch(defaultCurrencyProvider),
                               );
                             },
                           );

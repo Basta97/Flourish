@@ -1,5 +1,9 @@
+import 'fx_policy.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'system_categories.dart';
+import 'payment_methods.dart';
+import '../utils/currency_formatter.dart';
 import '../../data/database/database.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
@@ -22,31 +26,40 @@ class FinancialLedgerService {
     String? note,
     DateTime? date,
     String kind = 'cash',
+    Json? extra,
+    String? expectCurrency,
+    int? instrumentId,
+    String? paymentMethod,
+    String? merchant,
+    String? source,
+    String? sourceRef,
   }) => db.transaction(() async {
     positive(amount);
     if (!['income', 'expense'].contains(type)) {
       throw ArgumentError('Choose income or expense');
     }
+    if (kind == 'refund' && type != 'income') {
+      throw ArgumentError('A refund adds money back');
+    }
     final account = await db.getAccountById(accountId);
     if (account == null) throw StateError('Account no longer exists');
+    _checkCurrency(account, expectCurrency);
     final details = await store.get('accountDetails', '$accountId');
     if (details?['archived'] == true) {
       throw StateError('Unarchive this account first');
     }
     final category =
         categoryId ??
-        await _category(
-          type,
-          kind == 'fee'
-              ? 'Investment fees'
-              : ['asset', 'principal', 'transfer'].contains(kind)
-              ? 'Transfer $kind'
-              : 'Other',
+        await SystemCategories.idFor(
+          db,
+          SystemCategories.keyFor(kind, type, feeType: extra?['feeType']),
         );
     final c = await db.getCategoryById(category);
-    if (c == null || c.type != type) {
+    // A refund is income filed under the expense category it reverses.
+    if (c == null || c.type != (kind == 'refund' ? 'expense' : type)) {
       throw ArgumentError('Category must match transaction type');
     }
+    final method = await _paymentMethod(account, instrumentId, paymentMethod);
     final occurred = date ?? DateTime.now();
     final id = await db.insertTransaction(
       TransactionsCompanion.insert(
@@ -56,6 +69,11 @@ class FinancialLedgerService {
         type: type,
         note: Value(note),
         transactionDate: occurred,
+        paymentInstrumentId: Value(instrumentId),
+        paymentMethod: Value(method),
+        merchant: Value(_clean(merchant)),
+        source: Value(source),
+        sourceRef: Value(sourceRef),
       ),
     );
     final sign = (type == 'income') != (account.type == 'credit')
@@ -63,24 +81,233 @@ class FinancialLedgerService {
         : -Amount.one;
     await store.changeBalance(accountId, amount * sign);
     await _snapshot(id, amount, account.currency, occurred, kind);
+    if (extra != null && extra.isNotEmpty) {
+      await store.setTransactionDetails(id, {
+        ...(await store.transactionDetails(id))!,
+        ...extra,
+      });
+    }
     return id;
   });
+
+  static String? _clean(String? text) {
+    final t = text?.trim();
+    return t == null || t.isEmpty ? null : t;
+  }
+
+  /// Validates the card/wallet and method for [account]; an instrument
+  /// implies its own method.
+  Future<String?> _paymentMethod(
+    Account account,
+    int? instrumentId,
+    String? method,
+  ) async {
+    if (instrumentId != null) {
+      final instrument = await db.getPaymentInstrument(instrumentId);
+      if (instrument == null || instrument.accountId != account.id) {
+        throw ArgumentError('That card or wallet belongs to another account');
+      }
+      if (instrument.archived) {
+        throw StateError('That card or wallet is archived');
+      }
+      method = instrument.kind;
+    }
+    if (method == null) return null;
+    if (!PaymentMethods.all.contains(method)) {
+      throw ArgumentError('Unknown payment method');
+    }
+    if (!PaymentMethods.fitsAccount(method, account.type)) {
+      throw ArgumentError(
+        '${PaymentMethods.label(method)} cannot pay from ${account.name}',
+      );
+    }
+    return method;
+  }
+
+  /// Records a purchase. When [original] is in another currency than the
+  /// account (paying USD with an EGP card), [amount] is what the account was
+  /// charged; the bank's foreign-transaction fee is booked as a separate
+  /// linked entry so reports show it. With [feeIncluded] the charged amount
+  /// already contains the fee and is split; otherwise the fee is added.
+  Future<int> recordPurchase({
+    required int accountId,
+    required Amount amount,
+    required int categoryId,
+    Money? original,
+    Amount? fxFeePercent,
+    bool feeIncluded = false,
+    int? instrumentId,
+    String? paymentMethod,
+    String? merchant,
+    String? note,
+    DateTime? date,
+    String? source,
+    String? sourceRef,
+    String? expectCurrency,
+  }) => db.transaction(() async {
+    final account = await db.getAccountById(accountId);
+    if (account == null) throw StateError('Account no longer exists');
+    _checkCurrency(account, expectCurrency);
+    final foreign = original != null && original.currency != account.currency;
+    if (!foreign) {
+      return recordCash(
+        accountId: accountId,
+        amount: amount,
+        type: 'expense',
+        categoryId: categoryId,
+        note: note,
+        date: date,
+        instrumentId: instrumentId,
+        paymentMethod: paymentMethod,
+        merchant: merchant,
+        source: source,
+        sourceRef: sourceRef,
+      );
+    }
+    positive(original.amount);
+    positive(amount);
+    final pct = fxFeePercent ?? await fxFeePercentFor(account, instrumentId);
+    if (pct < Amount.zero || pct > Amount('100')) {
+      throw ArgumentError('Enter a fee between 0% and 100%');
+    }
+    final digits = CurrencyFormatter.decimalsFor(account.currency);
+    final rate = Amount.one + pct / Amount('100');
+    final main = feeIncluded ? (amount / rate).rounded(digits) : amount;
+    final fee = feeIncluded
+        ? amount - main
+        : (amount * pct / Amount('100')).rounded(digits);
+    final mainId = await recordCash(
+      accountId: accountId,
+      amount: main,
+      type: 'expense',
+      categoryId: categoryId,
+      note: note,
+      date: date,
+      instrumentId: instrumentId,
+      paymentMethod: paymentMethod,
+      merchant: merchant,
+      source: source,
+      sourceRef: sourceRef,
+      extra: {
+        'original': {
+          'amount': '${original.amount}',
+          'currency': original.currency,
+        },
+        'bookedRate': '${main / original.amount}',
+        'fxFeePercent': '$pct',
+      },
+    );
+    if (fee > Amount.zero) {
+      final feeId = await recordCash(
+        accountId: accountId,
+        amount: fee,
+        type: 'expense',
+        kind: 'fee',
+        note: 'Foreign transaction fee ($pct%)',
+        date: date,
+        instrumentId: instrumentId,
+        paymentMethod: paymentMethod,
+        merchant: merchant,
+        source: source,
+        extra: {'feeType': 'fx', 'feeFor': mainId},
+      );
+      await store.setTransactionDetails(mainId, {
+        ...(await store.transactionDetails(mainId))!,
+        'feeId': feeId,
+      });
+    }
+    return mainId;
+  });
+
+  /// Money back for an earlier purchase, filed under the expense category it
+  /// reverses so budgets and reports show net spending.
+  Future<int> recordRefund({
+    required int accountId,
+    required Amount amount,
+    required int expenseCategoryId,
+    int? refundOf,
+    int? instrumentId,
+    String? merchant,
+    String? note,
+    DateTime? date,
+    String? source,
+    String? sourceRef,
+    String? expectCurrency,
+  }) => recordCash(
+    accountId: accountId,
+    amount: amount,
+    type: 'income',
+    kind: 'refund',
+    categoryId: expenseCategoryId,
+    note: note,
+    date: date,
+    instrumentId: instrumentId,
+    merchant: merchant,
+    source: source,
+    sourceRef: sourceRef,
+    expectCurrency: expectCurrency,
+    extra: {'refundOf': ?refundOf},
+  );
+
+  /// The foreign-transaction fee for paying from [account]: the card's own
+  /// terms first, then the credit card's billing terms, else 0.
+  Future<Amount> fxFeePercentFor(Account account, int? instrumentId) async {
+    if (instrumentId != null) {
+      final terms = (await db.getPaymentInstrument(instrumentId))?.termsJson;
+      if (terms?['fxFeePercent'] != null) {
+        return amountOf(terms!['fxFeePercent']);
+      }
+    }
+    for (final c in await store.list('contracts')) {
+      final card = c['card'] as Map?;
+      if (c['cardAccountId'] == account.id && card?['fxFeePercent'] != null) {
+        return amountOf(card!['fxFeePercent']);
+      }
+    }
+    return Amount.zero;
+  }
+
+  /// The cash-advance fee a card charges for withdrawing [amount]:
+  /// max(minimum, amount × percent), from the card's billing terms.
+  Future<Amount> cashAdvanceFeeFor(Account card, Amount amount) async {
+    for (final c in await store.list('contracts')) {
+      final terms = c['card'] as Map?;
+      if (c['cardAccountId'] != card.id || terms == null) continue;
+      final pct = amountOf(terms['cashAdvanceFeePercent'] ?? '0');
+      final min = amountOf(terms['cashAdvanceFeeMin'] ?? '0');
+      final fee = (amount * pct / Amount('100')).rounded(
+        CurrencyFormatter.decimalsFor(card.currency),
+      );
+      return fee > min ? fee : min;
+    }
+    return Amount.zero;
+  }
+
+  /// The amount was entered in [expected]; refuse to book it in another
+  /// currency, which would silently relabel e.g. USD 100 as EGP 100.
+  void _checkCurrency(Account account, String? expected) {
+    if (expected != null && expected != account.currency) {
+      throw TransactionLogicException(
+        '${account.name} is in ${account.currency}, but the amount was '
+        'entered in $expected. Convert it before saving.',
+      );
+    }
+  }
 
   Future<void> _snapshot(
     int id,
     Amount amount,
     String currency,
     DateTime date,
-    String kind,
-  ) async {
+    String kind, {
+    Json? keep,
+  }) async {
     final rates = (await store.list('fx'))
         .map(MarketObservation.fromJson)
         .where(
           (r) =>
               r.key.startsWith('$currency/') &&
-              r.effectiveAt.isBefore(
-                DateTime.utc(date.year, date.month, date.day + 1),
-              ),
+              FxPolicy.usableFor(r.effectiveAt, date),
         )
         .toList();
     rates.sort((a, b) {
@@ -88,30 +315,21 @@ class FinancialLedgerService {
       return b.effectiveAt.compareTo(a.effectiveAt);
     });
     final snapshots = <String, String>{currency: '1'};
+    final ratedAt = <String, String>{};
     for (final r in rates) {
-      snapshots.putIfAbsent(r.currency, () => '${r.value}');
+      if (snapshots.containsKey(r.currency)) continue;
+      snapshots[r.currency] = '${r.value}';
+      ratedAt[r.currency] = r.effectiveAt.toIso8601String();
     }
     await store.setTransactionDetails(id, {
+      ...?keep,
       'amount': '$amount',
       'currency': currency,
       'date': date.toIso8601String(),
       'kind': kind,
       'rates': snapshots,
+      'ratesAt': ratedAt,
     });
-  }
-
-  Future<int> _category(String type, String name) async {
-    for (final c in await db.getAllCategories()) {
-      if (c.type == type && c.name == name) return c.id;
-    }
-    return db.insertCategory(
-      CategoriesCompanion.insert(
-        name: name,
-        icon: 'swap_horiz',
-        color: 0xFF4F46E5,
-        type: type,
-      ),
-    );
   }
 
   Future<void> insertTransactionAndUpdateBalance(
@@ -128,76 +346,198 @@ class FinancialLedgerService {
   }
 
   Future<void> updateTransactionAndUpdateBalance(Transaction updated) =>
+      updateCash(
+        updated.id,
+        accountId: updated.accountId,
+        amount: Amount.fromNum(updated.amount),
+        type: updated.type,
+        categoryId: updated.categoryId,
+        note: updated.note,
+        date: updated.transactionDate,
+      );
+
+  /// Edits a plain income/expense entry, moving its balance effect between
+  /// accounts when needed. [expectCurrency] is the currency the amount was
+  /// entered in.
+  Future<void> updateCash(
+    int id, {
+    required int accountId,
+    required Amount amount,
+    required String type,
+    required int categoryId,
+    String? note,
+    required DateTime date,
+    String? expectCurrency,
+    Value<int?> instrumentId = const Value.absent(),
+    Value<String?> paymentMethod = const Value.absent(),
+    Value<String?> merchant = const Value.absent(),
+  }) => db.transaction(() async {
+    final existing = await db.getTransactionById(id);
+    if (existing == null) throw StateError('Transaction no longer exists');
+    if (existing.linkedTransactionId != null) {
+      throw StateError('Use Edit transfer to update both accounts');
+    }
+    final details = await store.transactionDetails(existing.id);
+    if (details?['contractPaymentId'] != null ||
+        details?['transferOwner'] != null ||
+        details?['feeFor'] != null ||
+        details?['holdingFeeFor'] != null) {
+      throw StateError('Manage this entry through its linked operation');
+    }
+    final refund = details?['kind'] == 'refund';
+    if (details != null &&
+        !['cash', 'fee', 'refund'].contains(details['kind'])) {
+      throw StateError('Manage this entry from its holding or contract');
+    }
+    positive(amount);
+    final a = await db.getAccountById(accountId);
+    final old = await db.getAccountById(existing.accountId);
+    final category = await db.getCategoryById(categoryId);
+    if (a == null ||
+        old == null ||
+        category?.type != (refund ? 'expense' : type) ||
+        (refund && type != 'income')) {
+      throw ArgumentError('Select a valid account and matching category');
+    }
+    _checkCurrency(a, expectCurrency);
+    // A card or wallet stays only while it belongs to the chosen account.
+    var instrument = instrumentId.present
+        ? instrumentId.value
+        : existing.paymentInstrumentId;
+    var method = paymentMethod.present
+        ? paymentMethod.value
+        : existing.paymentMethod;
+    if (!instrumentId.present && accountId != existing.accountId) {
+      instrument = null;
+      if (method != null && !PaymentMethods.fitsAccount(method, a.type)) {
+        method = null;
+      }
+    }
+    method = await _paymentMethod(a, instrument, method);
+    if ((await store.get('accountDetails', '${a.id}'))?['archived'] == true) {
+      throw StateError('Unarchive the account before editing');
+    }
+    final priorAmount = details == null
+        ? Amount.fromNum(existing.amount)
+        : amountOf(details['amount']);
+    await store.changeBalance(
+      old.id,
+      -(priorAmount * _sign(existing.type, old.type)),
+    );
+    await db.updateTransaction(
+      existing.copyWith(
+        accountId: accountId,
+        amount: amount.toDouble(),
+        type: type,
+        categoryId: categoryId,
+        note: Value(note),
+        transactionDate: date,
+        paymentInstrumentId: Value(instrument),
+        paymentMethod: Value(method),
+        merchant: merchant.present
+            ? Value(_clean(merchant.value))
+            : Value(existing.merchant),
+      ),
+    );
+    await store.changeBalance(a.id, amount * _sign(type, a.type));
+    if (details?['feeId'] != null && details?['fxFeePercent'] != null) {
+      await _rebookFxFee(
+        details!['feeId'] as int,
+        a,
+        (amount * amountOf(details['fxFeePercent']) / Amount('100')).rounded(
+          CurrencyFormatter.decimalsFor(a.currency),
+        ),
+        date,
+        instrument,
+        method,
+      );
+    }
+    for (final event in await store.list('activity')) {
+      if (event['transactionId'] == id &&
+          ['dividend', 'interest', 'rent'].contains(event['kind'])) {
+        await store.put('activity', event['id'], {
+          ...event,
+          'amount': '$amount',
+          'currency': a.currency,
+          'date': date.toIso8601String(),
+        });
+      }
+    }
+    if (details != null &&
+        existing.accountId == accountId &&
+        existing.transactionDate == date) {
+      await store.setTransactionDetails(id, {...details, 'amount': '$amount'});
+    } else {
+      await _snapshot(
+        id,
+        amount,
+        a.currency,
+        date,
+        details?['kind'] ?? 'cash',
+        keep: details,
+      );
+    }
+  });
+
+  /// Moves a purchase's linked FX fee along with it after an edit.
+  Future<void> _rebookFxFee(
+    int feeId,
+    Account account,
+    Amount fee,
+    DateTime date,
+    int? instrument,
+    String? method,
+  ) async {
+    final row = await db.getTransactionById(feeId);
+    if (row == null) return;
+    await _revert(row);
+    if (fee <= Amount.zero) {
+      final owner = (await store.transactionDetails(feeId))?['feeFor'];
+      await db.deleteTransaction(feeId);
+      if (owner is int) {
+        final d = await store.transactionDetails(owner);
+        if (d != null) {
+          await store.setTransactionDetails(owner, {...d, 'feeId': null});
+        }
+      }
+      return;
+    }
+    final details = await store.transactionDetails(feeId);
+    await db.updateTransaction(
+      row.copyWith(
+        accountId: account.id,
+        amount: fee.toDouble(),
+        transactionDate: date,
+        paymentInstrumentId: Value(instrument),
+        paymentMethod: Value(method),
+      ),
+    );
+    await store.changeBalance(account.id, fee * _sign('expense', account.type));
+    await _snapshot(feeId, fee, account.currency, date, 'fee', keep: details);
+  }
+
+  Future<void> deleteTransactionAndUpdateBalance(int id) =>
       db.transaction(() async {
-        final existing = await db.getTransactionById(updated.id);
-        if (existing == null) throw StateError('Transaction no longer exists');
-        if (existing.linkedTransactionId != null) {
-          throw StateError('Use Edit transfer to update both accounts');
-        }
-        final details = await store.transactionDetails(existing.id);
-        if (details?['contractPaymentId'] != null ||
-            details?['transferOwner'] != null ||
-            details?['holdingFeeFor'] != null) {
-          throw StateError('Manage this entry through its linked operation');
-        }
-        if (details != null && !['cash', 'fee'].contains(details['kind'])) {
-          throw StateError('Manage this entry from its holding or contract');
-        }
-        positive(Amount.fromNum(updated.amount));
-        final a = await db.getAccountById(updated.accountId);
-        final old = await db.getAccountById(existing.accountId);
-        final category = await db.getCategoryById(updated.categoryId);
-        if (a == null || old == null || category?.type != updated.type) {
-          throw ArgumentError('Select a valid account and matching category');
-        }
-        if ((await store.get('accountDetails', '${a.id}'))?['archived'] ==
-            true) {
-          throw StateError('Unarchive the account before editing');
-        }
-        final priorAmount = details == null
-            ? Amount.fromNum(existing.amount)
-            : amountOf(details['amount']);
-        final oldSign = (existing.type == 'income') != (old.type == 'credit')
-            ? Amount.one
-            : -Amount.one;
-        final newSign = (updated.type == 'income') != (a.type == 'credit')
-            ? Amount.one
-            : -Amount.one;
-        await store.changeBalance(old.id, -(priorAmount * oldSign));
-        await db.updateTransaction(updated);
-        final amount = Amount.fromNum(updated.amount);
-        await store.changeBalance(a.id, amount * newSign);
-        for (final event in await store.list('activity')) {
-          if (event['transactionId'] == updated.id &&
-              ['dividend', 'interest', 'rent'].contains(event['kind'])) {
-            await store.put('activity', event['id'], {
-              ...event,
-              'amount': '$amount',
-              'currency': a.currency,
-              'date': updated.transactionDate.toIso8601String(),
-            });
-          }
-        }
-        if (details != null &&
-            existing.accountId == updated.accountId &&
-            existing.transactionDate == updated.transactionDate) {
-          await store.setTransactionDetails(updated.id, {
-            ...details,
-            'amount': '$amount',
-          });
-        } else {
-          await _snapshot(
-            updated.id,
-            amount,
-            a.currency,
-            updated.transactionDate,
-            details?['kind'] ?? 'cash',
-          );
-        }
+        await _guardUserDelete(id);
+        await _removeEntry(id);
       });
-  Future<void> deleteTransactionAndUpdateBalance(
-    int id,
-  ) => db.transaction(() async {
+
+  /// Deletes [id] (with its linked leg and fee) and returns everything needed
+  /// to put it back exactly as it was through [restore].
+  Future<DeletedEntry?> deleteWithUndo(int id) => db.transaction(() async {
+    if (await db.getTransactionById(id) == null) return null;
+    await _guardUserDelete(id);
+    final entry = await _capture(id);
+    await _removeEntry(id);
+    return entry;
+  });
+
+  /// Removes a ledger entry owned by a contract or holding operation, skipping
+  /// the user-facing guards that point people at that operation.
+  Future<void> removeOwnedEntry(int id) =>
+      db.transaction(() => _removeEntry(id));
+
+  Future<void> _guardUserDelete(int id) async {
     final details = await store.transactionDetails(id);
     if (details?['holdingFeeFor'] != null) {
       throw StateError('This fee belongs to the holding acquisition cost');
@@ -208,24 +548,140 @@ class FinancialLedgerService {
     if (details?['transferOwner'] != null) {
       throw StateError('Manage transfer fees through the linked transfer');
     }
+    if (details?['feeFor'] != null) {
+      throw StateError('This fee belongs to a purchase; edit or delete that');
+    }
     if (details != null &&
-        !['cash', 'fee', 'transfer'].contains(details['kind'])) {
+        !['cash', 'fee', 'transfer', 'refund'].contains(details['kind'])) {
       throw StateError(
         'This entry belongs to a holding or contract and cannot be deleted independently',
       );
     }
+  }
+
+  /// Every row that belongs to the entry [id]: itself, its transfer leg, and
+  /// any fee booked with it.
+  Future<List<Transaction>> _entryRows(int id) async {
+    final rows = <Transaction>[];
+    final seen = <int>{};
+    Future<void> visit(int? rowId) async {
+      if (rowId == null || !seen.add(rowId)) return;
+      final tx = await db.getTransactionById(rowId);
+      if (tx == null) return;
+      rows.add(tx);
+      final details = await store.transactionDetails(rowId);
+      await visit(details?['feeId'] as int?);
+      await visit(tx.linkedTransactionId);
+    }
+
+    await visit(id);
+    return rows;
+  }
+
+  Future<void> _removeEntry(int id) async {
+    final rows = await _entryRows(id);
+    final ids = rows.map((t) => t.id).toSet();
     for (final event in await store.list('activity')) {
-      if (event['transactionId'] == id &&
+      if (ids.contains(event['transactionId']) &&
           ['dividend', 'interest', 'rent'].contains(event['kind'])) {
         await store.remove('activity', event['id']);
       }
     }
     for (final attachment in await store.list('attachments')) {
-      if (attachment['transactionId'] == id) {
+      if (ids.contains(attachment['transactionId'])) {
         await store.remove('attachments', attachment['id']);
       }
     }
-    await db.deleteTransactionAndUpdateBalance(id);
+    for (final tx in rows) {
+      await _revert(tx);
+      await db.deleteTransaction(tx.id);
+    }
+  }
+
+  Amount _sign(String type, String accountType) =>
+      (type == 'income') != (accountType == 'credit')
+      ? Amount.one
+      : -Amount.one;
+
+  Future<Amount> _exactAmount(Transaction tx) async {
+    final details = await store.transactionDetails(tx.id);
+    return details?['amount'] == null
+        ? Amount.fromNum(tx.amount)
+        : amountOf(details!['amount']);
+  }
+
+  Future<void> _revert(Transaction tx) async {
+    final account = await db.getAccountById(tx.accountId);
+    if (account == null) return;
+    final amount = await _exactAmount(tx);
+    await store.changeBalance(
+      account.id,
+      -(amount * _sign(tx.type, account.type)),
+    );
+  }
+
+  Future<DeletedEntry> _capture(int id) async {
+    final rows = await _entryRows(id);
+    final ids = rows.map((t) => t.id).toSet();
+    return DeletedEntry(
+      rows: rows,
+      details: {
+        for (final tx in rows) tx.id: await store.transactionDetails(tx.id),
+      },
+      activity: [
+        for (final event in await store.list('activity'))
+          if (ids.contains(event['transactionId'])) event,
+      ],
+      attachments: [
+        for (final attachment in await store.list('attachments'))
+          if (ids.contains(attachment['transactionId'])) attachment,
+      ],
+    );
+  }
+
+  /// Puts back an entry removed by [deleteWithUndo] with its original ids,
+  /// conversion snapshot, links, attachments and balance effect.
+  Future<void> restore(DeletedEntry entry) => db.transaction(() async {
+    for (final tx in entry.rows) {
+      final account = await db.getAccountById(tx.accountId);
+      if (account == null) throw StateError('Account no longer exists');
+      if ((await store.get('accountDetails', '${account.id}'))?['archived'] ==
+          true) {
+        throw StateError('Unarchive this account first');
+      }
+      if (await db.getTransactionById(tx.id) != null) {
+        throw StateError('This entry was already restored');
+      }
+    }
+    for (final tx in entry.rows) {
+      await db.insertTransaction(
+        tx.copyWith(linkedTransactionId: const Value(null)).toCompanion(true),
+      );
+    }
+    for (final tx in entry.rows) {
+      if (tx.linkedTransactionId != null) {
+        await (db.update(
+          db.transactions,
+        )..where((t) => t.id.equals(tx.id))).write(
+          TransactionsCompanion(
+            linkedTransactionId: Value(tx.linkedTransactionId),
+          ),
+        );
+      }
+      final details = entry.details[tx.id];
+      if (details != null) await store.setTransactionDetails(tx.id, details);
+      final account = (await db.getAccountById(tx.accountId))!;
+      await store.changeBalance(
+        account.id,
+        await _exactAmount(tx) * _sign(tx.type, account.type),
+      );
+    }
+    for (final event in entry.activity) {
+      await store.put('activity', event['id'], event);
+    }
+    for (final attachment in entry.attachments) {
+      await store.put('attachments', attachment['id'], attachment);
+    }
   });
 
   Future<void> transferBetweenAccounts({
@@ -259,10 +715,9 @@ class FinancialLedgerService {
     String? note,
     DateTime? date,
     int? editId,
+    String? expectCurrency,
   }) => db.transaction(() async {
     positive(amount);
-    final charge = fee ?? Amount.zero;
-    if (charge < Amount.zero) throw ArgumentError('Fee cannot be negative');
     if (fromAccountId == toAccountId) {
       throw ArgumentError('Choose different accounts');
     }
@@ -271,9 +726,24 @@ class FinancialLedgerService {
     if (from == null || to == null) {
       throw StateError('Account no longer exists');
     }
+    // Without an explicit fee, a cash advance uses the card's terms.
+    final charge =
+        fee ??
+        (from.type == 'credit' && to.type != 'credit'
+            ? await cashAdvanceFeeFor(from, amount)
+            : Amount.zero);
+    if (charge < Amount.zero) throw ArgumentError('Fee cannot be negative');
+    _checkCurrency(from, expectCurrency);
     if (from.currency != to.currency && received == null) {
       throw ArgumentError(
         'Enter the actual destination amount for this currency',
+      );
+    }
+    if (from.currency == to.currency &&
+        received != null &&
+        received != amount) {
+      throw ArgumentError(
+        'Same-currency transfers arrive in full; record any difference as a fee',
       );
     }
     final destination = received ?? amount;
@@ -287,10 +757,7 @@ class FinancialLedgerService {
       if (metadata?['contractPaymentId'] != null) {
         throw StateError('Reverse this settlement through its contract');
       }
-      if (metadata?['feeId'] != null) {
-        await db.deleteTransactionAndUpdateBalance(metadata!['feeId'] as int);
-      }
-      await db.deleteTransactionAndUpdateBalance(editId);
+      await _removeEntry(editId);
     }
     final out = await recordCash(
       accountId: fromAccountId,
@@ -319,8 +786,15 @@ class FinancialLedgerService {
             amount: charge,
             type: 'expense',
             kind: 'fee',
-            note: 'Transfer fee',
+            note: from.type == 'credit' && to.type != 'credit'
+                ? 'Cash advance fee'
+                : 'Transfer fee',
             date: date,
+            extra: {
+              'feeType': from.type == 'credit' && to.type != 'credit'
+                  ? 'cashAdvance'
+                  : 'transfer',
+            },
           )
         : null;
     if (feeId != null) {
@@ -329,6 +803,9 @@ class FinancialLedgerService {
         'transferOwner': out,
       });
     }
+    // Taking money out of a credit card into cash or a bank account is a
+    // cash advance: banks charge a fee and interest from day one.
+    final cashAdvance = from.type == 'credit' && to.type != 'credit';
     for (final id in [out, incoming]) {
       await store.setTransactionDetails(id, {
         ...(await store.transactionDetails(id))!,
@@ -336,6 +813,7 @@ class FinancialLedgerService {
         'sourceAmount': '$amount',
         'destinationAmount': '$destination',
         'rate': '${destination / amount}',
+        if (cashAdvance) 'cashAdvance': true,
       });
     }
   });
@@ -461,6 +939,7 @@ class FinancialLedgerService {
             kind: 'fee',
             note: '${h.name} fee',
             date: date,
+            extra: {'feeType': 'investment'},
           )
         : null;
     if (feeId != null) {
@@ -609,5 +1088,18 @@ class FinancialLedgerService {
       'transactionId': tx,
       'date': (date ?? DateTime.now()).toIso8601String(),
     });
+  });
+}
+
+/// A ledger entry removed by [FinancialLedgerService.deleteWithUndo].
+class DeletedEntry {
+  final List<Transaction> rows;
+  final Map<int, Json?> details;
+  final List<Json> activity, attachments;
+  const DeletedEntry({
+    required this.rows,
+    required this.details,
+    required this.activity,
+    required this.attachments,
   });
 }

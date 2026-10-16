@@ -1,3 +1,5 @@
+import '../../core/finance/transaction_classifier.dart';
+import '../../core/finance/payment_methods.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/motion/motion.dart';
@@ -5,7 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/currency_formatter.dart';
-import '../../data/database/database.dart' show Category;
+import '../../data/database/database.dart' show Category, PaymentInstrumentText;
 import '../../shared/widgets/animated_list_item.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/pressable.dart';
@@ -210,6 +212,33 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                     ],
                   ),
           ),
+          for (final (key, title, subtitle) in const [
+            ('byMethod', 'How you paid', null),
+            ('byInstrument', 'By card or wallet', null),
+            (
+              'byCurrency',
+              'Spending by currency',
+              'Converted to your reporting currency at each date.',
+            ),
+            ('fees', 'Fees and interest paid', null),
+          ])
+            if ((j[key] as Map<String, Amount>).isNotEmpty)
+              _Section(
+                title: title,
+                subtitle: subtitle,
+                child: Column(
+                  children: [
+                    for (final e
+                        in ((j[key] as Map<String, Amount>).entries.toList()
+                          ..sort((a, b) => b.value.compareTo(a.value))))
+                      _ValueRow(
+                        e.key,
+                        money(e.value),
+                        tone: key == 'fees' ? AppColors.danger : null,
+                      ),
+                  ],
+                ),
+              ),
           _Section(
             title: 'Income sources',
             child: incomeGroups.isEmpty
@@ -408,25 +437,44 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
         missing = 0,
         forecast = Amount.zero,
         forecastMissing = 0;
-    for (final t in await db.getAllTransactions()) {
-      if (t.transactionDate.isBefore(previous) ||
-          !t.transactionDate.isBefore(end)) {
-        continue;
-      }
-      final details = await store.transactionDetails(t.id);
+    final inRange = (await db.getAllTransactions())
+        .where(
+          (t) =>
+              !t.transactionDate.isBefore(previous) &&
+              t.transactionDate.isBefore(end),
+        )
+        .toList();
+    final allDetails = await store.transactionDetailsFor(
+      inRange.map((t) => t.id),
+    );
+    final instruments = {
+      for (final i in await db.getPaymentInstruments()) i.id: i,
+    };
+    final accounts = {for (final a in await db.getAllAccounts()) a.id: a};
+    final byMethod = <String, Amount>{},
+        byInstrument = <String, Amount>{},
+        byCurrency = <String, Amount>{},
+        fees = <String, Amount>{};
+    void add(Map<String, Amount> to, String key, Amount value) =>
+        to[key] = (to[key] ?? Amount.zero) + value;
+    for (final t in inRange) {
       final category = categories[t.categoryId];
-      if (t.linkedTransactionId != null ||
-          category?.name.toLowerCase().startsWith('transfer ') == true ||
-          ['asset', 'principal', 'transfer'].contains(details?['kind'])) {
-        continue;
-      }
-      final amount = await valuation.transactionValue(t.id, currency);
+      final flow = TransactionClassifier.classify(
+        t,
+        allDetails[t.id],
+        category,
+      );
+      if (!flow.isCashFlow) continue;
+      final signed = await valuation.transactionValue(t.id, currency);
+      final amount = signed == null || flow != FlowClass.refund
+          ? signed
+          : -signed;
       if (amount == null) {
         missing++;
         continue;
       }
       if (t.transactionDate.isBefore(start)) {
-        if (t.type == 'expense') prior += amount;
+        if (flow != FlowClass.income) prior += amount;
         continue;
       }
       var parent = parents['${t.categoryId}'];
@@ -437,12 +485,44 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
         parent = parents['$parent'];
       }
       final name = categories[parent]?.name ?? category?.name ?? 'Other';
-      if (t.type == 'income') {
+      if (flow == FlowClass.income) {
         income += amount;
         incomeGroups[name] = (incomeGroups[name] ?? Amount.zero) + amount;
       } else {
         expense += amount;
         groups[name] = (groups[name] ?? Amount.zero) + amount;
+        // How spending was paid, with what, and in which currency.
+        final d = allDetails[t.id];
+        final instrument = instruments[t.paymentInstrumentId];
+        add(
+          byMethod,
+          t.paymentMethod == null
+              ? 'Not recorded'
+              : PaymentMethods.label(t.paymentMethod!),
+          amount,
+        );
+        if (instrument != null) add(byInstrument, instrument.label, amount);
+        add(
+          byCurrency,
+          (d?['original'] as Map?)?['currency'] as String? ??
+              accounts[t.accountId]?.currency ??
+              currency,
+          amount,
+        );
+        if (d?['kind'] == 'fee' || d?['kind'] == 'contractInterest') {
+          add(fees, switch (d?['kind'] == 'contractInterest'
+              ? 'interest'
+              : d?['feeType']) {
+            'fx' => 'Foreign transaction fees',
+            'transfer' => 'Transfer fees',
+            'cashAdvance' => 'Cash advance fees',
+            'interest' => 'Interest',
+            'late' => 'Late payment fees',
+            'annual' => 'Annual card fees',
+            'investment' => 'Investment fees',
+            _ => 'Other bank fees',
+          }, amount);
+        }
       }
       records.add({
         'id': t.id,
@@ -476,6 +556,10 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
       'previousExpense': prior.fixed(),
       'categories': groups,
       'incomeSources': incomeGroups,
+      'byMethod': byMethod,
+      'byInstrument': byInstrument,
+      'byCurrency': byCurrency,
+      'fees': fees,
       'missing': missing,
       'records': records,
       'history': history,

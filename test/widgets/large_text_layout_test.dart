@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_theme.dart';
 import 'package:flourish/data/database/database.dart';
@@ -14,6 +15,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Renders the shared building blocks at the largest supported text size
 /// (1.3×) on a narrow phone. Any RenderFlex overflow fails the test.
+String _egp(double v) => CurrencyFormatter.format(v, currency: 'EGP');
+
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
@@ -48,6 +51,7 @@ void main() {
             icon: Icons.south_west_rounded,
             tone: Colors.green,
             value: 123456,
+            format: _egp,
           ),
         ),
         SizedBox(width: 10),
@@ -57,6 +61,7 @@ void main() {
             icon: Icons.north_east_rounded,
             tone: Colors.red,
             value: 98765,
+            format: _egp,
           ),
         ),
         SizedBox(width: 10),
@@ -66,6 +71,7 @@ void main() {
             icon: Icons.savings_outlined,
             tone: Colors.teal,
             value: null,
+            format: _egp,
           ),
         ),
       ],

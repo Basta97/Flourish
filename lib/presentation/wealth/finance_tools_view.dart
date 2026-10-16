@@ -1,3 +1,4 @@
+import '../../core/finance/payment_methods.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -227,12 +228,23 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
   final stored = await ref
       .read(financeStoreProvider)
       .get('accountDetails', '${a.id}');
+  final db = ref.read(databaseProvider);
+  // The currency defines every stored amount, so it can only change before
+  // anything has been recorded against the account.
+  final currencyLocked = await db.accountHasHistory(a.id);
   if (!context.mounted) return;
   await financeForm(
     context,
     title: 'Manage ${a.name}',
     fields: [
       FinanceField('name', 'Account name', initial: a.name),
+      if (!currencyLocked)
+        FinanceField(
+          'currency',
+          'Currency',
+          initial: a.currency,
+          options: currencies,
+        ),
       FinanceField(
         'institution',
         'Institution',
@@ -257,21 +269,26 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
         initial: stored?['included'] == false ? 'no' : 'yes',
         options: const {'yes': 'Include', 'no': 'Exclude'},
       ),
-      const FinanceField(
+      FinanceField(
         'balance',
-        'Reconciled balance (optional)',
+        a.type == 'credit'
+            ? 'Amount owed per statement (optional)'
+            : 'Reconciled balance (optional)',
         required: false,
         numeric: true,
       ),
       const FinanceField('reason', 'Reconciliation reason', required: false),
     ],
     save: (j) async {
-      final store = ref.read(financeStoreProvider),
-          db = ref.read(databaseProvider);
+      final store = ref.read(financeStoreProvider);
       await db.transaction(() async {
         final current = await db.getAccountById(a.id);
         if (current == null) throw StateError('Account no longer exists');
         await db.updateAccount(current.copyWith(name: j['name']));
+        if (j['currency'] case final currency?
+            when currency != current.currency) {
+          await db.changeAccountCurrency(a.id, currency);
+        }
         if (j['balance']!.isNotEmpty) {
           await ref
               .read(financialLedgerProvider)
@@ -388,7 +405,9 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
                 FinanceField(
                   'base',
                   'From',
-                  initial: 'USD',
+                  initial: 'USD' == ref.read(defaultCurrencyProvider)
+                      ? 'EUR'
+                      : 'USD',
                   options: currencies,
                 ),
                 FinanceField(
@@ -488,7 +507,7 @@ Future<void> templates(BuildContext context, WidgetRef ref) async {
 
 Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
   final accounts = ref.read(accountsProvider).valueOrNull ?? [],
-      categories = ref.read(categoriesProvider).valueOrNull ?? [];
+      categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
   await financeForm(
     context,
     title: j == null ? 'Save template' : 'Review template transaction',
@@ -549,7 +568,7 @@ Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
 }
 
 Future<void> subcategory(BuildContext context, WidgetRef ref) async {
-  final categories = ref.read(categoriesProvider).valueOrNull ?? [];
+  final categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
   await financeForm(
     context,
     title: 'Assign subcategory',
@@ -834,17 +853,39 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
       'Amount',
       'Currency',
       'Note',
+      // Added after the original seven columns so older importers still
+      // read the file.
+      'Merchant',
+      'Paid with',
+      'Original amount',
+      'Original currency',
     ],
   ];
-  for (final t in await db.getAllTransactions()) {
+  final rows = await db.getAllTransactions();
+  final details = await ref
+      .read(financeStoreProvider)
+      .transactionDetailsFor(rows.map((t) => t.id));
+  final instruments = {
+    for (final i in await db.getPaymentInstruments()) i.id: i,
+  };
+  for (final t in rows) {
+    final d = details[t.id];
+    final original = d?['original'] as Map?;
     lines.add([
       t.transactionDate.toIso8601String(),
       t.type,
       accounts[t.accountId]?.name,
       categories[t.categoryId]?.name,
-      t.amount,
+      d?['amount'] ?? t.amount,
       accounts[t.accountId]?.currency,
       t.note,
+      t.merchant,
+      instruments[t.paymentInstrumentId]?.label ??
+          (t.paymentMethod == null
+              ? null
+              : PaymentMethods.label(t.paymentMethod!)),
+      original?['amount'],
+      original?['currency'],
     ]);
   }
   final file = File(

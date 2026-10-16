@@ -12,13 +12,15 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../core/utils/amount_parser.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 
 Map<String, String> get currencies => {
   for (final currency in AppConstants.currencies) currency: currency,
 };
 String today() => DateTime.now().toIso8601String().substring(0, 10);
-Amount number(Map<String, String> j, String key) => Amount(j[key]!);
+Amount number(Map<String, String> j, String key) =>
+    AmountParser.decimal(j[key]!);
 
 class HoldingsView extends ConsumerWidget {
   const HoldingsView({super.key});

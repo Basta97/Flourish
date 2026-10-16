@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish/core/motion/motion.dart';
@@ -12,7 +13,10 @@ import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/recurring_provider.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
-import 'package:flourish/presentation/providers/theme_providers.dart';
+import 'package:flourish/presentation/providers/finance_providers.dart';
+import 'package:flourish/core/finance/recurring_service.dart';
+import 'package:flourish/core/finance/system_categories.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/shared/widgets/animated_list_item.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/empty_state.dart';
@@ -76,7 +80,15 @@ class _RecurringCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catAsync = ref.watch(categoryByIdProvider(recurring.categoryId));
-    final currency = ref.watch(defaultCurrencyProvider);
+    final currency =
+        ref
+            .watch(accountByIdProvider(recurring.accountId))
+            .valueOrNull
+            ?.currency ??
+        '';
+    final warning = ref
+        .watch(recurringWarningsProvider)
+        .valueOrNull?[recurring.id];
     final isIncome = recurring.type == 'income';
 
     final palette = FlourishPalette.of(context);
@@ -139,6 +151,17 @@ class _RecurringCard extends ConsumerWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    if (warning != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          'Not posted: $warning',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -151,16 +174,20 @@ class _RecurringCard extends ConsumerWidget {
                 icon: Icon(Icons.more_vert_rounded, color: palette.textLow),
                 onSelected: (action) async {
                   Haptics.select();
-                  final db = ref.read(databaseProvider);
-                  if (action == 'toggle') {
-                    await db.updateRecurringTransaction(
-                      recurring.copyWith(isActive: !recurring.isActive),
+                  final service = ref.read(recurringServiceProvider);
+                  if (action == 'edit') {
+                    await showSpringBottomSheet(
+                      context: context,
+                      builder: (_) => _AddRecurringSheet(existing: recurring),
                     );
+                  } else if (action == 'toggle') {
+                    await service.setActive(recurring, !recurring.isActive);
                   } else if (action == 'delete') {
-                    await db.deleteRecurringTransaction(recurring.id);
+                    await service.delete(recurring.id);
                   }
                 },
                 itemBuilder: (ctx) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
                   PopupMenuItem(
                     value: 'toggle',
                     child: Text(recurring.isActive ? 'Pause' : 'Resume'),
@@ -218,7 +245,9 @@ class _Tag extends StatelessWidget {
 }
 
 class _AddRecurringSheet extends ConsumerStatefulWidget {
-  const _AddRecurringSheet();
+  const _AddRecurringSheet({this.existing});
+
+  final RecurringTransaction? existing;
 
   @override
   ConsumerState<_AddRecurringSheet> createState() => _AddRecurringSheetState();
@@ -231,9 +260,30 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   String _frequency = 'monthly';
   int? _accountId;
   int? _categoryId;
+  int? _toAccountId;
+  int? _instrumentId;
+  DateTime? _endDate;
   DateTime _nextDate = DateTime.now().add(const Duration(days: 1));
   bool _isSubmitting = false;
   String? _amountError;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.existing;
+    if (r != null) {
+      _amountController.text = '${r.amount}';
+      _noteController.text = r.note ?? '';
+      _type = r.type;
+      _frequency = r.frequency;
+      _accountId = r.accountId;
+      _categoryId = r.categoryId;
+      _nextDate = r.nextDate;
+      _toAccountId = r.toAccountId;
+      _instrumentId = r.paymentInstrumentId;
+      _endDate = r.endDate;
+    }
+  }
 
   @override
   void dispose() {
@@ -245,11 +295,18 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final currency = ref.watch(defaultCurrencyProvider);
+    final categoriesAsync = ref.watch(pickableCategoriesProvider);
+    final currency =
+        accountsAsync.valueOrNull
+            ?.where((a) => a.id == _accountId)
+            .firstOrNull
+            ?.currency ??
+        '';
 
     return BottomSheetScaffold(
-      title: 'New Recurring Transaction',
+      title: widget.existing == null
+          ? 'New Recurring Transaction'
+          : 'Edit Recurring Transaction',
       children: [
         Row(
           children: [
@@ -276,6 +333,19 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                 }),
               ),
             ),
+            const SizedBox(width: Sp.md),
+            Expanded(
+              child: _TypeBtn(
+                label: 'Transfer',
+                selected: _type == 'transfer',
+                color: AppColors.primary,
+                onTap: () => setState(() {
+                  _type = 'transfer';
+                  _categoryId = null;
+                  _instrumentId = null;
+                }),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: Sp.lg),
@@ -287,7 +357,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             hintText: '0.00',
             errorText: _amountError,
           ),
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [AmountInputFormatter()],
           onChanged: (_) => setState(() => _amountError = null),
         ),
         const SizedBox(height: Sp.md),
@@ -306,60 +377,19 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               decoration: const InputDecoration(labelText: 'Account'),
               items: accounts
                   .map(
-                    (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
-                  )
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  setState(() => _accountId = v);
-                }
-              },
-            );
-          },
-          loading: () => const SizedBox(height: 60),
-          error: (error, stackTrace) => const SizedBox(height: 60),
-        ),
-        const SizedBox(height: Sp.md),
-        categoriesAsync.when(
-          data: (cats) {
-            final filtered = cats.where((c) => c.type == _type).toList();
-            if (filtered.isNotEmpty && _categoryId == null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && _categoryId == null) {
-                  setState(() => _categoryId = filtered.first.id);
-                }
-              });
-            }
-            final effectiveCat =
-                _categoryId != null && filtered.any((c) => c.id == _categoryId)
-                ? _categoryId
-                : (filtered.isNotEmpty ? filtered.first.id : null);
-            return DropdownButtonFormField<int>(
-              key: ValueKey('recurring-category-$_type-$effectiveCat'),
-              initialValue: effectiveCat,
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: filtered
-                  .map(
-                    (c) => DropdownMenuItem(
-                      value: c.id,
-                      child: Row(
-                        children: [
-                          CategoryIconWidget(
-                            iconName: c.icon,
-                            color: Color(c.color),
-                            size: 28,
-                            iconSize: 14,
-                          ),
-                          const SizedBox(width: Sp.sm),
-                          Text(c.name),
-                        ],
-                      ),
+                    (a) => DropdownMenuItem(
+                      value: a.id,
+                      child: Text('${a.name} (${a.currency})'),
                     ),
                   )
                   .toList(),
               onChanged: (v) {
                 if (v != null) {
-                  setState(() => _categoryId = v);
+                  setState(() {
+                    _accountId = v;
+                    _instrumentId = null;
+                    if (_toAccountId == v) _toAccountId = null;
+                  });
                 }
               },
             );
@@ -367,6 +397,93 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
           loading: () => const SizedBox(height: 60),
           error: (error, stackTrace) => const SizedBox(height: 60),
         ),
+        if (_type == 'transfer') ...[
+          const SizedBox(height: Sp.md),
+          DropdownButtonFormField<int>(
+            key: ValueKey('recurring-to-$_accountId-$_toAccountId'),
+            initialValue: _toAccountId,
+            decoration: const InputDecoration(
+              labelText: 'To account (e.g. your credit card or savings)',
+            ),
+            items: [
+              for (final a in accountsAsync.valueOrNull ?? const <Account>[])
+                if (a.id != _accountId)
+                  DropdownMenuItem(
+                    value: a.id,
+                    child: Text('${a.name} (${a.currency})'),
+                  ),
+            ],
+            onChanged: (v) => setState(() => _toAccountId = v),
+          ),
+        ],
+        if (_type == 'expense')
+          if ((ref.watch(paymentInstrumentsProvider).valueOrNull ?? [])
+                  .where((i) => i.accountId == _accountId && !i.archived)
+                  .toList()
+              case final cards when cards.isNotEmpty) ...[
+            const SizedBox(height: Sp.md),
+            DropdownButtonFormField<int?>(
+              key: ValueKey('recurring-card-$_accountId-$_instrumentId'),
+              initialValue: _instrumentId,
+              decoration: const InputDecoration(labelText: 'Charged to'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Not set')),
+                for (final c in cards)
+                  DropdownMenuItem(value: c.id, child: Text(c.label)),
+              ],
+              onChanged: (v) => setState(() => _instrumentId = v),
+            ),
+          ],
+        const SizedBox(height: Sp.md),
+        if (_type != 'transfer')
+          categoriesAsync.when(
+            data: (cats) {
+              final filtered = cats.where((c) => c.type == _type).toList();
+              if (filtered.isNotEmpty && _categoryId == null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && _categoryId == null) {
+                    setState(() => _categoryId = filtered.first.id);
+                  }
+                });
+              }
+              final effectiveCat =
+                  _categoryId != null &&
+                      filtered.any((c) => c.id == _categoryId)
+                  ? _categoryId
+                  : (filtered.isNotEmpty ? filtered.first.id : null);
+              return DropdownButtonFormField<int>(
+                key: ValueKey('recurring-category-$_type-$effectiveCat'),
+                initialValue: effectiveCat,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: filtered
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c.id,
+                        child: Row(
+                          children: [
+                            CategoryIconWidget(
+                              iconName: c.icon,
+                              color: Color(c.color),
+                              size: 28,
+                              iconSize: 14,
+                            ),
+                            const SizedBox(width: Sp.sm),
+                            Text(c.name),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() => _categoryId = v);
+                  }
+                },
+              );
+            },
+            loading: () => const SizedBox(height: 60),
+            error: (error, stackTrace) => const SizedBox(height: 60),
+          ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
           initialValue: _frequency,
@@ -389,20 +506,52 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             final picked = await showDatePicker(
               context: context,
               initialDate: _nextDate,
-              firstDate: DateTime.now(),
+              firstDate: DateTime(DateTime.now().year - 5),
               lastDate: DateTime(2035),
             );
             if (picked != null) setState(() => _nextDate = picked);
           },
           borderRadius: BorderRadius.circular(Rad.md),
           child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'First Occurrence'),
+            decoration: InputDecoration(
+              labelText: widget.existing == null
+                  ? 'First Occurrence'
+                  : 'Next Occurrence',
+            ),
             child: Row(
               children: [
                 const Icon(Icons.calendar_today, size: 18),
                 const SizedBox(width: Sp.sm),
                 Text(DateFormatter.formatFull(_nextDate)),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: Sp.md),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _endDate ?? _nextDate,
+              firstDate: _nextDate,
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) setState(() => _endDate = picked);
+          },
+          borderRadius: BorderRadius.circular(Rad.md),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Ends (optional)',
+              suffixIcon: _endDate == null
+                  ? null
+                  : IconButton(
+                      tooltip: 'No end date',
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      onPressed: () => setState(() => _endDate = null),
+                    ),
+            ),
+            child: Text(
+              _endDate == null ? 'Never' : DateFormatter.formatFull(_endDate!),
             ),
           ),
         ),
@@ -430,17 +579,45 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Create Recurring', style: TextStyle(fontSize: 16)),
+              : Text(
+                  widget.existing == null ? 'Create Recurring' : 'Save',
+                  style: const TextStyle(fontSize: 16),
+                ),
         ),
       ],
     );
   }
 
   Future<void> _submit() async {
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Enter a valid amount');
+    final currency =
+        ref
+            .read(accountsProvider)
+            .valueOrNull
+            ?.where((a) => a.id == _accountId)
+            .firstOrNull
+            ?.currency ??
+        '';
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: currency,
+    );
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       return;
+    }
+    final amount = parsed.value!.toDouble();
+    if (_type == 'transfer') {
+      if (_toAccountId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose the account to transfer to')),
+        );
+        return;
+      }
+      _categoryId = await SystemCategories.idFor(
+        ref.read(databaseProvider),
+        'transfer_out',
+      );
+      if (!mounted) return;
     }
     if (_accountId == null || _categoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -448,34 +625,107 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       );
       return;
     }
+    final note = _noteController.text.trim().isEmpty
+        ? null
+        : _noteController.text.trim();
+    final service = ref.read(recurringServiceProvider);
+    final existing = widget.existing;
+    var catchUp = false;
+    if (existing == null) {
+      final today = DateTime.now();
+      final missed = RecurringService.occurrences(
+        _nextDate,
+        _frequency,
+        today,
+        limit: 25,
+      ).length;
+      if (missed > 0) {
+        final choice = await _askCatchUp(missed);
+        if (choice == null) return;
+        catchUp = choice;
+      }
+    }
     setState(() => _isSubmitting = true);
     try {
-      final db = ref.read(databaseProvider);
-      await db.insertRecurringTransaction(
-        RecurringTransactionsCompanion.insert(
-          accountId: _accountId!,
-          categoryId: _categoryId!,
-          amount: amount,
-          type: _type,
-          frequency: _frequency,
-          nextDate: _nextDate,
-          note: Value(
-            _noteController.text.trim().isEmpty
-                ? null
-                : _noteController.text.trim(),
+      if (existing == null) {
+        await service.create(
+          RecurringTransactionsCompanion.insert(
+            accountId: _accountId!,
+            categoryId: _categoryId!,
+            amount: amount,
+            type: _type,
+            frequency: _frequency,
+            nextDate: _nextDate,
+            note: Value(note),
+            toAccountId: Value(_type == 'transfer' ? _toAccountId : null),
+            paymentInstrumentId: Value(
+              _type == 'expense' ? _instrumentId : null,
+            ),
+            endDate: Value(_endDate),
           ),
-        ),
-      );
+          catchUp: catchUp,
+        );
+      } else {
+        await service.update(
+          existing.copyWith(
+            accountId: _accountId,
+            categoryId: _categoryId,
+            amount: amount,
+            type: _type,
+            frequency: _frequency,
+            nextDate: _nextDate,
+            note: Value(note),
+            toAccountId: Value(_type == 'transfer' ? _toAccountId : null),
+            paymentInstrumentId: Value(
+              _type == 'expense' ? _instrumentId : null,
+            ),
+            endDate: Value(_endDate),
+          ),
+        );
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }
+
+  /// Asks whether occurrences before today should be posted now. Returns
+  /// null when the user cancels.
+  Future<bool?> _askCatchUp(int missed) => showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Start date is in the past'),
+      content: Text(
+        missed > 24
+            ? 'More than 24 payments fall before today. The schedule will '
+                  'start from its next date; add older payments manually if '
+                  'you need them.'
+            : '$missed payment${missed == 1 ? '' : 's'} fall before today. '
+                  'Post ${missed == 1 ? 'it' : 'them'} now, or start from the '
+                  'next date?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Start from next date'),
+        ),
+        if (missed <= 24)
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Post $missed'),
+          ),
+      ],
+    ),
+  );
 }
 
 class _TypeBtn extends StatelessWidget {

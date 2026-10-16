@@ -131,27 +131,6 @@ class AppConstants {
     ];
   }
 
-  static List<Map<String, dynamic>> defaultAccounts() {
-    return [
-      {
-        'name': 'Cash',
-        'type': 'cash',
-        'balance': 0,
-        'currency': 'USD',
-        'color': 0xFF10B981,
-        'icon': 'account_balance_wallet',
-      },
-      {
-        'name': 'Bank Account',
-        'type': 'bank',
-        'balance': 0,
-        'currency': 'USD',
-        'color': 0xFF3B82F6,
-        'icon': 'account_balance',
-      },
-    ];
-  }
-
   static const List<String> accountIcons = [
     'account_balance',
     'account_balance_wallet',

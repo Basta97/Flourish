@@ -11,7 +11,7 @@ import '../../core/utils/currency_formatter.dart';
 /// through a double.
 class AnimatedCounter extends StatefulWidget {
   final double value;
-  final String currency;
+  final String? currency;
   final TextStyle? style;
   final bool showSign;
   final Duration duration;
@@ -29,14 +29,17 @@ class AnimatedCounter extends StatefulWidget {
   const AnimatedCounter({
     super.key,
     required this.value,
-    this.currency = 'USD',
+    this.currency,
     this.style,
     this.showSign = false,
     this.duration = Motion.countUp,
     this.format,
     this.exactText,
     this.deltaPercent,
-  });
+  }) : assert(
+         format != null || currency != null,
+         'Pass a currency or a format function',
+       );
 
   @override
   State<AnimatedCounter> createState() => _AnimatedCounterState();
@@ -90,7 +93,7 @@ class _AnimatedCounterState extends State<AnimatedCounter>
       widget.format?.call(v) ??
       CurrencyFormatter.format(
         v,
-        currency: widget.currency,
+        currency: widget.currency!,
         showSign: widget.showSign,
       );
 

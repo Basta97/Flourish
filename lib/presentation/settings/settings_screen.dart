@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import '../../core/finance/backup_service.dart';
 import '../../data/finance/finance_store.dart';
 import '../wealth/finance_tools_view.dart';
@@ -50,6 +51,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _incomeAmountController.dispose();
     _incomeDayController.dispose();
     super.dispose();
+  }
+
+  String _incomeCurrency() {
+    final id = ref.read(monthlyIncomeAccountIdProvider);
+    return ref
+            .read(accountsProvider)
+            .valueOrNull
+            ?.where((a) => a.id == id)
+            .firstOrNull
+            ?.currency ??
+        ref.read(defaultCurrencyProvider);
   }
 
   @override
@@ -159,10 +171,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/recurring'),
                 ),
                 _SettingTile(
+                  icon: Icons.credit_card_rounded,
+                  tint: const Color(0xFFEF4444),
+                  title: 'Cards & wallets',
+                  subtitle: 'Debit and credit cards, wallets, InstaPay',
+                  onTap: () => context.push('/payment-methods'),
+                ),
+                _SettingTile(
                   icon: Icons.category_outlined,
                   title: 'Categories',
                   subtitle: 'Add, edit, or delete transaction categories',
                   onTap: () => context.push('/categories/manage'),
+                ),
+                _SettingTile(
+                  icon: Icons.mark_email_unread_outlined,
+                  tint: const Color(0xFF5B9DF5),
+                  title: 'Payment detection',
+                  subtitle: 'Find payments in bank and wallet alerts',
+                  onTap: () => context.push('/settings/detection'),
                 ),
                 _SettingTile(
                   icon: Icons.auto_awesome_outlined,
@@ -206,9 +232,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             labelText: 'Monthly Income Amount',
                             hintText: 'e.g. 5000',
                           ),
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [AmountInputFormatter()],
                           onChanged: (v) {
-                            final amt = double.tryParse(v) ?? 0;
+                            final amt =
+                                AmountParser.parse(
+                                  v,
+                                  currency: _incomeCurrency(),
+                                ).value?.toDouble() ??
+                                0;
                             ref
                                     .read(monthlyIncomeAmountProvider.notifier)
                                     .state =
@@ -496,6 +530,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           await db.delete(db.recurringTransactions).go();
           await db.delete(db.budgets).go();
           await db.delete(db.goals).go();
+          await db.delete(db.paymentInstruments).go();
           await db.delete(db.accounts).go();
           await db.delete(db.categories).go();
 
@@ -535,7 +570,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       name: Value(item['name'] as String),
                       type: Value(item['type'] as String),
                       balance: Value((item['balance'] as num).toDouble()),
-                      currency: Value(item['currency'] as String? ?? 'USD'),
+                      currency: Value(
+                        item['currency'] as String? ??
+                            ref.read(defaultCurrencyProvider),
+                      ),
                       color: Value(item['color'] as int),
                       icon: Value(item['icon'] as String),
                       createdAt: _dateValue(item['createdAt']),
@@ -695,6 +733,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               await db.delete(db.budgets).go();
               await db.delete(db.recurringTransactions).go();
               await db.delete(db.goals).go();
+              await db.delete(db.paymentInstruments).go();
               await db.delete(db.accounts).go();
               await db.delete(db.categories).go();
               for (final key in BackupService.settings) {

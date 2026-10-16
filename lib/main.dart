@@ -1,9 +1,12 @@
 import 'presentation/wealth/finance_runtime.dart';
+import 'presentation/detection/detection_runtime.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'core/finance/financial_ledger_service.dart';
+import 'core/finance/recurring_service.dart';
 import 'core/services/preferences_service.dart';
 import 'data/database/database.dart';
 import 'presentation/providers/database_provider.dart';
@@ -25,7 +28,7 @@ Future<void> main() async {
   final db = AppDatabase();
 
   try {
-    await db.processDueRecurringTransactions();
+    await RecurringService(FinancialLedgerService(db)).processDue();
   } catch (e, st) {
     // Log but don't block app launch if recurring processing fails.
     // A background/resume check will retry later.
@@ -35,7 +38,9 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db)],
-      child: const FinanceRuntime(child: FlourishApp()),
+      child: const FinanceRuntime(
+        child: DetectionRuntime(child: FlourishApp()),
+      ),
     ),
   );
 }

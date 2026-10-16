@@ -15,6 +15,9 @@ Data stays on your device in SQLite. Optional market and FX feeds refresh quotes
 - **Ledger** — Transactions with calendar, filters, and swipe actions
 - **Wealth** — Holdings, obligations, reports, tools (backup, import/export, FX overrides)
 - **Accounts & budgets** — Multi-account balances, category budgets, savings goals
+- **Detailed spending** — What paid (card, wallet, InstaPay, cash), merchant, original currency with foreign-transaction fees, refunds
+- **Credit cards** — Limit, available credit, statement, minimum due, interest estimate, cash advances
+- **Payment detection** — Bank SMS and bank/wallet alerts in English and Arabic become a review inbox (Android notification access; iOS Shortcuts)
 - **Import** — Share bank SMS/notification text (Android intent / iOS share extension); review before save
 - **Privacy** — On-device storage; encrypted backup optional; biometric app lock
 
@@ -30,6 +33,7 @@ Built with **Flutter**, **Riverpod**, **Drift**, and **go_router**. Default repo
 | [Releases](docs/RELEASE.md) | Versioning, signing, GitHub Releases |
 | [Platforms](docs/PLATFORMS.md) | Android vs iOS behavior and QA checklist |
 | [Finance implementation](docs/FINANCE_IMPLEMENTATION.md) | Ledger rules, feeds, backup, verification |
+| [Audit](docs/AUDIT.md) | Known bugs and logic gaps with fix status |
 | [Changelog](CHANGELOG.md) | Version history |
 
 Full index: [docs/README.md](docs/README.md).

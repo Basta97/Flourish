@@ -1,3 +1,4 @@
+import '../accounts/widgets/credit_card_panel.dart' show payCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/finance_providers.dart';
@@ -46,8 +47,22 @@ class ContractsView extends ConsumerWidget {
                               title: c.name,
                               subtitle:
                                   '${c.kind.name}${c.counterparty.isEmpty ? '' : ' · ${c.counterparty}'}\n${c.annualRate}% · matures ${c.maturity.toIso8601String().substring(0, 10)}',
+                              // A card's debt lives on its account, not
+                              // in the contract's principal.
                               value: CurrencyFormatter.format(
-                                c.principal.toDouble(),
+                                c.kind == ContractKind.creditCard
+                                    ? (ref
+                                                  .watch(accountsProvider)
+                                                  .valueOrNull
+                                                  ?.where(
+                                                    (a) =>
+                                                        a.id == c.cardAccountId,
+                                                  )
+                                                  .firstOrNull
+                                                  ?.balance ??
+                                              0)
+                                          .toDouble()
+                                    : c.principal.toDouble(),
                                 currency: c.currency,
                               ),
                               valueTone: c.isDebt ? AppColors.expense : null,
@@ -259,8 +274,17 @@ class ContractDetailScreen extends ConsumerWidget {
                           'Billed ${s.data?['billed'] ?? '…'} · unbilled ${s.data?['unbilled'] ?? '…'}\nOlder / opening ${s.data?['olderOrOpening'] ?? '…'} · due ${s.data?['due']?.toString().substring(0, 10) ?? '…'}',
                         ),
                         trailing: TextButton(
-                          onPressed: () =>
-                              _manualPayment(context, ref, c, card: true),
+                          onPressed: () async {
+                            final account = await ref
+                                .read(databaseProvider)
+                                .getAccountById(c.cardAccountId!);
+                            if (account == null || !context.mounted) return;
+                            final status = await ref
+                                .read(creditCardServiceProvider)
+                                .status(account.id);
+                            if (!context.mounted) return;
+                            await payCard(context, ref, account, status);
+                          },
                           child: const Text('Pay card'),
                         ),
                       ),

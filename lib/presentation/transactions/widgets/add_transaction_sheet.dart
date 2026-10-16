@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
-import 'package:flourish/core/services/insights_service.dart';
+import 'package:flourish/core/services/category_suggester.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
@@ -14,7 +14,10 @@ import 'package:flourish/core/motion/motion.dart';
 import 'package:flourish/presentation/transactions/widgets/transaction_form_parts.dart';
 import 'package:flourish/shared/widgets/segmented_pill.dart';
 import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
-import 'package:drift/drift.dart' hide Column;
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/currency_formatter.dart';
+import 'package:flourish/core/constants/app_constants.dart';
+import 'package:flourish/core/utils/error_text.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final String? initialType;
@@ -35,7 +38,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   final _noteController = TextEditingController();
   final _amountController = TextEditingController();
   final _destinationAmountController = TextEditingController();
-  final _feeController = TextEditingController(text: "0");
+  final _feeController = TextEditingController();
   String _mode = 'expense';
   int? _accountId;
   int? _toAccountId;
@@ -45,6 +48,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   String? _amountError;
   String? _accountError;
   String? _categoryError;
+  String? _destinationError;
+  String? _feeError;
+  // What paid, where, and in which currency.
+  int? _instrumentId;
+  String? _method;
+  int? _paymentForAccount;
+  final _merchantController = TextEditingController();
+  bool _foreign = false;
+  String? _originalCurrency;
+  final _originalController = TextEditingController();
+  bool _feeIncluded = false;
+  bool _bookedEdited = false;
+  bool _refund = false;
+  String? _originalError;
 
   @override
   void initState() {
@@ -61,6 +78,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     _amountController.dispose();
     _destinationAmountController.dispose();
     _feeController.dispose();
+    _merchantController.dispose();
+    _originalController.dispose();
     super.dispose();
   }
 
@@ -69,8 +88,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final note = _noteController.text.trim();
     if (note.length < 3) return;
     final transactions = ref.read(transactionsProvider).valueOrNull ?? [];
-    final cats = ref.read(categoriesProvider).valueOrNull ?? [];
-    final suggested = InsightsService.suggestCategoryFromNote(
+    final cats = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
+    final suggested = CategorySuggester.suggest(
       note,
       transactions,
       categories: cats,
@@ -100,7 +119,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(pickableCategoriesProvider);
     final allAccounts = accountsAsync.valueOrNull ?? [];
     final effectiveFrom = _effectiveAccountId(allAccounts);
     final chosen = allAccounts.where((a) => a.id == effectiveFrom).firstOrNull;
@@ -124,7 +143,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           color: tint,
           errorText: _amountError,
           autofocus: true,
-          onChanged: (_) => setState(() => _amountError = null),
+          onChanged: (_) => setState(() {
+            _amountError = null;
+            if (_foreign) _bookedEdited = true;
+          }),
         ),
         const SizedBox(height: Sp.lg),
         if (allAccounts.isEmpty)
@@ -162,25 +184,35 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               color: tint,
               onSelected: (v) => setState(() => _toAccountId = v),
             ),
-            const SizedBox(height: Sp.lg),
-            TextField(
-              controller: _destinationAmountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+            if (_destinationCurrency(allAccounts, effectiveFrom)
+                case final toCurrency? when toCurrency != currency) ...[
+              const SizedBox(height: Sp.lg),
+              TextField(
+                controller: _destinationAmountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [AmountInputFormatter()],
+                decoration: InputDecoration(
+                  labelText: 'Amount received in $toCurrency',
+                  helperText: 'What actually arrived after conversion',
+                  errorText: _destinationError,
+                ),
+                onChanged: (_) => setState(() => _destinationError = null),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Amount received (required across currencies)',
-              ),
-            ),
+            ],
             const SizedBox(height: Sp.md),
             TextField(
               controller: _feeController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: [AmountInputFormatter()],
               decoration: InputDecoration(
-                labelText: 'Transfer fee in $currency',
+                labelText: 'Transfer fee in $currency (optional)',
+                errorText: _feeError,
               ),
+              onChanged: (_) => setState(() => _feeError = null),
             ),
           ],
         ] else ...[
@@ -194,9 +226,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               _accountError = null;
             }),
           ),
+          if (_mode == 'expense' && chosen != null) ...[
+            const SizedBox(height: Sp.lg),
+            ..._paymentFields(chosen, tint),
+          ],
           const SizedBox(height: Sp.lg),
           FormLabel(
-            'Category',
+            _refund ? 'Refund for' : 'Category',
             trailing: _categoryError == null
                 ? null
                 : Text(
@@ -229,6 +265,17 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             style: AppTextStyles.caption.copyWith(color: AppColors.danger),
           ),
         ],
+        if (_mode == 'expense') ...[
+          const SizedBox(height: Sp.lg),
+          TextField(
+            controller: _merchantController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              hintText: 'Merchant or payee (optional)',
+              prefixIcon: Icon(Icons.storefront_outlined, size: 20),
+            ),
+          ),
+        ],
         const SizedBox(height: Sp.lg),
         TextField(
           controller: _noteController,
@@ -245,6 +292,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         SubmitButton(
           label: _mode == 'transfer'
               ? 'Transfer'
+              : _mode == 'expense' && _refund
+              ? 'Add Refund'
               : 'Add ${_mode == 'expense' ? 'Expense' : 'Income'}',
           color: tint,
           state: _submitState,
@@ -286,12 +335,202 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     return categories.first.id;
   }
 
-  double? _parseAmount() {
-    final normalized = _amountController.text
-        .trim()
-        .replaceAll(',', '')
-        .replaceAll(RegExp(r'[^0-9.\-]'), '');
-    return double.tryParse(normalized);
+  /// Preselects the account's default card when the account changes.
+  void _syncPayment(Account account, List<PaymentInstrument>? instruments) {
+    // Wait for the cards to load, or the default would never be picked.
+    if (_paymentForAccount == account.id || instruments == null) return;
+    _paymentForAccount = account.id;
+    final preferred = instruments
+        .where((i) => i.accountId == account.id && !i.archived)
+        .where((i) => i.isDefault)
+        .firstOrNull;
+    _instrumentId = preferred?.id;
+    _method = preferred?.kind;
+    if (_originalCurrency == account.currency) _originalCurrency = null;
+  }
+
+  List<Widget> _paymentFields(Account account, Color tint) {
+    final loaded = ref.watch(paymentInstrumentsProvider).valueOrNull;
+    _syncPayment(account, loaded);
+    final instruments = loaded ?? const <PaymentInstrument>[];
+    final palette = FlourishPalette.of(context);
+    final credit = account.type == 'credit'
+        ? ref.watch(creditStatusProvider(account.id)).valueOrNull
+        : null;
+    final typed = AmountParser.parse(
+      _amountController.text,
+      currency: account.currency,
+    ).value;
+    final over =
+        credit?.limit != null && typed != null && typed > credit!.available
+        ? typed - credit.available
+        : null;
+    final currencies = AppConstants.currencies
+        .where((c) => c != account.currency)
+        .toList();
+    return [
+      const FormLabel('Paid with'),
+      PaidWithChips(
+        account: account,
+        instruments: instruments,
+        instrumentId: _instrumentId,
+        method: _method,
+        color: tint,
+        onChanged: (id, method) => setState(() {
+          _instrumentId = id;
+          _method = method;
+        }),
+      ),
+      if (over != null)
+        Padding(
+          padding: const EdgeInsets.only(top: Sp.sm),
+          child: Text(
+            'This goes over the card limit by '
+            '${CurrencyFormatter.format(over.toDouble(), currency: account.currency)}.',
+            style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+          ),
+        ),
+      SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        value: _refund,
+        title: const Text('This is a refund'),
+        subtitle: const Text('Money back that reduces spending'),
+        onChanged: (v) => setState(() {
+          _refund = v;
+          if (v) _foreign = false;
+        }),
+      ),
+      if (!_refund && account.type != 'cash')
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: _foreign,
+          title: const Text('Paid in another currency'),
+          subtitle: Text(
+            'e.g. USD online or abroad, charged in ${account.currency}',
+          ),
+          onChanged: (v) => setState(() {
+            _foreign = v;
+            _originalCurrency ??= account.currency == 'USD' ? 'EUR' : 'USD';
+          }),
+        ),
+      if (_foreign && !_refund) ...[
+        Row(
+          children: [
+            SizedBox(
+              width: 110,
+              child: DropdownButtonFormField<String>(
+                initialValue: _originalCurrency,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Currency'),
+                items: [
+                  for (final c in currencies)
+                    DropdownMenuItem(value: c, child: Text(c)),
+                ],
+                onChanged: (v) {
+                  setState(() => _originalCurrency = v);
+                  _estimateBooked(account);
+                },
+              ),
+            ),
+            const SizedBox(width: Sp.md),
+            Expanded(
+              child: TextField(
+                controller: _originalController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [AmountInputFormatter()],
+                decoration: InputDecoration(
+                  labelText: 'Price in ${_originalCurrency ?? ''}',
+                  errorText: _originalError,
+                ),
+                onChanged: (_) {
+                  setState(() => _originalError = null);
+                  _estimateBooked(account);
+                },
+              ),
+            ),
+          ],
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: _feeIncluded,
+          title: const Text('Charged amount already includes the bank fee'),
+          onChanged: (v) => setState(() => _feeIncluded = v),
+        ),
+        FutureBuilder<Amount>(
+          future: _feePercent(account),
+          builder: (context, snap) {
+            final pct = snap.data ?? Amount.zero;
+            final charged = typed ?? Amount.zero;
+            final digits = CurrencyFormatter.decimalsFor(account.currency);
+            final fee = _feeIncluded
+                ? charged -
+                      (charged / (Amount.one + pct / Amount('100'))).rounded(
+                        digits,
+                      )
+                : (charged * pct / Amount('100')).rounded(digits);
+            String fmt(Amount a) => CurrencyFormatter.format(
+              a.toDouble(),
+              currency: account.currency,
+            );
+            return Text(
+              pct == Amount.zero
+                  ? 'The amount above is what ${account.name} was charged. '
+                        'Set a foreign transaction fee on the card to track it.'
+                  : 'Foreign transaction fee $pct%: ${fmt(fee)} '
+                        '${_feeIncluded ? 'inside' : 'on top of'} ${fmt(charged)}. '
+                        'Use the amount on your statement when you have it.',
+              style: AppTextStyles.caption.copyWith(color: palette.textLow),
+            );
+          },
+        ),
+      ],
+    ];
+  }
+
+  Future<Amount>? _feeFuture;
+  Object? _feeKey;
+
+  /// The FX fee for the chosen account and card, fetched once per choice.
+  Future<Amount> _feePercent(Account account) {
+    final key = (account.id, _instrumentId);
+    if (_feeKey != key || _feeFuture == null) {
+      _feeKey = key;
+      _feeFuture = ref
+          .read(financialLedgerProvider)
+          .fxFeePercentFor(account, _instrumentId);
+    }
+    return _feeFuture!;
+  }
+
+  /// Prefills what the account was charged from the reference rate until
+  /// the person types their own figure.
+  Future<void> _estimateBooked(Account account) async {
+    final currency = _originalCurrency;
+    if (_bookedEdited || currency == null) return;
+    final original = AmountParser.parse(
+      _originalController.text,
+      currency: currency,
+    ).value;
+    if (original == null) return;
+    final converted = await ref
+        .read(valuationProvider)
+        .convert(original, currency, account.currency, at: _date);
+    if (!mounted || converted == null || _bookedEdited) return;
+    setState(() {
+      _amountController.text =
+          '${converted.rounded(CurrencyFormatter.decimalsFor(account.currency))}';
+    });
+  }
+
+  String? _destinationCurrency(List<Account> accounts, int? fromId) {
+    if (fromId == null) return null;
+    final toId = _effectiveDestinationId(accounts, fromId);
+    return accounts.where((a) => a.id == toId).firstOrNull?.currency;
   }
 
   Future<void> _submit() async {
@@ -299,12 +538,19 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _amountError = null;
       _accountError = null;
       _categoryError = null;
+      _destinationError = null;
+      _feeError = null;
     });
 
-    final amount = _parseAmount();
     final accounts = ref.read(accountsProvider).valueOrNull ?? [];
     final accountId = _effectiveAccountId(accounts);
-    final categories = ref.read(categoriesProvider).valueOrNull ?? [];
+    final account = accounts.where((a) => a.id == accountId).firstOrNull;
+    final currency = account?.currency ?? '';
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: currency,
+    );
+    final categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
     final filteredCategories = categories
         .where((category) => category.type == _mode)
         .toList();
@@ -314,10 +560,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final toAccountId = accountId == null
         ? null
         : _effectiveDestinationId(accounts, accountId);
+    final toCurrency = accounts
+        .where((a) => a.id == toAccountId)
+        .firstOrNull
+        ?.currency;
     bool hasError = false;
 
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Please enter a valid amount');
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       hasError = true;
     }
     if (accountId == null) {
@@ -325,6 +575,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       hasError = true;
     }
 
+    Amount? received, fee;
     if (_mode == 'transfer') {
       if (accounts.length < 2 || toAccountId == null) {
         setState(() => _accountError = 'Please select destination account');
@@ -337,50 +588,112 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         );
         hasError = true;
       }
+      if (toCurrency != null && toCurrency != currency) {
+        final result = AmountParser.parse(
+          _destinationAmountController.text,
+          currency: toCurrency,
+        );
+        if (result.isValid) {
+          received = result.value;
+        } else {
+          setState(() => _destinationError = result.error);
+          hasError = true;
+        }
+      }
+      if (_feeController.text.trim().isNotEmpty) {
+        final result = AmountParser.parse(
+          _feeController.text,
+          currency: currency,
+          allowZero: true,
+        );
+        if (result.isValid) {
+          fee = result.value;
+        } else {
+          setState(() => _feeError = result.error);
+          hasError = true;
+        }
+      }
     } else {
       if (categoryId == null) {
         setState(() => _categoryError = 'Please select a category');
         hasError = true;
       }
     }
+    Money? original;
+    if (_mode == 'expense' && _foreign && !_refund) {
+      final result = AmountParser.parse(
+        _originalController.text,
+        currency: _originalCurrency ?? '',
+      );
+      if (!result.isValid || _originalCurrency == null) {
+        setState(() => _originalError = result.error ?? 'Choose a currency');
+        hasError = true;
+      } else {
+        original = Money('${result.value}', _originalCurrency!);
+      }
+    }
     if (hasError) return;
+    if (!await confirmFutureDate(context, _date)) return;
+    final merchant = _mode == 'expense' ? _merchantController.text : null;
 
     setState(() => _submitState = SubmitState.busy);
+    final note = _noteController.text.trim().isEmpty
+        ? null
+        : _noteController.text.trim();
     try {
+      final ledger = ref.read(financialLedgerProvider);
       if (_mode == 'transfer') {
-        await ref
-            .read(financialLedgerProvider)
-            .transferBetweenAccounts(
-              fromAccountId: accountId!,
-              toAccountId: toAccountId!,
-              amount: amount!,
-              destinationAmount:
-                  _destinationAmountController.text.trim().isEmpty
-                  ? null
-                  : double.parse(_destinationAmountController.text.trim()),
-              fee: double.parse(_feeController.text.trim()),
-              note: _noteController.text.trim().isEmpty
-                  ? null
-                  : _noteController.text.trim(),
-              date: _date,
-            );
+        await ledger.transfer(
+          fromAccountId: accountId!,
+          toAccountId: toAccountId!,
+          amount: parsed.value!,
+          received: received,
+          fee: fee,
+          note: note,
+          date: _date,
+          expectCurrency: currency,
+        );
+      } else if (_mode == 'expense' && _refund) {
+        await ledger.recordRefund(
+          accountId: accountId!,
+          amount: parsed.value!,
+          expenseCategoryId: categoryId!,
+          instrumentId: _instrumentId,
+          merchant: merchant,
+          note: note,
+          date: _date,
+          source: 'manual',
+          expectCurrency: currency,
+        );
+      } else if (_mode == 'expense' && original != null) {
+        await ledger.recordPurchase(
+          accountId: accountId!,
+          amount: parsed.value!,
+          categoryId: categoryId!,
+          original: original,
+          feeIncluded: _feeIncluded,
+          instrumentId: _instrumentId,
+          paymentMethod: _method,
+          merchant: merchant,
+          note: note,
+          date: _date,
+          source: 'manual',
+          expectCurrency: currency,
+        );
       } else {
-        await ref
-            .read(financialLedgerProvider)
-            .insertTransactionAndUpdateBalance(
-              TransactionsCompanion.insert(
-                accountId: accountId!,
-                categoryId: categoryId!,
-                amount: amount!,
-                type: _mode,
-                note: Value(
-                  _noteController.text.trim().isEmpty
-                      ? null
-                      : _noteController.text.trim(),
-                ),
-                transactionDate: _date,
-              ),
-            );
+        await ledger.recordCash(
+          accountId: accountId!,
+          amount: parsed.value!,
+          type: _mode,
+          categoryId: categoryId!,
+          note: note,
+          date: _date,
+          expectCurrency: currency,
+          instrumentId: _mode == 'expense' ? _instrumentId : null,
+          paymentMethod: _mode == 'expense' ? _method : null,
+          merchant: merchant,
+          source: 'manual',
+        );
       }
 
       ref.invalidate(transactionsProvider);
@@ -397,19 +710,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             : const Duration(milliseconds: 420),
       );
       if (mounted) Navigator.pop(context);
-    } on TransactionLogicException catch (e) {
-      if (mounted) {
-        setState(() => _submitState = SubmitState.idle);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
-      }
     } catch (e) {
       if (mounted) {
         setState(() => _submitState = SubmitState.idle);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }

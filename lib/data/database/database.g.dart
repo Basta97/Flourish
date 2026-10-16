@@ -65,7 +65,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('USD'),
+    defaultValue: const Constant(AppConstants.defaultCurrency),
   );
   static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
@@ -95,7 +95,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -572,6 +572,17 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _systemKeyMeta = const VerificationMeta(
+    'systemKey',
+  );
+  @override
+  late final GeneratedColumn<String> systemKey = GeneratedColumn<String>(
+    'system_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -581,6 +592,7 @@ class $CategoriesTable extends Categories
     type,
     isDefault,
     sortOrder,
+    systemKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -641,6 +653,12 @@ class $CategoriesTable extends Categories
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('system_key')) {
+      context.handle(
+        _systemKeyMeta,
+        systemKey.isAcceptableOrUnknown(data['system_key']!, _systemKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -678,6 +696,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      systemKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}system_key'],
+      ),
     );
   }
 
@@ -695,6 +717,10 @@ class Category extends DataClass implements Insertable<Category> {
   final String type;
   final bool isDefault;
   final int sortOrder;
+
+  /// Set for categories the ledger books automatically (see
+  /// SystemCategories); survives renaming.
+  final String? systemKey;
   const Category({
     required this.id,
     required this.name,
@@ -703,6 +729,7 @@ class Category extends DataClass implements Insertable<Category> {
     required this.type,
     required this.isDefault,
     required this.sortOrder,
+    this.systemKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -714,6 +741,9 @@ class Category extends DataClass implements Insertable<Category> {
     map['type'] = Variable<String>(type);
     map['is_default'] = Variable<bool>(isDefault);
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || systemKey != null) {
+      map['system_key'] = Variable<String>(systemKey);
+    }
     return map;
   }
 
@@ -726,6 +756,9 @@ class Category extends DataClass implements Insertable<Category> {
       type: Value(type),
       isDefault: Value(isDefault),
       sortOrder: Value(sortOrder),
+      systemKey: systemKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(systemKey),
     );
   }
 
@@ -742,6 +775,7 @@ class Category extends DataClass implements Insertable<Category> {
       type: serializer.fromJson<String>(json['type']),
       isDefault: serializer.fromJson<bool>(json['isDefault']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      systemKey: serializer.fromJson<String?>(json['systemKey']),
     );
   }
   @override
@@ -755,6 +789,7 @@ class Category extends DataClass implements Insertable<Category> {
       'type': serializer.toJson<String>(type),
       'isDefault': serializer.toJson<bool>(isDefault),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'systemKey': serializer.toJson<String?>(systemKey),
     };
   }
 
@@ -766,6 +801,7 @@ class Category extends DataClass implements Insertable<Category> {
     String? type,
     bool? isDefault,
     int? sortOrder,
+    Value<String?> systemKey = const Value.absent(),
   }) => Category(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -774,6 +810,7 @@ class Category extends DataClass implements Insertable<Category> {
     type: type ?? this.type,
     isDefault: isDefault ?? this.isDefault,
     sortOrder: sortOrder ?? this.sortOrder,
+    systemKey: systemKey.present ? systemKey.value : this.systemKey,
   );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
@@ -784,6 +821,7 @@ class Category extends DataClass implements Insertable<Category> {
       type: data.type.present ? data.type.value : this.type,
       isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      systemKey: data.systemKey.present ? data.systemKey.value : this.systemKey,
     );
   }
 
@@ -796,14 +834,15 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('color: $color, ')
           ..write('type: $type, ')
           ..write('isDefault: $isDefault, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('systemKey: $systemKey')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, name, icon, color, type, isDefault, sortOrder);
+      Object.hash(id, name, icon, color, type, isDefault, sortOrder, systemKey);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -814,7 +853,8 @@ class Category extends DataClass implements Insertable<Category> {
           other.color == this.color &&
           other.type == this.type &&
           other.isDefault == this.isDefault &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.systemKey == this.systemKey);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
@@ -825,6 +865,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> type;
   final Value<bool> isDefault;
   final Value<int> sortOrder;
+  final Value<String?> systemKey;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -833,6 +874,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.type = const Value.absent(),
     this.isDefault = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.systemKey = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
@@ -842,6 +884,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     required String type,
     this.isDefault = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.systemKey = const Value.absent(),
   }) : name = Value(name),
        icon = Value(icon),
        color = Value(color),
@@ -854,6 +897,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<String>? type,
     Expression<bool>? isDefault,
     Expression<int>? sortOrder,
+    Expression<String>? systemKey,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -863,6 +907,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       if (type != null) 'type': type,
       if (isDefault != null) 'is_default': isDefault,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (systemKey != null) 'system_key': systemKey,
     });
   }
 
@@ -874,6 +919,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String>? type,
     Value<bool>? isDefault,
     Value<int>? sortOrder,
+    Value<String?>? systemKey,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
@@ -883,6 +929,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       type: type ?? this.type,
       isDefault: isDefault ?? this.isDefault,
       sortOrder: sortOrder ?? this.sortOrder,
+      systemKey: systemKey ?? this.systemKey,
     );
   }
 
@@ -910,6 +957,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (systemKey.present) {
+      map['system_key'] = Variable<String>(systemKey.value);
+    }
     return map;
   }
 
@@ -922,7 +972,714 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('color: $color, ')
           ..write('type: $type, ')
           ..write('isDefault: $isDefault, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('systemKey: $systemKey')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PaymentInstrumentsTable extends PaymentInstruments
+    with TableInfo<$PaymentInstrumentsTable, PaymentInstrument> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentInstrumentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _networkMeta = const VerificationMeta(
+    'network',
+  );
+  @override
+  late final GeneratedColumn<String> network = GeneratedColumn<String>(
+    'network',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _last4Meta = const VerificationMeta('last4');
+  @override
+  late final GeneratedColumn<String> last4 = GeneratedColumn<String>(
+    'last4',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _issuerMeta = const VerificationMeta('issuer');
+  @override
+  late final GeneratedColumn<String> issuer = GeneratedColumn<String>(
+    'issuer',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _handleMeta = const VerificationMeta('handle');
+  @override
+  late final GeneratedColumn<String> handle = GeneratedColumn<String>(
+    'handle',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _termsMeta = const VerificationMeta('terms');
+  @override
+  late final GeneratedColumn<String> terms = GeneratedColumn<String>(
+    'terms',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDefaultMeta = const VerificationMeta(
+    'isDefault',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+    'is_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    accountId,
+    name,
+    kind,
+    network,
+    last4,
+    issuer,
+    handle,
+    terms,
+    isDefault,
+    archived,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payment_instruments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PaymentInstrument> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('network')) {
+      context.handle(
+        _networkMeta,
+        network.isAcceptableOrUnknown(data['network']!, _networkMeta),
+      );
+    }
+    if (data.containsKey('last4')) {
+      context.handle(
+        _last4Meta,
+        last4.isAcceptableOrUnknown(data['last4']!, _last4Meta),
+      );
+    }
+    if (data.containsKey('issuer')) {
+      context.handle(
+        _issuerMeta,
+        issuer.isAcceptableOrUnknown(data['issuer']!, _issuerMeta),
+      );
+    }
+    if (data.containsKey('handle')) {
+      context.handle(
+        _handleMeta,
+        handle.isAcceptableOrUnknown(data['handle']!, _handleMeta),
+      );
+    }
+    if (data.containsKey('terms')) {
+      context.handle(
+        _termsMeta,
+        terms.isAcceptableOrUnknown(data['terms']!, _termsMeta),
+      );
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(
+        _isDefaultMeta,
+        isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
+      );
+    }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PaymentInstrument map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PaymentInstrument(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      network: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}network'],
+      ),
+      last4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last4'],
+      ),
+      issuer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}issuer'],
+      ),
+      handle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}handle'],
+      ),
+      terms: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}terms'],
+      ),
+      isDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default'],
+      )!,
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archived'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PaymentInstrumentsTable createAlias(String alias) {
+    return $PaymentInstrumentsTable(attachedDatabase, alias);
+  }
+}
+
+class PaymentInstrument extends DataClass
+    implements Insertable<PaymentInstrument> {
+  final int id;
+  final int accountId;
+  final String name;
+
+  /// debit_card, credit_card, prepaid_card, mobile_wallet, instapay,
+  /// bank_transfer, bnpl, other.
+  final String kind;
+
+  /// visa, mastercard, meeza, amex, unionpay, other.
+  final String? network;
+  final String? last4;
+
+  /// Issuer id from the detection registry (cib, nbe, vodafone_cash…).
+  final String? issuer;
+
+  /// Masked phone number or InstaPay address for wallets.
+  final String? handle;
+
+  /// JSON with decimal strings: fxFeePercent, atmFee, transferFeePercent…
+  final String? terms;
+  final bool isDefault;
+  final bool archived;
+  final DateTime createdAt;
+  const PaymentInstrument({
+    required this.id,
+    required this.accountId,
+    required this.name,
+    required this.kind,
+    this.network,
+    this.last4,
+    this.issuer,
+    this.handle,
+    this.terms,
+    required this.isDefault,
+    required this.archived,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['account_id'] = Variable<int>(accountId);
+    map['name'] = Variable<String>(name);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || network != null) {
+      map['network'] = Variable<String>(network);
+    }
+    if (!nullToAbsent || last4 != null) {
+      map['last4'] = Variable<String>(last4);
+    }
+    if (!nullToAbsent || issuer != null) {
+      map['issuer'] = Variable<String>(issuer);
+    }
+    if (!nullToAbsent || handle != null) {
+      map['handle'] = Variable<String>(handle);
+    }
+    if (!nullToAbsent || terms != null) {
+      map['terms'] = Variable<String>(terms);
+    }
+    map['is_default'] = Variable<bool>(isDefault);
+    map['archived'] = Variable<bool>(archived);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PaymentInstrumentsCompanion toCompanion(bool nullToAbsent) {
+    return PaymentInstrumentsCompanion(
+      id: Value(id),
+      accountId: Value(accountId),
+      name: Value(name),
+      kind: Value(kind),
+      network: network == null && nullToAbsent
+          ? const Value.absent()
+          : Value(network),
+      last4: last4 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(last4),
+      issuer: issuer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(issuer),
+      handle: handle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(handle),
+      terms: terms == null && nullToAbsent
+          ? const Value.absent()
+          : Value(terms),
+      isDefault: Value(isDefault),
+      archived: Value(archived),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PaymentInstrument.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PaymentInstrument(
+      id: serializer.fromJson<int>(json['id']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      name: serializer.fromJson<String>(json['name']),
+      kind: serializer.fromJson<String>(json['kind']),
+      network: serializer.fromJson<String?>(json['network']),
+      last4: serializer.fromJson<String?>(json['last4']),
+      issuer: serializer.fromJson<String?>(json['issuer']),
+      handle: serializer.fromJson<String?>(json['handle']),
+      terms: serializer.fromJson<String?>(json['terms']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
+      archived: serializer.fromJson<bool>(json['archived']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'accountId': serializer.toJson<int>(accountId),
+      'name': serializer.toJson<String>(name),
+      'kind': serializer.toJson<String>(kind),
+      'network': serializer.toJson<String?>(network),
+      'last4': serializer.toJson<String?>(last4),
+      'issuer': serializer.toJson<String?>(issuer),
+      'handle': serializer.toJson<String?>(handle),
+      'terms': serializer.toJson<String?>(terms),
+      'isDefault': serializer.toJson<bool>(isDefault),
+      'archived': serializer.toJson<bool>(archived),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PaymentInstrument copyWith({
+    int? id,
+    int? accountId,
+    String? name,
+    String? kind,
+    Value<String?> network = const Value.absent(),
+    Value<String?> last4 = const Value.absent(),
+    Value<String?> issuer = const Value.absent(),
+    Value<String?> handle = const Value.absent(),
+    Value<String?> terms = const Value.absent(),
+    bool? isDefault,
+    bool? archived,
+    DateTime? createdAt,
+  }) => PaymentInstrument(
+    id: id ?? this.id,
+    accountId: accountId ?? this.accountId,
+    name: name ?? this.name,
+    kind: kind ?? this.kind,
+    network: network.present ? network.value : this.network,
+    last4: last4.present ? last4.value : this.last4,
+    issuer: issuer.present ? issuer.value : this.issuer,
+    handle: handle.present ? handle.value : this.handle,
+    terms: terms.present ? terms.value : this.terms,
+    isDefault: isDefault ?? this.isDefault,
+    archived: archived ?? this.archived,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  PaymentInstrument copyWithCompanion(PaymentInstrumentsCompanion data) {
+    return PaymentInstrument(
+      id: data.id.present ? data.id.value : this.id,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      name: data.name.present ? data.name.value : this.name,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      network: data.network.present ? data.network.value : this.network,
+      last4: data.last4.present ? data.last4.value : this.last4,
+      issuer: data.issuer.present ? data.issuer.value : this.issuer,
+      handle: data.handle.present ? data.handle.value : this.handle,
+      terms: data.terms.present ? data.terms.value : this.terms,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      archived: data.archived.present ? data.archived.value : this.archived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentInstrument(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('network: $network, ')
+          ..write('last4: $last4, ')
+          ..write('issuer: $issuer, ')
+          ..write('handle: $handle, ')
+          ..write('terms: $terms, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('archived: $archived, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    accountId,
+    name,
+    kind,
+    network,
+    last4,
+    issuer,
+    handle,
+    terms,
+    isDefault,
+    archived,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PaymentInstrument &&
+          other.id == this.id &&
+          other.accountId == this.accountId &&
+          other.name == this.name &&
+          other.kind == this.kind &&
+          other.network == this.network &&
+          other.last4 == this.last4 &&
+          other.issuer == this.issuer &&
+          other.handle == this.handle &&
+          other.terms == this.terms &&
+          other.isDefault == this.isDefault &&
+          other.archived == this.archived &&
+          other.createdAt == this.createdAt);
+}
+
+class PaymentInstrumentsCompanion extends UpdateCompanion<PaymentInstrument> {
+  final Value<int> id;
+  final Value<int> accountId;
+  final Value<String> name;
+  final Value<String> kind;
+  final Value<String?> network;
+  final Value<String?> last4;
+  final Value<String?> issuer;
+  final Value<String?> handle;
+  final Value<String?> terms;
+  final Value<bool> isDefault;
+  final Value<bool> archived;
+  final Value<DateTime> createdAt;
+  const PaymentInstrumentsCompanion({
+    this.id = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.network = const Value.absent(),
+    this.last4 = const Value.absent(),
+    this.issuer = const Value.absent(),
+    this.handle = const Value.absent(),
+    this.terms = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  PaymentInstrumentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int accountId,
+    required String name,
+    required String kind,
+    this.network = const Value.absent(),
+    this.last4 = const Value.absent(),
+    this.issuer = const Value.absent(),
+    this.handle = const Value.absent(),
+    this.terms = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : accountId = Value(accountId),
+       name = Value(name),
+       kind = Value(kind);
+  static Insertable<PaymentInstrument> custom({
+    Expression<int>? id,
+    Expression<int>? accountId,
+    Expression<String>? name,
+    Expression<String>? kind,
+    Expression<String>? network,
+    Expression<String>? last4,
+    Expression<String>? issuer,
+    Expression<String>? handle,
+    Expression<String>? terms,
+    Expression<bool>? isDefault,
+    Expression<bool>? archived,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (accountId != null) 'account_id': accountId,
+      if (name != null) 'name': name,
+      if (kind != null) 'kind': kind,
+      if (network != null) 'network': network,
+      if (last4 != null) 'last4': last4,
+      if (issuer != null) 'issuer': issuer,
+      if (handle != null) 'handle': handle,
+      if (terms != null) 'terms': terms,
+      if (isDefault != null) 'is_default': isDefault,
+      if (archived != null) 'archived': archived,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  PaymentInstrumentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? accountId,
+    Value<String>? name,
+    Value<String>? kind,
+    Value<String?>? network,
+    Value<String?>? last4,
+    Value<String?>? issuer,
+    Value<String?>? handle,
+    Value<String?>? terms,
+    Value<bool>? isDefault,
+    Value<bool>? archived,
+    Value<DateTime>? createdAt,
+  }) {
+    return PaymentInstrumentsCompanion(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      name: name ?? this.name,
+      kind: kind ?? this.kind,
+      network: network ?? this.network,
+      last4: last4 ?? this.last4,
+      issuer: issuer ?? this.issuer,
+      handle: handle ?? this.handle,
+      terms: terms ?? this.terms,
+      isDefault: isDefault ?? this.isDefault,
+      archived: archived ?? this.archived,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (network.present) {
+      map['network'] = Variable<String>(network.value);
+    }
+    if (last4.present) {
+      map['last4'] = Variable<String>(last4.value);
+    }
+    if (issuer.present) {
+      map['issuer'] = Variable<String>(issuer.value);
+    }
+    if (handle.present) {
+      map['handle'] = Variable<String>(handle.value);
+    }
+    if (terms.present) {
+      map['terms'] = Variable<String>(terms.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
+    if (archived.present) {
+      map['archived'] = Variable<bool>(archived.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentInstrumentsCompanion(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('network: $network, ')
+          ..write('last4: $last4, ')
+          ..write('issuer: $issuer, ')
+          ..write('handle: $handle, ')
+          ..write('terms: $terms, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('archived: $archived, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -1024,6 +1781,61 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _paymentInstrumentIdMeta =
+      const VerificationMeta('paymentInstrumentId');
+  @override
+  late final GeneratedColumn<int> paymentInstrumentId = GeneratedColumn<int>(
+    'payment_instrument_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES payment_instruments (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _paymentMethodMeta = const VerificationMeta(
+    'paymentMethod',
+  );
+  @override
+  late final GeneratedColumn<String> paymentMethod = GeneratedColumn<String>(
+    'payment_method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _merchantMeta = const VerificationMeta(
+    'merchant',
+  );
+  @override
+  late final GeneratedColumn<String> merchant = GeneratedColumn<String>(
+    'merchant',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceRefMeta = const VerificationMeta(
+    'sourceRef',
+  );
+  @override
+  late final GeneratedColumn<String> sourceRef = GeneratedColumn<String>(
+    'source_ref',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1034,7 +1846,7 @@ class $TransactionsTable extends Transactions
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -1046,6 +1858,11 @@ class $TransactionsTable extends Transactions
     note,
     transactionDate,
     linkedTransactionId,
+    paymentInstrumentId,
+    paymentMethod,
+    merchant,
+    source,
+    sourceRef,
     createdAt,
   ];
   @override
@@ -1121,6 +1938,42 @@ class $TransactionsTable extends Transactions
         ),
       );
     }
+    if (data.containsKey('payment_instrument_id')) {
+      context.handle(
+        _paymentInstrumentIdMeta,
+        paymentInstrumentId.isAcceptableOrUnknown(
+          data['payment_instrument_id']!,
+          _paymentInstrumentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_method')) {
+      context.handle(
+        _paymentMethodMeta,
+        paymentMethod.isAcceptableOrUnknown(
+          data['payment_method']!,
+          _paymentMethodMeta,
+        ),
+      );
+    }
+    if (data.containsKey('merchant')) {
+      context.handle(
+        _merchantMeta,
+        merchant.isAcceptableOrUnknown(data['merchant']!, _merchantMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('source_ref')) {
+      context.handle(
+        _sourceRefMeta,
+        sourceRef.isAcceptableOrUnknown(data['source_ref']!, _sourceRefMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1168,6 +2021,26 @@ class $TransactionsTable extends Transactions
         DriftSqlType.int,
         data['${effectivePrefix}linked_transaction_id'],
       ),
+      paymentInstrumentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_instrument_id'],
+      ),
+      paymentMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_method'],
+      ),
+      merchant: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merchant'],
+      ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      ),
+      sourceRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_ref'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1190,6 +2063,21 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final String? note;
   final DateTime transactionDate;
   final int? linkedTransactionId;
+
+  /// The card or wallet that paid, when known.
+  final int? paymentInstrumentId;
+
+  /// cash, debit_card, credit_card, prepaid_card, mobile_wallet, instapay,
+  /// bank_transfer, bnpl, other.
+  final String? paymentMethod;
+  final String? merchant;
+
+  /// manual, recurring, auto_income, template, import, detected, contract,
+  /// holding.
+  final String? source;
+
+  /// Fingerprint of the message or row this entry was created from.
+  final String? sourceRef;
   final DateTime createdAt;
   const Transaction({
     required this.id,
@@ -1200,6 +2088,11 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     this.note,
     required this.transactionDate,
     this.linkedTransactionId,
+    this.paymentInstrumentId,
+    this.paymentMethod,
+    this.merchant,
+    this.source,
+    this.sourceRef,
     required this.createdAt,
   });
   @override
@@ -1217,6 +2110,21 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     if (!nullToAbsent || linkedTransactionId != null) {
       map['linked_transaction_id'] = Variable<int>(linkedTransactionId);
     }
+    if (!nullToAbsent || paymentInstrumentId != null) {
+      map['payment_instrument_id'] = Variable<int>(paymentInstrumentId);
+    }
+    if (!nullToAbsent || paymentMethod != null) {
+      map['payment_method'] = Variable<String>(paymentMethod);
+    }
+    if (!nullToAbsent || merchant != null) {
+      map['merchant'] = Variable<String>(merchant);
+    }
+    if (!nullToAbsent || source != null) {
+      map['source'] = Variable<String>(source);
+    }
+    if (!nullToAbsent || sourceRef != null) {
+      map['source_ref'] = Variable<String>(sourceRef);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -1233,6 +2141,21 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       linkedTransactionId: linkedTransactionId == null && nullToAbsent
           ? const Value.absent()
           : Value(linkedTransactionId),
+      paymentInstrumentId: paymentInstrumentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentInstrumentId),
+      paymentMethod: paymentMethod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentMethod),
+      merchant: merchant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(merchant),
+      source: source == null && nullToAbsent
+          ? const Value.absent()
+          : Value(source),
+      sourceRef: sourceRef == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceRef),
       createdAt: Value(createdAt),
     );
   }
@@ -1253,6 +2176,13 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       linkedTransactionId: serializer.fromJson<int?>(
         json['linkedTransactionId'],
       ),
+      paymentInstrumentId: serializer.fromJson<int?>(
+        json['paymentInstrumentId'],
+      ),
+      paymentMethod: serializer.fromJson<String?>(json['paymentMethod']),
+      merchant: serializer.fromJson<String?>(json['merchant']),
+      source: serializer.fromJson<String?>(json['source']),
+      sourceRef: serializer.fromJson<String?>(json['sourceRef']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -1268,6 +2198,11 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'note': serializer.toJson<String?>(note),
       'transactionDate': serializer.toJson<DateTime>(transactionDate),
       'linkedTransactionId': serializer.toJson<int?>(linkedTransactionId),
+      'paymentInstrumentId': serializer.toJson<int?>(paymentInstrumentId),
+      'paymentMethod': serializer.toJson<String?>(paymentMethod),
+      'merchant': serializer.toJson<String?>(merchant),
+      'source': serializer.toJson<String?>(source),
+      'sourceRef': serializer.toJson<String?>(sourceRef),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -1281,6 +2216,11 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     Value<String?> note = const Value.absent(),
     DateTime? transactionDate,
     Value<int?> linkedTransactionId = const Value.absent(),
+    Value<int?> paymentInstrumentId = const Value.absent(),
+    Value<String?> paymentMethod = const Value.absent(),
+    Value<String?> merchant = const Value.absent(),
+    Value<String?> source = const Value.absent(),
+    Value<String?> sourceRef = const Value.absent(),
     DateTime? createdAt,
   }) => Transaction(
     id: id ?? this.id,
@@ -1293,6 +2233,15 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     linkedTransactionId: linkedTransactionId.present
         ? linkedTransactionId.value
         : this.linkedTransactionId,
+    paymentInstrumentId: paymentInstrumentId.present
+        ? paymentInstrumentId.value
+        : this.paymentInstrumentId,
+    paymentMethod: paymentMethod.present
+        ? paymentMethod.value
+        : this.paymentMethod,
+    merchant: merchant.present ? merchant.value : this.merchant,
+    source: source.present ? source.value : this.source,
+    sourceRef: sourceRef.present ? sourceRef.value : this.sourceRef,
     createdAt: createdAt ?? this.createdAt,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
@@ -1311,6 +2260,15 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       linkedTransactionId: data.linkedTransactionId.present
           ? data.linkedTransactionId.value
           : this.linkedTransactionId,
+      paymentInstrumentId: data.paymentInstrumentId.present
+          ? data.paymentInstrumentId.value
+          : this.paymentInstrumentId,
+      paymentMethod: data.paymentMethod.present
+          ? data.paymentMethod.value
+          : this.paymentMethod,
+      merchant: data.merchant.present ? data.merchant.value : this.merchant,
+      source: data.source.present ? data.source.value : this.source,
+      sourceRef: data.sourceRef.present ? data.sourceRef.value : this.sourceRef,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -1326,6 +2284,11 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('note: $note, ')
           ..write('transactionDate: $transactionDate, ')
           ..write('linkedTransactionId: $linkedTransactionId, ')
+          ..write('paymentInstrumentId: $paymentInstrumentId, ')
+          ..write('paymentMethod: $paymentMethod, ')
+          ..write('merchant: $merchant, ')
+          ..write('source: $source, ')
+          ..write('sourceRef: $sourceRef, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1341,6 +2304,11 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     note,
     transactionDate,
     linkedTransactionId,
+    paymentInstrumentId,
+    paymentMethod,
+    merchant,
+    source,
+    sourceRef,
     createdAt,
   );
   @override
@@ -1355,6 +2323,11 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.note == this.note &&
           other.transactionDate == this.transactionDate &&
           other.linkedTransactionId == this.linkedTransactionId &&
+          other.paymentInstrumentId == this.paymentInstrumentId &&
+          other.paymentMethod == this.paymentMethod &&
+          other.merchant == this.merchant &&
+          other.source == this.source &&
+          other.sourceRef == this.sourceRef &&
           other.createdAt == this.createdAt);
 }
 
@@ -1367,6 +2340,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<String?> note;
   final Value<DateTime> transactionDate;
   final Value<int?> linkedTransactionId;
+  final Value<int?> paymentInstrumentId;
+  final Value<String?> paymentMethod;
+  final Value<String?> merchant;
+  final Value<String?> source;
+  final Value<String?> sourceRef;
   final Value<DateTime> createdAt;
   const TransactionsCompanion({
     this.id = const Value.absent(),
@@ -1377,6 +2355,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.note = const Value.absent(),
     this.transactionDate = const Value.absent(),
     this.linkedTransactionId = const Value.absent(),
+    this.paymentInstrumentId = const Value.absent(),
+    this.paymentMethod = const Value.absent(),
+    this.merchant = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sourceRef = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -1388,6 +2371,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.note = const Value.absent(),
     required DateTime transactionDate,
     this.linkedTransactionId = const Value.absent(),
+    this.paymentInstrumentId = const Value.absent(),
+    this.paymentMethod = const Value.absent(),
+    this.merchant = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sourceRef = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : accountId = Value(accountId),
        categoryId = Value(categoryId),
@@ -1403,6 +2391,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<String>? note,
     Expression<DateTime>? transactionDate,
     Expression<int>? linkedTransactionId,
+    Expression<int>? paymentInstrumentId,
+    Expression<String>? paymentMethod,
+    Expression<String>? merchant,
+    Expression<String>? source,
+    Expression<String>? sourceRef,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1415,6 +2408,12 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (transactionDate != null) 'transaction_date': transactionDate,
       if (linkedTransactionId != null)
         'linked_transaction_id': linkedTransactionId,
+      if (paymentInstrumentId != null)
+        'payment_instrument_id': paymentInstrumentId,
+      if (paymentMethod != null) 'payment_method': paymentMethod,
+      if (merchant != null) 'merchant': merchant,
+      if (source != null) 'source': source,
+      if (sourceRef != null) 'source_ref': sourceRef,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1428,6 +2427,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<String?>? note,
     Value<DateTime>? transactionDate,
     Value<int?>? linkedTransactionId,
+    Value<int?>? paymentInstrumentId,
+    Value<String?>? paymentMethod,
+    Value<String?>? merchant,
+    Value<String?>? source,
+    Value<String?>? sourceRef,
     Value<DateTime>? createdAt,
   }) {
     return TransactionsCompanion(
@@ -1439,6 +2443,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       note: note ?? this.note,
       transactionDate: transactionDate ?? this.transactionDate,
       linkedTransactionId: linkedTransactionId ?? this.linkedTransactionId,
+      paymentInstrumentId: paymentInstrumentId ?? this.paymentInstrumentId,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      merchant: merchant ?? this.merchant,
+      source: source ?? this.source,
+      sourceRef: sourceRef ?? this.sourceRef,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1470,6 +2479,21 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (linkedTransactionId.present) {
       map['linked_transaction_id'] = Variable<int>(linkedTransactionId.value);
     }
+    if (paymentInstrumentId.present) {
+      map['payment_instrument_id'] = Variable<int>(paymentInstrumentId.value);
+    }
+    if (paymentMethod.present) {
+      map['payment_method'] = Variable<String>(paymentMethod.value);
+    }
+    if (merchant.present) {
+      map['merchant'] = Variable<String>(merchant.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (sourceRef.present) {
+      map['source_ref'] = Variable<String>(sourceRef.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1487,6 +2511,11 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('note: $note, ')
           ..write('transactionDate: $transactionDate, ')
           ..write('linkedTransactionId: $linkedTransactionId, ')
+          ..write('paymentInstrumentId: $paymentInstrumentId, ')
+          ..write('paymentMethod: $paymentMethod, ')
+          ..write('merchant: $merchant, ')
+          ..write('source: $source, ')
+          ..write('sourceRef: $sourceRef, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1564,7 +2593,7 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -2002,6 +3031,55 @@ class $RecurringTransactionsTable extends RecurringTransactions
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _toAccountIdMeta = const VerificationMeta(
+    'toAccountId',
+  );
+  @override
+  late final GeneratedColumn<int> toAccountId = GeneratedColumn<int>(
+    'to_account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _toAmountMeta = const VerificationMeta(
+    'toAmount',
+  );
+  @override
+  late final GeneratedColumn<double> toAmount = GeneratedColumn<double>(
+    'to_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _paymentInstrumentIdMeta =
+      const VerificationMeta('paymentInstrumentId');
+  @override
+  late final GeneratedColumn<int> paymentInstrumentId = GeneratedColumn<int>(
+    'payment_instrument_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES payment_instruments (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2012,7 +3090,7 @@ class $RecurringTransactionsTable extends RecurringTransactions
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -2025,6 +3103,10 @@ class $RecurringTransactionsTable extends RecurringTransactions
     frequency,
     nextDate,
     isActive,
+    toAccountId,
+    toAmount,
+    paymentInstrumentId,
+    endDate,
     createdAt,
   ];
   @override
@@ -2102,6 +3184,36 @@ class $RecurringTransactionsTable extends RecurringTransactions
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('to_account_id')) {
+      context.handle(
+        _toAccountIdMeta,
+        toAccountId.isAcceptableOrUnknown(
+          data['to_account_id']!,
+          _toAccountIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('to_amount')) {
+      context.handle(
+        _toAmountMeta,
+        toAmount.isAcceptableOrUnknown(data['to_amount']!, _toAmountMeta),
+      );
+    }
+    if (data.containsKey('payment_instrument_id')) {
+      context.handle(
+        _paymentInstrumentIdMeta,
+        paymentInstrumentId.isAcceptableOrUnknown(
+          data['payment_instrument_id']!,
+          _paymentInstrumentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -2153,6 +3265,22 @@ class $RecurringTransactionsTable extends RecurringTransactions
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      toAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}to_account_id'],
+      ),
+      toAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}to_amount'],
+      ),
+      paymentInstrumentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_instrument_id'],
+      ),
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2177,6 +3305,16 @@ class RecurringTransaction extends DataClass
   final String frequency;
   final DateTime nextDate;
   final bool isActive;
+
+  /// Destination of a recurring transfer (card autopay, savings).
+  final int? toAccountId;
+
+  /// Optional destination amount for transfers across currencies.
+  final double? toAmount;
+  final int? paymentInstrumentId;
+
+  /// The last date a payment may post; the rule stops afterwards.
+  final DateTime? endDate;
   final DateTime createdAt;
   const RecurringTransaction({
     required this.id,
@@ -2188,6 +3326,10 @@ class RecurringTransaction extends DataClass
     required this.frequency,
     required this.nextDate,
     required this.isActive,
+    this.toAccountId,
+    this.toAmount,
+    this.paymentInstrumentId,
+    this.endDate,
     required this.createdAt,
   });
   @override
@@ -2204,6 +3346,18 @@ class RecurringTransaction extends DataClass
     map['frequency'] = Variable<String>(frequency);
     map['next_date'] = Variable<DateTime>(nextDate);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || toAccountId != null) {
+      map['to_account_id'] = Variable<int>(toAccountId);
+    }
+    if (!nullToAbsent || toAmount != null) {
+      map['to_amount'] = Variable<double>(toAmount);
+    }
+    if (!nullToAbsent || paymentInstrumentId != null) {
+      map['payment_instrument_id'] = Variable<int>(paymentInstrumentId);
+    }
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -2219,6 +3373,18 @@ class RecurringTransaction extends DataClass
       frequency: Value(frequency),
       nextDate: Value(nextDate),
       isActive: Value(isActive),
+      toAccountId: toAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toAccountId),
+      toAmount: toAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toAmount),
+      paymentInstrumentId: paymentInstrumentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentInstrumentId),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
       createdAt: Value(createdAt),
     );
   }
@@ -2238,6 +3404,12 @@ class RecurringTransaction extends DataClass
       frequency: serializer.fromJson<String>(json['frequency']),
       nextDate: serializer.fromJson<DateTime>(json['nextDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      toAccountId: serializer.fromJson<int?>(json['toAccountId']),
+      toAmount: serializer.fromJson<double?>(json['toAmount']),
+      paymentInstrumentId: serializer.fromJson<int?>(
+        json['paymentInstrumentId'],
+      ),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -2254,6 +3426,10 @@ class RecurringTransaction extends DataClass
       'frequency': serializer.toJson<String>(frequency),
       'nextDate': serializer.toJson<DateTime>(nextDate),
       'isActive': serializer.toJson<bool>(isActive),
+      'toAccountId': serializer.toJson<int?>(toAccountId),
+      'toAmount': serializer.toJson<double?>(toAmount),
+      'paymentInstrumentId': serializer.toJson<int?>(paymentInstrumentId),
+      'endDate': serializer.toJson<DateTime?>(endDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -2268,6 +3444,10 @@ class RecurringTransaction extends DataClass
     String? frequency,
     DateTime? nextDate,
     bool? isActive,
+    Value<int?> toAccountId = const Value.absent(),
+    Value<double?> toAmount = const Value.absent(),
+    Value<int?> paymentInstrumentId = const Value.absent(),
+    Value<DateTime?> endDate = const Value.absent(),
     DateTime? createdAt,
   }) => RecurringTransaction(
     id: id ?? this.id,
@@ -2279,6 +3459,12 @@ class RecurringTransaction extends DataClass
     frequency: frequency ?? this.frequency,
     nextDate: nextDate ?? this.nextDate,
     isActive: isActive ?? this.isActive,
+    toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
+    toAmount: toAmount.present ? toAmount.value : this.toAmount,
+    paymentInstrumentId: paymentInstrumentId.present
+        ? paymentInstrumentId.value
+        : this.paymentInstrumentId,
+    endDate: endDate.present ? endDate.value : this.endDate,
     createdAt: createdAt ?? this.createdAt,
   );
   RecurringTransaction copyWithCompanion(RecurringTransactionsCompanion data) {
@@ -2294,6 +3480,14 @@ class RecurringTransaction extends DataClass
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
       nextDate: data.nextDate.present ? data.nextDate.value : this.nextDate,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      toAccountId: data.toAccountId.present
+          ? data.toAccountId.value
+          : this.toAccountId,
+      toAmount: data.toAmount.present ? data.toAmount.value : this.toAmount,
+      paymentInstrumentId: data.paymentInstrumentId.present
+          ? data.paymentInstrumentId.value
+          : this.paymentInstrumentId,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -2310,6 +3504,10 @@ class RecurringTransaction extends DataClass
           ..write('frequency: $frequency, ')
           ..write('nextDate: $nextDate, ')
           ..write('isActive: $isActive, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('toAmount: $toAmount, ')
+          ..write('paymentInstrumentId: $paymentInstrumentId, ')
+          ..write('endDate: $endDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2326,6 +3524,10 @@ class RecurringTransaction extends DataClass
     frequency,
     nextDate,
     isActive,
+    toAccountId,
+    toAmount,
+    paymentInstrumentId,
+    endDate,
     createdAt,
   );
   @override
@@ -2341,6 +3543,10 @@ class RecurringTransaction extends DataClass
           other.frequency == this.frequency &&
           other.nextDate == this.nextDate &&
           other.isActive == this.isActive &&
+          other.toAccountId == this.toAccountId &&
+          other.toAmount == this.toAmount &&
+          other.paymentInstrumentId == this.paymentInstrumentId &&
+          other.endDate == this.endDate &&
           other.createdAt == this.createdAt);
 }
 
@@ -2355,6 +3561,10 @@ class RecurringTransactionsCompanion
   final Value<String> frequency;
   final Value<DateTime> nextDate;
   final Value<bool> isActive;
+  final Value<int?> toAccountId;
+  final Value<double?> toAmount;
+  final Value<int?> paymentInstrumentId;
+  final Value<DateTime?> endDate;
   final Value<DateTime> createdAt;
   const RecurringTransactionsCompanion({
     this.id = const Value.absent(),
@@ -2366,6 +3576,10 @@ class RecurringTransactionsCompanion
     this.frequency = const Value.absent(),
     this.nextDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.toAmount = const Value.absent(),
+    this.paymentInstrumentId = const Value.absent(),
+    this.endDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   RecurringTransactionsCompanion.insert({
@@ -2378,6 +3592,10 @@ class RecurringTransactionsCompanion
     required String frequency,
     required DateTime nextDate,
     this.isActive = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.toAmount = const Value.absent(),
+    this.paymentInstrumentId = const Value.absent(),
+    this.endDate = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : accountId = Value(accountId),
        categoryId = Value(categoryId),
@@ -2395,6 +3613,10 @@ class RecurringTransactionsCompanion
     Expression<String>? frequency,
     Expression<DateTime>? nextDate,
     Expression<bool>? isActive,
+    Expression<int>? toAccountId,
+    Expression<double>? toAmount,
+    Expression<int>? paymentInstrumentId,
+    Expression<DateTime>? endDate,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -2407,6 +3629,11 @@ class RecurringTransactionsCompanion
       if (frequency != null) 'frequency': frequency,
       if (nextDate != null) 'next_date': nextDate,
       if (isActive != null) 'is_active': isActive,
+      if (toAccountId != null) 'to_account_id': toAccountId,
+      if (toAmount != null) 'to_amount': toAmount,
+      if (paymentInstrumentId != null)
+        'payment_instrument_id': paymentInstrumentId,
+      if (endDate != null) 'end_date': endDate,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -2421,6 +3648,10 @@ class RecurringTransactionsCompanion
     Value<String>? frequency,
     Value<DateTime>? nextDate,
     Value<bool>? isActive,
+    Value<int?>? toAccountId,
+    Value<double?>? toAmount,
+    Value<int?>? paymentInstrumentId,
+    Value<DateTime?>? endDate,
     Value<DateTime>? createdAt,
   }) {
     return RecurringTransactionsCompanion(
@@ -2433,6 +3664,10 @@ class RecurringTransactionsCompanion
       frequency: frequency ?? this.frequency,
       nextDate: nextDate ?? this.nextDate,
       isActive: isActive ?? this.isActive,
+      toAccountId: toAccountId ?? this.toAccountId,
+      toAmount: toAmount ?? this.toAmount,
+      paymentInstrumentId: paymentInstrumentId ?? this.paymentInstrumentId,
+      endDate: endDate ?? this.endDate,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -2467,6 +3702,18 @@ class RecurringTransactionsCompanion
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (toAccountId.present) {
+      map['to_account_id'] = Variable<int>(toAccountId.value);
+    }
+    if (toAmount.present) {
+      map['to_amount'] = Variable<double>(toAmount.value);
+    }
+    if (paymentInstrumentId.present) {
+      map['payment_instrument_id'] = Variable<int>(paymentInstrumentId.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2485,6 +3732,10 @@ class RecurringTransactionsCompanion
           ..write('frequency: $frequency, ')
           ..write('nextDate: $nextDate, ')
           ..write('isActive: $isActive, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('toAmount: $toAmount, ')
+          ..write('paymentInstrumentId: $paymentInstrumentId, ')
+          ..write('endDate: $endDate, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2598,7 +3849,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    clientDefault: DateTime.now,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -3047,16 +4298,1631 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   }
 }
 
+class $DetectedPaymentsTable extends DetectedPayments
+    with TableInfo<$DetectedPaymentsTable, DetectedPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DetectedPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fingerprintMeta = const VerificationMeta(
+    'fingerprint',
+  );
+  @override
+  late final GeneratedColumn<String> fingerprint = GeneratedColumn<String>(
+    'fingerprint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _senderMeta = const VerificationMeta('sender');
+  @override
+  late final GeneratedColumn<String> sender = GeneratedColumn<String>(
+    'sender',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _packageNameMeta = const VerificationMeta(
+    'packageName',
+  );
+  @override
+  late final GeneratedColumn<String> packageName = GeneratedColumn<String>(
+    'package_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawTextMeta = const VerificationMeta(
+    'rawText',
+  );
+  @override
+  late final GeneratedColumn<String> rawText = GeneratedColumn<String>(
+    'raw_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _receivedAtMeta = const VerificationMeta(
+    'receivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> receivedAt = GeneratedColumn<DateTime>(
+    'received_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parsedMeta = const VerificationMeta('parsed');
+  @override
+  late final GeneratedColumn<String> parsed = GeneratedColumn<String>(
+    'parsed',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parserVersionMeta = const VerificationMeta(
+    'parserVersion',
+  );
+  @override
+  late final GeneratedColumn<int> parserVersion = GeneratedColumn<int>(
+    'parser_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<String> amount = GeneratedColumn<String>(
+    'amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _directionMeta = const VerificationMeta(
+    'direction',
+  );
+  @override
+  late final GeneratedColumn<String> direction = GeneratedColumn<String>(
+    'direction',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _merchantMeta = const VerificationMeta(
+    'merchant',
+  );
+  @override
+  late final GeneratedColumn<String> merchant = GeneratedColumn<String>(
+    'merchant',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _last4Meta = const VerificationMeta('last4');
+  @override
+  late final GeneratedColumn<String> last4 = GeneratedColumn<String>(
+    'last4',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _balanceAfterMeta = const VerificationMeta(
+    'balanceAfter',
+  );
+  @override
+  late final GeneratedColumn<String> balanceAfter = GeneratedColumn<String>(
+    'balance_after',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _toAccountIdMeta = const VerificationMeta(
+    'toAccountId',
+  );
+  @override
+  late final GeneratedColumn<int> toAccountId = GeneratedColumn<int>(
+    'to_account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES accounts (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _instrumentIdMeta = const VerificationMeta(
+    'instrumentId',
+  );
+  @override
+  late final GeneratedColumn<int> instrumentId = GeneratedColumn<int>(
+    'instrument_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES payment_instruments (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _transactionIdMeta = const VerificationMeta(
+    'transactionId',
+  );
+  @override
+  late final GeneratedColumn<int> transactionId = GeneratedColumn<int>(
+    'transaction_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES transactions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _matchTransactionIdMeta =
+      const VerificationMeta('matchTransactionId');
+  @override
+  late final GeneratedColumn<int> matchTransactionId = GeneratedColumn<int>(
+    'match_transaction_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES transactions (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _duplicateOfIdMeta = const VerificationMeta(
+    'duplicateOfId',
+  );
+  @override
+  late final GeneratedColumn<int> duplicateOfId = GeneratedColumn<int>(
+    'duplicate_of_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _autoConfirmedMeta = const VerificationMeta(
+    'autoConfirmed',
+  );
+  @override
+  late final GeneratedColumn<bool> autoConfirmed = GeneratedColumn<bool>(
+    'auto_confirmed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_confirmed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: DateTime.now,
+  );
+  static const VerificationMeta _resolvedAtMeta = const VerificationMeta(
+    'resolvedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+    'resolved_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fingerprint,
+    source,
+    sender,
+    packageName,
+    rawText,
+    receivedAt,
+    parsed,
+    parserVersion,
+    amount,
+    currency,
+    direction,
+    kind,
+    merchant,
+    last4,
+    occurredAt,
+    balanceAfter,
+    accountId,
+    toAccountId,
+    instrumentId,
+    categoryId,
+    confidence,
+    status,
+    transactionId,
+    matchTransactionId,
+    duplicateOfId,
+    autoConfirmed,
+    createdAt,
+    resolvedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'detected_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DetectedPayment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('fingerprint')) {
+      context.handle(
+        _fingerprintMeta,
+        fingerprint.isAcceptableOrUnknown(
+          data['fingerprint']!,
+          _fingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fingerprintMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('sender')) {
+      context.handle(
+        _senderMeta,
+        sender.isAcceptableOrUnknown(data['sender']!, _senderMeta),
+      );
+    }
+    if (data.containsKey('package_name')) {
+      context.handle(
+        _packageNameMeta,
+        packageName.isAcceptableOrUnknown(
+          data['package_name']!,
+          _packageNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('raw_text')) {
+      context.handle(
+        _rawTextMeta,
+        rawText.isAcceptableOrUnknown(data['raw_text']!, _rawTextMeta),
+      );
+    }
+    if (data.containsKey('received_at')) {
+      context.handle(
+        _receivedAtMeta,
+        receivedAt.isAcceptableOrUnknown(data['received_at']!, _receivedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_receivedAtMeta);
+    }
+    if (data.containsKey('parsed')) {
+      context.handle(
+        _parsedMeta,
+        parsed.isAcceptableOrUnknown(data['parsed']!, _parsedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_parsedMeta);
+    }
+    if (data.containsKey('parser_version')) {
+      context.handle(
+        _parserVersionMeta,
+        parserVersion.isAcceptableOrUnknown(
+          data['parser_version']!,
+          _parserVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_parserVersionMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('direction')) {
+      context.handle(
+        _directionMeta,
+        direction.isAcceptableOrUnknown(data['direction']!, _directionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_directionMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('merchant')) {
+      context.handle(
+        _merchantMeta,
+        merchant.isAcceptableOrUnknown(data['merchant']!, _merchantMeta),
+      );
+    }
+    if (data.containsKey('last4')) {
+      context.handle(
+        _last4Meta,
+        last4.isAcceptableOrUnknown(data['last4']!, _last4Meta),
+      );
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    }
+    if (data.containsKey('balance_after')) {
+      context.handle(
+        _balanceAfterMeta,
+        balanceAfter.isAcceptableOrUnknown(
+          data['balance_after']!,
+          _balanceAfterMeta,
+        ),
+      );
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
+    if (data.containsKey('to_account_id')) {
+      context.handle(
+        _toAccountIdMeta,
+        toAccountId.isAcceptableOrUnknown(
+          data['to_account_id']!,
+          _toAccountIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('instrument_id')) {
+      context.handle(
+        _instrumentIdMeta,
+        instrumentId.isAcceptableOrUnknown(
+          data['instrument_id']!,
+          _instrumentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('transaction_id')) {
+      context.handle(
+        _transactionIdMeta,
+        transactionId.isAcceptableOrUnknown(
+          data['transaction_id']!,
+          _transactionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('match_transaction_id')) {
+      context.handle(
+        _matchTransactionIdMeta,
+        matchTransactionId.isAcceptableOrUnknown(
+          data['match_transaction_id']!,
+          _matchTransactionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('duplicate_of_id')) {
+      context.handle(
+        _duplicateOfIdMeta,
+        duplicateOfId.isAcceptableOrUnknown(
+          data['duplicate_of_id']!,
+          _duplicateOfIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_confirmed')) {
+      context.handle(
+        _autoConfirmedMeta,
+        autoConfirmed.isAcceptableOrUnknown(
+          data['auto_confirmed']!,
+          _autoConfirmedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+        _resolvedAtMeta,
+        resolvedAt.isAcceptableOrUnknown(data['resolved_at']!, _resolvedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DetectedPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DetectedPayment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fingerprint'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      sender: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sender'],
+      ),
+      packageName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}package_name'],
+      ),
+      rawText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_text'],
+      ),
+      receivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}received_at'],
+      )!,
+      parsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parsed'],
+      )!,
+      parserVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parser_version'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}amount'],
+      ),
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      ),
+      direction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}direction'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      ),
+      merchant: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merchant'],
+      ),
+      last4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last4'],
+      ),
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      ),
+      balanceAfter: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}balance_after'],
+      ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      ),
+      toAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}to_account_id'],
+      ),
+      instrumentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}instrument_id'],
+      ),
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      ),
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      transactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}transaction_id'],
+      ),
+      matchTransactionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}match_transaction_id'],
+      ),
+      duplicateOfId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duplicate_of_id'],
+      ),
+      autoConfirmed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_confirmed'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      resolvedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}resolved_at'],
+      ),
+    );
+  }
+
+  @override
+  $DetectedPaymentsTable createAlias(String alias) {
+    return $DetectedPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class DetectedPayment extends DataClass implements Insertable<DetectedPayment> {
+  final int id;
+
+  /// Hash of source, sender, text and minute; repeats are ignored.
+  final String fingerprint;
+
+  /// android_notification, android_share, ios_shortcut, ios_wallet,
+  /// ios_share, paste, ocr.
+  final String source;
+  final String? sender;
+  final String? packageName;
+
+  /// The message with card numbers, IDs and codes removed; cleared after
+  /// the retention period.
+  final String? rawText;
+  final DateTime receivedAt;
+
+  /// ParsedPayment as JSON.
+  final String parsed;
+  final int parserVersion;
+
+  /// Exact decimal text.
+  final String? amount;
+  final String? currency;
+  final String direction;
+  final String? kind;
+  final String? merchant;
+  final String? last4;
+  final DateTime? occurredAt;
+  final String? balanceAfter;
+  final int? accountId;
+  final int? toAccountId;
+  final int? instrumentId;
+  final int? categoryId;
+  final double confidence;
+
+  /// pending, confirmed, dismissed, duplicate.
+  final String status;
+  final int? transactionId;
+
+  /// An existing ledger entry that may already record this payment.
+  final int? matchTransactionId;
+  final int? duplicateOfId;
+  final bool autoConfirmed;
+  final DateTime createdAt;
+  final DateTime? resolvedAt;
+  const DetectedPayment({
+    required this.id,
+    required this.fingerprint,
+    required this.source,
+    this.sender,
+    this.packageName,
+    this.rawText,
+    required this.receivedAt,
+    required this.parsed,
+    required this.parserVersion,
+    this.amount,
+    this.currency,
+    required this.direction,
+    this.kind,
+    this.merchant,
+    this.last4,
+    this.occurredAt,
+    this.balanceAfter,
+    this.accountId,
+    this.toAccountId,
+    this.instrumentId,
+    this.categoryId,
+    required this.confidence,
+    required this.status,
+    this.transactionId,
+    this.matchTransactionId,
+    this.duplicateOfId,
+    required this.autoConfirmed,
+    required this.createdAt,
+    this.resolvedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['fingerprint'] = Variable<String>(fingerprint);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || sender != null) {
+      map['sender'] = Variable<String>(sender);
+    }
+    if (!nullToAbsent || packageName != null) {
+      map['package_name'] = Variable<String>(packageName);
+    }
+    if (!nullToAbsent || rawText != null) {
+      map['raw_text'] = Variable<String>(rawText);
+    }
+    map['received_at'] = Variable<DateTime>(receivedAt);
+    map['parsed'] = Variable<String>(parsed);
+    map['parser_version'] = Variable<int>(parserVersion);
+    if (!nullToAbsent || amount != null) {
+      map['amount'] = Variable<String>(amount);
+    }
+    if (!nullToAbsent || currency != null) {
+      map['currency'] = Variable<String>(currency);
+    }
+    map['direction'] = Variable<String>(direction);
+    if (!nullToAbsent || kind != null) {
+      map['kind'] = Variable<String>(kind);
+    }
+    if (!nullToAbsent || merchant != null) {
+      map['merchant'] = Variable<String>(merchant);
+    }
+    if (!nullToAbsent || last4 != null) {
+      map['last4'] = Variable<String>(last4);
+    }
+    if (!nullToAbsent || occurredAt != null) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt);
+    }
+    if (!nullToAbsent || balanceAfter != null) {
+      map['balance_after'] = Variable<String>(balanceAfter);
+    }
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<int>(accountId);
+    }
+    if (!nullToAbsent || toAccountId != null) {
+      map['to_account_id'] = Variable<int>(toAccountId);
+    }
+    if (!nullToAbsent || instrumentId != null) {
+      map['instrument_id'] = Variable<int>(instrumentId);
+    }
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<int>(categoryId);
+    }
+    map['confidence'] = Variable<double>(confidence);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || transactionId != null) {
+      map['transaction_id'] = Variable<int>(transactionId);
+    }
+    if (!nullToAbsent || matchTransactionId != null) {
+      map['match_transaction_id'] = Variable<int>(matchTransactionId);
+    }
+    if (!nullToAbsent || duplicateOfId != null) {
+      map['duplicate_of_id'] = Variable<int>(duplicateOfId);
+    }
+    map['auto_confirmed'] = Variable<bool>(autoConfirmed);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    return map;
+  }
+
+  DetectedPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return DetectedPaymentsCompanion(
+      id: Value(id),
+      fingerprint: Value(fingerprint),
+      source: Value(source),
+      sender: sender == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sender),
+      packageName: packageName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packageName),
+      rawText: rawText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawText),
+      receivedAt: Value(receivedAt),
+      parsed: Value(parsed),
+      parserVersion: Value(parserVersion),
+      amount: amount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amount),
+      currency: currency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currency),
+      direction: Value(direction),
+      kind: kind == null && nullToAbsent ? const Value.absent() : Value(kind),
+      merchant: merchant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(merchant),
+      last4: last4 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(last4),
+      occurredAt: occurredAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(occurredAt),
+      balanceAfter: balanceAfter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(balanceAfter),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
+      toAccountId: toAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toAccountId),
+      instrumentId: instrumentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(instrumentId),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      confidence: Value(confidence),
+      status: Value(status),
+      transactionId: transactionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transactionId),
+      matchTransactionId: matchTransactionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(matchTransactionId),
+      duplicateOfId: duplicateOfId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(duplicateOfId),
+      autoConfirmed: Value(autoConfirmed),
+      createdAt: Value(createdAt),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+    );
+  }
+
+  factory DetectedPayment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DetectedPayment(
+      id: serializer.fromJson<int>(json['id']),
+      fingerprint: serializer.fromJson<String>(json['fingerprint']),
+      source: serializer.fromJson<String>(json['source']),
+      sender: serializer.fromJson<String?>(json['sender']),
+      packageName: serializer.fromJson<String?>(json['packageName']),
+      rawText: serializer.fromJson<String?>(json['rawText']),
+      receivedAt: serializer.fromJson<DateTime>(json['receivedAt']),
+      parsed: serializer.fromJson<String>(json['parsed']),
+      parserVersion: serializer.fromJson<int>(json['parserVersion']),
+      amount: serializer.fromJson<String?>(json['amount']),
+      currency: serializer.fromJson<String?>(json['currency']),
+      direction: serializer.fromJson<String>(json['direction']),
+      kind: serializer.fromJson<String?>(json['kind']),
+      merchant: serializer.fromJson<String?>(json['merchant']),
+      last4: serializer.fromJson<String?>(json['last4']),
+      occurredAt: serializer.fromJson<DateTime?>(json['occurredAt']),
+      balanceAfter: serializer.fromJson<String?>(json['balanceAfter']),
+      accountId: serializer.fromJson<int?>(json['accountId']),
+      toAccountId: serializer.fromJson<int?>(json['toAccountId']),
+      instrumentId: serializer.fromJson<int?>(json['instrumentId']),
+      categoryId: serializer.fromJson<int?>(json['categoryId']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      status: serializer.fromJson<String>(json['status']),
+      transactionId: serializer.fromJson<int?>(json['transactionId']),
+      matchTransactionId: serializer.fromJson<int?>(json['matchTransactionId']),
+      duplicateOfId: serializer.fromJson<int?>(json['duplicateOfId']),
+      autoConfirmed: serializer.fromJson<bool>(json['autoConfirmed']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fingerprint': serializer.toJson<String>(fingerprint),
+      'source': serializer.toJson<String>(source),
+      'sender': serializer.toJson<String?>(sender),
+      'packageName': serializer.toJson<String?>(packageName),
+      'rawText': serializer.toJson<String?>(rawText),
+      'receivedAt': serializer.toJson<DateTime>(receivedAt),
+      'parsed': serializer.toJson<String>(parsed),
+      'parserVersion': serializer.toJson<int>(parserVersion),
+      'amount': serializer.toJson<String?>(amount),
+      'currency': serializer.toJson<String?>(currency),
+      'direction': serializer.toJson<String>(direction),
+      'kind': serializer.toJson<String?>(kind),
+      'merchant': serializer.toJson<String?>(merchant),
+      'last4': serializer.toJson<String?>(last4),
+      'occurredAt': serializer.toJson<DateTime?>(occurredAt),
+      'balanceAfter': serializer.toJson<String?>(balanceAfter),
+      'accountId': serializer.toJson<int?>(accountId),
+      'toAccountId': serializer.toJson<int?>(toAccountId),
+      'instrumentId': serializer.toJson<int?>(instrumentId),
+      'categoryId': serializer.toJson<int?>(categoryId),
+      'confidence': serializer.toJson<double>(confidence),
+      'status': serializer.toJson<String>(status),
+      'transactionId': serializer.toJson<int?>(transactionId),
+      'matchTransactionId': serializer.toJson<int?>(matchTransactionId),
+      'duplicateOfId': serializer.toJson<int?>(duplicateOfId),
+      'autoConfirmed': serializer.toJson<bool>(autoConfirmed),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+    };
+  }
+
+  DetectedPayment copyWith({
+    int? id,
+    String? fingerprint,
+    String? source,
+    Value<String?> sender = const Value.absent(),
+    Value<String?> packageName = const Value.absent(),
+    Value<String?> rawText = const Value.absent(),
+    DateTime? receivedAt,
+    String? parsed,
+    int? parserVersion,
+    Value<String?> amount = const Value.absent(),
+    Value<String?> currency = const Value.absent(),
+    String? direction,
+    Value<String?> kind = const Value.absent(),
+    Value<String?> merchant = const Value.absent(),
+    Value<String?> last4 = const Value.absent(),
+    Value<DateTime?> occurredAt = const Value.absent(),
+    Value<String?> balanceAfter = const Value.absent(),
+    Value<int?> accountId = const Value.absent(),
+    Value<int?> toAccountId = const Value.absent(),
+    Value<int?> instrumentId = const Value.absent(),
+    Value<int?> categoryId = const Value.absent(),
+    double? confidence,
+    String? status,
+    Value<int?> transactionId = const Value.absent(),
+    Value<int?> matchTransactionId = const Value.absent(),
+    Value<int?> duplicateOfId = const Value.absent(),
+    bool? autoConfirmed,
+    DateTime? createdAt,
+    Value<DateTime?> resolvedAt = const Value.absent(),
+  }) => DetectedPayment(
+    id: id ?? this.id,
+    fingerprint: fingerprint ?? this.fingerprint,
+    source: source ?? this.source,
+    sender: sender.present ? sender.value : this.sender,
+    packageName: packageName.present ? packageName.value : this.packageName,
+    rawText: rawText.present ? rawText.value : this.rawText,
+    receivedAt: receivedAt ?? this.receivedAt,
+    parsed: parsed ?? this.parsed,
+    parserVersion: parserVersion ?? this.parserVersion,
+    amount: amount.present ? amount.value : this.amount,
+    currency: currency.present ? currency.value : this.currency,
+    direction: direction ?? this.direction,
+    kind: kind.present ? kind.value : this.kind,
+    merchant: merchant.present ? merchant.value : this.merchant,
+    last4: last4.present ? last4.value : this.last4,
+    occurredAt: occurredAt.present ? occurredAt.value : this.occurredAt,
+    balanceAfter: balanceAfter.present ? balanceAfter.value : this.balanceAfter,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
+    instrumentId: instrumentId.present ? instrumentId.value : this.instrumentId,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    confidence: confidence ?? this.confidence,
+    status: status ?? this.status,
+    transactionId: transactionId.present
+        ? transactionId.value
+        : this.transactionId,
+    matchTransactionId: matchTransactionId.present
+        ? matchTransactionId.value
+        : this.matchTransactionId,
+    duplicateOfId: duplicateOfId.present
+        ? duplicateOfId.value
+        : this.duplicateOfId,
+    autoConfirmed: autoConfirmed ?? this.autoConfirmed,
+    createdAt: createdAt ?? this.createdAt,
+    resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+  );
+  DetectedPayment copyWithCompanion(DetectedPaymentsCompanion data) {
+    return DetectedPayment(
+      id: data.id.present ? data.id.value : this.id,
+      fingerprint: data.fingerprint.present
+          ? data.fingerprint.value
+          : this.fingerprint,
+      source: data.source.present ? data.source.value : this.source,
+      sender: data.sender.present ? data.sender.value : this.sender,
+      packageName: data.packageName.present
+          ? data.packageName.value
+          : this.packageName,
+      rawText: data.rawText.present ? data.rawText.value : this.rawText,
+      receivedAt: data.receivedAt.present
+          ? data.receivedAt.value
+          : this.receivedAt,
+      parsed: data.parsed.present ? data.parsed.value : this.parsed,
+      parserVersion: data.parserVersion.present
+          ? data.parserVersion.value
+          : this.parserVersion,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      direction: data.direction.present ? data.direction.value : this.direction,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      merchant: data.merchant.present ? data.merchant.value : this.merchant,
+      last4: data.last4.present ? data.last4.value : this.last4,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+      balanceAfter: data.balanceAfter.present
+          ? data.balanceAfter.value
+          : this.balanceAfter,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      toAccountId: data.toAccountId.present
+          ? data.toAccountId.value
+          : this.toAccountId,
+      instrumentId: data.instrumentId.present
+          ? data.instrumentId.value
+          : this.instrumentId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      status: data.status.present ? data.status.value : this.status,
+      transactionId: data.transactionId.present
+          ? data.transactionId.value
+          : this.transactionId,
+      matchTransactionId: data.matchTransactionId.present
+          ? data.matchTransactionId.value
+          : this.matchTransactionId,
+      duplicateOfId: data.duplicateOfId.present
+          ? data.duplicateOfId.value
+          : this.duplicateOfId,
+      autoConfirmed: data.autoConfirmed.present
+          ? data.autoConfirmed.value
+          : this.autoConfirmed,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      resolvedAt: data.resolvedAt.present
+          ? data.resolvedAt.value
+          : this.resolvedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DetectedPayment(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('source: $source, ')
+          ..write('sender: $sender, ')
+          ..write('packageName: $packageName, ')
+          ..write('rawText: $rawText, ')
+          ..write('receivedAt: $receivedAt, ')
+          ..write('parsed: $parsed, ')
+          ..write('parserVersion: $parserVersion, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('direction: $direction, ')
+          ..write('kind: $kind, ')
+          ..write('merchant: $merchant, ')
+          ..write('last4: $last4, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('balanceAfter: $balanceAfter, ')
+          ..write('accountId: $accountId, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('instrumentId: $instrumentId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('confidence: $confidence, ')
+          ..write('status: $status, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('matchTransactionId: $matchTransactionId, ')
+          ..write('duplicateOfId: $duplicateOfId, ')
+          ..write('autoConfirmed: $autoConfirmed, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('resolvedAt: $resolvedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    fingerprint,
+    source,
+    sender,
+    packageName,
+    rawText,
+    receivedAt,
+    parsed,
+    parserVersion,
+    amount,
+    currency,
+    direction,
+    kind,
+    merchant,
+    last4,
+    occurredAt,
+    balanceAfter,
+    accountId,
+    toAccountId,
+    instrumentId,
+    categoryId,
+    confidence,
+    status,
+    transactionId,
+    matchTransactionId,
+    duplicateOfId,
+    autoConfirmed,
+    createdAt,
+    resolvedAt,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DetectedPayment &&
+          other.id == this.id &&
+          other.fingerprint == this.fingerprint &&
+          other.source == this.source &&
+          other.sender == this.sender &&
+          other.packageName == this.packageName &&
+          other.rawText == this.rawText &&
+          other.receivedAt == this.receivedAt &&
+          other.parsed == this.parsed &&
+          other.parserVersion == this.parserVersion &&
+          other.amount == this.amount &&
+          other.currency == this.currency &&
+          other.direction == this.direction &&
+          other.kind == this.kind &&
+          other.merchant == this.merchant &&
+          other.last4 == this.last4 &&
+          other.occurredAt == this.occurredAt &&
+          other.balanceAfter == this.balanceAfter &&
+          other.accountId == this.accountId &&
+          other.toAccountId == this.toAccountId &&
+          other.instrumentId == this.instrumentId &&
+          other.categoryId == this.categoryId &&
+          other.confidence == this.confidence &&
+          other.status == this.status &&
+          other.transactionId == this.transactionId &&
+          other.matchTransactionId == this.matchTransactionId &&
+          other.duplicateOfId == this.duplicateOfId &&
+          other.autoConfirmed == this.autoConfirmed &&
+          other.createdAt == this.createdAt &&
+          other.resolvedAt == this.resolvedAt);
+}
+
+class DetectedPaymentsCompanion extends UpdateCompanion<DetectedPayment> {
+  final Value<int> id;
+  final Value<String> fingerprint;
+  final Value<String> source;
+  final Value<String?> sender;
+  final Value<String?> packageName;
+  final Value<String?> rawText;
+  final Value<DateTime> receivedAt;
+  final Value<String> parsed;
+  final Value<int> parserVersion;
+  final Value<String?> amount;
+  final Value<String?> currency;
+  final Value<String> direction;
+  final Value<String?> kind;
+  final Value<String?> merchant;
+  final Value<String?> last4;
+  final Value<DateTime?> occurredAt;
+  final Value<String?> balanceAfter;
+  final Value<int?> accountId;
+  final Value<int?> toAccountId;
+  final Value<int?> instrumentId;
+  final Value<int?> categoryId;
+  final Value<double> confidence;
+  final Value<String> status;
+  final Value<int?> transactionId;
+  final Value<int?> matchTransactionId;
+  final Value<int?> duplicateOfId;
+  final Value<bool> autoConfirmed;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> resolvedAt;
+  const DetectedPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.fingerprint = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sender = const Value.absent(),
+    this.packageName = const Value.absent(),
+    this.rawText = const Value.absent(),
+    this.receivedAt = const Value.absent(),
+    this.parsed = const Value.absent(),
+    this.parserVersion = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.direction = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.merchant = const Value.absent(),
+    this.last4 = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.balanceAfter = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.instrumentId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.status = const Value.absent(),
+    this.transactionId = const Value.absent(),
+    this.matchTransactionId = const Value.absent(),
+    this.duplicateOfId = const Value.absent(),
+    this.autoConfirmed = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+  });
+  DetectedPaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String fingerprint,
+    required String source,
+    this.sender = const Value.absent(),
+    this.packageName = const Value.absent(),
+    this.rawText = const Value.absent(),
+    required DateTime receivedAt,
+    required String parsed,
+    required int parserVersion,
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    required String direction,
+    this.kind = const Value.absent(),
+    this.merchant = const Value.absent(),
+    this.last4 = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.balanceAfter = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.toAccountId = const Value.absent(),
+    this.instrumentId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    required double confidence,
+    this.status = const Value.absent(),
+    this.transactionId = const Value.absent(),
+    this.matchTransactionId = const Value.absent(),
+    this.duplicateOfId = const Value.absent(),
+    this.autoConfirmed = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+  }) : fingerprint = Value(fingerprint),
+       source = Value(source),
+       receivedAt = Value(receivedAt),
+       parsed = Value(parsed),
+       parserVersion = Value(parserVersion),
+       direction = Value(direction),
+       confidence = Value(confidence);
+  static Insertable<DetectedPayment> custom({
+    Expression<int>? id,
+    Expression<String>? fingerprint,
+    Expression<String>? source,
+    Expression<String>? sender,
+    Expression<String>? packageName,
+    Expression<String>? rawText,
+    Expression<DateTime>? receivedAt,
+    Expression<String>? parsed,
+    Expression<int>? parserVersion,
+    Expression<String>? amount,
+    Expression<String>? currency,
+    Expression<String>? direction,
+    Expression<String>? kind,
+    Expression<String>? merchant,
+    Expression<String>? last4,
+    Expression<DateTime>? occurredAt,
+    Expression<String>? balanceAfter,
+    Expression<int>? accountId,
+    Expression<int>? toAccountId,
+    Expression<int>? instrumentId,
+    Expression<int>? categoryId,
+    Expression<double>? confidence,
+    Expression<String>? status,
+    Expression<int>? transactionId,
+    Expression<int>? matchTransactionId,
+    Expression<int>? duplicateOfId,
+    Expression<bool>? autoConfirmed,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? resolvedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fingerprint != null) 'fingerprint': fingerprint,
+      if (source != null) 'source': source,
+      if (sender != null) 'sender': sender,
+      if (packageName != null) 'package_name': packageName,
+      if (rawText != null) 'raw_text': rawText,
+      if (receivedAt != null) 'received_at': receivedAt,
+      if (parsed != null) 'parsed': parsed,
+      if (parserVersion != null) 'parser_version': parserVersion,
+      if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
+      if (direction != null) 'direction': direction,
+      if (kind != null) 'kind': kind,
+      if (merchant != null) 'merchant': merchant,
+      if (last4 != null) 'last4': last4,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (balanceAfter != null) 'balance_after': balanceAfter,
+      if (accountId != null) 'account_id': accountId,
+      if (toAccountId != null) 'to_account_id': toAccountId,
+      if (instrumentId != null) 'instrument_id': instrumentId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (confidence != null) 'confidence': confidence,
+      if (status != null) 'status': status,
+      if (transactionId != null) 'transaction_id': transactionId,
+      if (matchTransactionId != null)
+        'match_transaction_id': matchTransactionId,
+      if (duplicateOfId != null) 'duplicate_of_id': duplicateOfId,
+      if (autoConfirmed != null) 'auto_confirmed': autoConfirmed,
+      if (createdAt != null) 'created_at': createdAt,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+    });
+  }
+
+  DetectedPaymentsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? fingerprint,
+    Value<String>? source,
+    Value<String?>? sender,
+    Value<String?>? packageName,
+    Value<String?>? rawText,
+    Value<DateTime>? receivedAt,
+    Value<String>? parsed,
+    Value<int>? parserVersion,
+    Value<String?>? amount,
+    Value<String?>? currency,
+    Value<String>? direction,
+    Value<String?>? kind,
+    Value<String?>? merchant,
+    Value<String?>? last4,
+    Value<DateTime?>? occurredAt,
+    Value<String?>? balanceAfter,
+    Value<int?>? accountId,
+    Value<int?>? toAccountId,
+    Value<int?>? instrumentId,
+    Value<int?>? categoryId,
+    Value<double>? confidence,
+    Value<String>? status,
+    Value<int?>? transactionId,
+    Value<int?>? matchTransactionId,
+    Value<int?>? duplicateOfId,
+    Value<bool>? autoConfirmed,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? resolvedAt,
+  }) {
+    return DetectedPaymentsCompanion(
+      id: id ?? this.id,
+      fingerprint: fingerprint ?? this.fingerprint,
+      source: source ?? this.source,
+      sender: sender ?? this.sender,
+      packageName: packageName ?? this.packageName,
+      rawText: rawText ?? this.rawText,
+      receivedAt: receivedAt ?? this.receivedAt,
+      parsed: parsed ?? this.parsed,
+      parserVersion: parserVersion ?? this.parserVersion,
+      amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
+      direction: direction ?? this.direction,
+      kind: kind ?? this.kind,
+      merchant: merchant ?? this.merchant,
+      last4: last4 ?? this.last4,
+      occurredAt: occurredAt ?? this.occurredAt,
+      balanceAfter: balanceAfter ?? this.balanceAfter,
+      accountId: accountId ?? this.accountId,
+      toAccountId: toAccountId ?? this.toAccountId,
+      instrumentId: instrumentId ?? this.instrumentId,
+      categoryId: categoryId ?? this.categoryId,
+      confidence: confidence ?? this.confidence,
+      status: status ?? this.status,
+      transactionId: transactionId ?? this.transactionId,
+      matchTransactionId: matchTransactionId ?? this.matchTransactionId,
+      duplicateOfId: duplicateOfId ?? this.duplicateOfId,
+      autoConfirmed: autoConfirmed ?? this.autoConfirmed,
+      createdAt: createdAt ?? this.createdAt,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fingerprint.present) {
+      map['fingerprint'] = Variable<String>(fingerprint.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (sender.present) {
+      map['sender'] = Variable<String>(sender.value);
+    }
+    if (packageName.present) {
+      map['package_name'] = Variable<String>(packageName.value);
+    }
+    if (rawText.present) {
+      map['raw_text'] = Variable<String>(rawText.value);
+    }
+    if (receivedAt.present) {
+      map['received_at'] = Variable<DateTime>(receivedAt.value);
+    }
+    if (parsed.present) {
+      map['parsed'] = Variable<String>(parsed.value);
+    }
+    if (parserVersion.present) {
+      map['parser_version'] = Variable<int>(parserVersion.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<String>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (direction.present) {
+      map['direction'] = Variable<String>(direction.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (merchant.present) {
+      map['merchant'] = Variable<String>(merchant.value);
+    }
+    if (last4.present) {
+      map['last4'] = Variable<String>(last4.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (balanceAfter.present) {
+      map['balance_after'] = Variable<String>(balanceAfter.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (toAccountId.present) {
+      map['to_account_id'] = Variable<int>(toAccountId.value);
+    }
+    if (instrumentId.present) {
+      map['instrument_id'] = Variable<int>(instrumentId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (transactionId.present) {
+      map['transaction_id'] = Variable<int>(transactionId.value);
+    }
+    if (matchTransactionId.present) {
+      map['match_transaction_id'] = Variable<int>(matchTransactionId.value);
+    }
+    if (duplicateOfId.present) {
+      map['duplicate_of_id'] = Variable<int>(duplicateOfId.value);
+    }
+    if (autoConfirmed.present) {
+      map['auto_confirmed'] = Variable<bool>(autoConfirmed.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DetectedPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('source: $source, ')
+          ..write('sender: $sender, ')
+          ..write('packageName: $packageName, ')
+          ..write('rawText: $rawText, ')
+          ..write('receivedAt: $receivedAt, ')
+          ..write('parsed: $parsed, ')
+          ..write('parserVersion: $parserVersion, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('direction: $direction, ')
+          ..write('kind: $kind, ')
+          ..write('merchant: $merchant, ')
+          ..write('last4: $last4, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('balanceAfter: $balanceAfter, ')
+          ..write('accountId: $accountId, ')
+          ..write('toAccountId: $toAccountId, ')
+          ..write('instrumentId: $instrumentId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('confidence: $confidence, ')
+          ..write('status: $status, ')
+          ..write('transactionId: $transactionId, ')
+          ..write('matchTransactionId: $matchTransactionId, ')
+          ..write('duplicateOfId: $duplicateOfId, ')
+          ..write('autoConfirmed: $autoConfirmed, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('resolvedAt: $resolvedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
+  late final $PaymentInstrumentsTable paymentInstruments =
+      $PaymentInstrumentsTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
   late final $BudgetsTable budgets = $BudgetsTable(this);
   late final $RecurringTransactionsTable recurringTransactions =
       $RecurringTransactionsTable(this);
   late final $GoalsTable goals = $GoalsTable(this);
+  late final $DetectedPaymentsTable detectedPayments = $DetectedPaymentsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3064,13 +5930,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     accounts,
     categories,
+    paymentInstruments,
     transactions,
     budgets,
     recurringTransactions,
     goals,
+    detectedPayments,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'accounts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('payment_instruments', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'accounts',
@@ -3081,6 +5956,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('transactions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'payment_instruments',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('transactions', kind: UpdateKind.update)],
@@ -3111,7 +5993,63 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         'accounts',
         limitUpdateKind: UpdateKind.delete,
       ),
+      result: [TableUpdate('recurring_transactions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'payment_instruments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('recurring_transactions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'accounts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
       result: [TableUpdate('goals', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'accounts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'accounts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'payment_instruments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'transactions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'transactions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('detected_payments', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -3143,6 +6081,30 @@ final class $$AccountsTableReferences
     extends BaseReferences<_$AppDatabase, $AccountsTable, Account> {
   $$AccountsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
+  static MultiTypedResultKey<$PaymentInstrumentsTable, List<PaymentInstrument>>
+  _paymentInstrumentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.paymentInstruments,
+        aliasName: $_aliasNameGenerator(
+          db.accounts.id,
+          db.paymentInstruments.accountId,
+        ),
+      );
+
+  $$PaymentInstrumentsTableProcessedTableManager get paymentInstrumentsRefs {
+    final manager = $$PaymentInstrumentsTableTableManager(
+      $_db,
+      $_db.paymentInstruments,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _paymentInstrumentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
   _transactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.transactions,
@@ -3156,34 +6118,6 @@ final class $$AccountsTableReferences
     ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_transactionsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<
-    $RecurringTransactionsTable,
-    List<RecurringTransaction>
-  >
-  _recurringTransactionsRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.recurringTransactions,
-        aliasName: $_aliasNameGenerator(
-          db.accounts.id,
-          db.recurringTransactions.accountId,
-        ),
-      );
-
-  $$RecurringTransactionsTableProcessedTableManager
-  get recurringTransactionsRefs {
-    final manager = $$RecurringTransactionsTableTableManager(
-      $_db,
-      $_db.recurringTransactions,
-    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _recurringTransactionsRefsTable($_db),
-    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3258,6 +6192,31 @@ class $$AccountsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  Expression<bool> paymentInstrumentsRefs(
+    Expression<bool> Function($$PaymentInstrumentsTableFilterComposer f) f,
+  ) {
+    final $$PaymentInstrumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> transactionsRefs(
     Expression<bool> Function($$TransactionsTableFilterComposer f) f,
   ) {
@@ -3280,32 +6239,6 @@ class $$AccountsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
-    return f(composer);
-  }
-
-  Expression<bool> recurringTransactionsRefs(
-    Expression<bool> Function($$RecurringTransactionsTableFilterComposer f) f,
-  ) {
-    final $$RecurringTransactionsTableFilterComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.recurringTransactions,
-          getReferencedColumn: (t) => t.accountId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$RecurringTransactionsTableFilterComposer(
-                $db: $db,
-                $table: $db.recurringTransactions,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
     return f(composer);
   }
 
@@ -3418,6 +6351,32 @@ class $$AccountsTableAnnotationComposer
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
+  Expression<T> paymentInstrumentsRefs<T extends Object>(
+    Expression<T> Function($$PaymentInstrumentsTableAnnotationComposer a) f,
+  ) {
+    final $$PaymentInstrumentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.paymentInstruments,
+          getReferencedColumn: (t) => t.accountId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaymentInstrumentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paymentInstruments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
   ) {
@@ -3440,32 +6399,6 @@ class $$AccountsTableAnnotationComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
-    return f(composer);
-  }
-
-  Expression<T> recurringTransactionsRefs<T extends Object>(
-    Expression<T> Function($$RecurringTransactionsTableAnnotationComposer a) f,
-  ) {
-    final $$RecurringTransactionsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.recurringTransactions,
-          getReferencedColumn: (t) => t.accountId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$RecurringTransactionsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.recurringTransactions,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
     return f(composer);
   }
 
@@ -3509,8 +6442,8 @@ class $$AccountsTableTableManager
           (Account, $$AccountsTableReferences),
           Account,
           PrefetchHooks Function({
+            bool paymentInstrumentsRefs,
             bool transactionsRefs,
-            bool recurringTransactionsRefs,
             bool goalsRefs,
           })
         > {
@@ -3575,20 +6508,41 @@ class $$AccountsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                paymentInstrumentsRefs = false,
                 transactionsRefs = false,
-                recurringTransactionsRefs = false,
                 goalsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (paymentInstrumentsRefs) db.paymentInstruments,
                     if (transactionsRefs) db.transactions,
-                    if (recurringTransactionsRefs) db.recurringTransactions,
                     if (goalsRefs) db.goals,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (paymentInstrumentsRefs)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          PaymentInstrument
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._paymentInstrumentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paymentInstrumentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.accountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (transactionsRefs)
                         await $_getPrefetchedData<
                           Account,
@@ -3604,27 +6558,6 @@ class $$AccountsTableTableManager
                                 table,
                                 p0,
                               ).transactionsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.accountId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (recurringTransactionsRefs)
-                        await $_getPrefetchedData<
-                          Account,
-                          $AccountsTable,
-                          RecurringTransaction
-                        >(
-                          currentTable: table,
-                          referencedTable: $$AccountsTableReferences
-                              ._recurringTransactionsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$AccountsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).recurringTransactionsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.accountId == item.id,
@@ -3673,8 +6606,8 @@ typedef $$AccountsTableProcessedTableManager =
       (Account, $$AccountsTableReferences),
       Account,
       PrefetchHooks Function({
+        bool paymentInstrumentsRefs,
         bool transactionsRefs,
-        bool recurringTransactionsRefs,
         bool goalsRefs,
       })
     >;
@@ -3687,6 +6620,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required String type,
       Value<bool> isDefault,
       Value<int> sortOrder,
+      Value<String?> systemKey,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
     CategoriesCompanion Function({
@@ -3697,6 +6631,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String> type,
       Value<bool> isDefault,
       Value<int> sortOrder,
+      Value<String?> systemKey,
     });
 
 final class $$CategoriesTableReferences
@@ -3770,6 +6705,29 @@ final class $$CategoriesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$DetectedPaymentsTable, List<DetectedPayment>>
+  _detectedPaymentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.detectedPayments,
+    aliasName: $_aliasNameGenerator(
+      db.categories.id,
+      db.detectedPayments.categoryId,
+    ),
+  );
+
+  $$DetectedPaymentsTableProcessedTableManager get detectedPaymentsRefs {
+    final manager = $$DetectedPaymentsTableTableManager(
+      $_db,
+      $_db.detectedPayments,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _detectedPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$CategoriesTableFilterComposer
@@ -3813,6 +6771,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get systemKey => $composableBuilder(
+    column: $table.systemKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3891,6 +6854,31 @@ class $$CategoriesTableFilterComposer
         );
     return f(composer);
   }
+
+  Expression<bool> detectedPaymentsRefs(
+    Expression<bool> Function($$DetectedPaymentsTableFilterComposer f) f,
+  ) {
+    final $$DetectedPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CategoriesTableOrderingComposer
@@ -3936,6 +6924,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get systemKey => $composableBuilder(
+    column: $table.systemKey,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -3967,6 +6960,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get systemKey =>
+      $composableBuilder(column: $table.systemKey, builder: (column) => column);
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -4043,6 +7039,31 @@ class $$CategoriesTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> detectedPaymentsRefs<T extends Object>(
+    Expression<T> Function($$DetectedPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$DetectedPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CategoriesTableTableManager
@@ -4062,6 +7083,7 @@ class $$CategoriesTableTableManager
             bool transactionsRefs,
             bool budgetsRefs,
             bool recurringTransactionsRefs,
+            bool detectedPaymentsRefs,
           })
         > {
   $$CategoriesTableTableManager(_$AppDatabase db, $CategoriesTable table)
@@ -4084,6 +7106,7 @@ class $$CategoriesTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<bool> isDefault = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> systemKey = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
@@ -4092,6 +7115,7 @@ class $$CategoriesTableTableManager
                 type: type,
                 isDefault: isDefault,
                 sortOrder: sortOrder,
+                systemKey: systemKey,
               ),
           createCompanionCallback:
               ({
@@ -4102,6 +7126,7 @@ class $$CategoriesTableTableManager
                 required String type,
                 Value<bool> isDefault = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> systemKey = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
@@ -4110,6 +7135,7 @@ class $$CategoriesTableTableManager
                 type: type,
                 isDefault: isDefault,
                 sortOrder: sortOrder,
+                systemKey: systemKey,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4124,6 +7150,7 @@ class $$CategoriesTableTableManager
                 transactionsRefs = false,
                 budgetsRefs = false,
                 recurringTransactionsRefs = false,
+                detectedPaymentsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -4131,6 +7158,7 @@ class $$CategoriesTableTableManager
                     if (transactionsRefs) db.transactions,
                     if (budgetsRefs) db.budgets,
                     if (recurringTransactionsRefs) db.recurringTransactions,
+                    if (detectedPaymentsRefs) db.detectedPayments,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -4198,6 +7226,27 @@ class $$CategoriesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (detectedPaymentsRefs)
+                        await $_getPrefetchedData<
+                          Category,
+                          $CategoriesTable,
+                          DetectedPayment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CategoriesTableReferences
+                              ._detectedPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).detectedPaymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -4222,6 +7271,780 @@ typedef $$CategoriesTableProcessedTableManager =
         bool transactionsRefs,
         bool budgetsRefs,
         bool recurringTransactionsRefs,
+        bool detectedPaymentsRefs,
+      })
+    >;
+typedef $$PaymentInstrumentsTableCreateCompanionBuilder =
+    PaymentInstrumentsCompanion Function({
+      Value<int> id,
+      required int accountId,
+      required String name,
+      required String kind,
+      Value<String?> network,
+      Value<String?> last4,
+      Value<String?> issuer,
+      Value<String?> handle,
+      Value<String?> terms,
+      Value<bool> isDefault,
+      Value<bool> archived,
+      Value<DateTime> createdAt,
+    });
+typedef $$PaymentInstrumentsTableUpdateCompanionBuilder =
+    PaymentInstrumentsCompanion Function({
+      Value<int> id,
+      Value<int> accountId,
+      Value<String> name,
+      Value<String> kind,
+      Value<String?> network,
+      Value<String?> last4,
+      Value<String?> issuer,
+      Value<String?> handle,
+      Value<String?> terms,
+      Value<bool> isDefault,
+      Value<bool> archived,
+      Value<DateTime> createdAt,
+    });
+
+final class $$PaymentInstrumentsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PaymentInstrumentsTable,
+          PaymentInstrument
+        > {
+  $$PaymentInstrumentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AccountsTable _accountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(db.paymentInstruments.accountId, db.accounts.id),
+      );
+
+  $$AccountsTableProcessedTableManager get accountId {
+    final $_column = $_itemColumn<int>('account_id')!;
+
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
+  _transactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.transactions,
+    aliasName: $_aliasNameGenerator(
+      db.paymentInstruments.id,
+      db.transactions.paymentInstrumentId,
+    ),
+  );
+
+  $$TransactionsTableProcessedTableManager get transactionsRefs {
+    final manager = $$TransactionsTableTableManager($_db, $_db.transactions)
+        .filter(
+          (f) => f.paymentInstrumentId.id.sqlEquals($_itemColumn<int>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(_transactionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $RecurringTransactionsTable,
+    List<RecurringTransaction>
+  >
+  _recurringTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.recurringTransactions,
+        aliasName: $_aliasNameGenerator(
+          db.paymentInstruments.id,
+          db.recurringTransactions.paymentInstrumentId,
+        ),
+      );
+
+  $$RecurringTransactionsTableProcessedTableManager
+  get recurringTransactionsRefs {
+    final manager =
+        $$RecurringTransactionsTableTableManager(
+          $_db,
+          $_db.recurringTransactions,
+        ).filter(
+          (f) => f.paymentInstrumentId.id.sqlEquals($_itemColumn<int>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _recurringTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DetectedPaymentsTable, List<DetectedPayment>>
+  _detectedPaymentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.detectedPayments,
+    aliasName: $_aliasNameGenerator(
+      db.paymentInstruments.id,
+      db.detectedPayments.instrumentId,
+    ),
+  );
+
+  $$DetectedPaymentsTableProcessedTableManager get detectedPaymentsRefs {
+    final manager = $$DetectedPaymentsTableTableManager(
+      $_db,
+      $_db.detectedPayments,
+    ).filter((f) => f.instrumentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _detectedPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PaymentInstrumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentInstrumentsTable> {
+  $$PaymentInstrumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get network => $composableBuilder(
+    column: $table.network,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get last4 => $composableBuilder(
+    column: $table.last4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get issuer => $composableBuilder(
+    column: $table.issuer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get handle => $composableBuilder(
+    column: $table.handle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get terms => $composableBuilder(
+    column: $table.terms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AccountsTableFilterComposer get accountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> transactionsRefs(
+    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
+  ) {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.paymentInstrumentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> recurringTransactionsRefs(
+    Expression<bool> Function($$RecurringTransactionsTableFilterComposer f) f,
+  ) {
+    final $$RecurringTransactionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.recurringTransactions,
+          getReferencedColumn: (t) => t.paymentInstrumentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringTransactionsTableFilterComposer(
+                $db: $db,
+                $table: $db.recurringTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> detectedPaymentsRefs(
+    Expression<bool> Function($$DetectedPaymentsTableFilterComposer f) f,
+  ) {
+    final $$DetectedPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.instrumentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PaymentInstrumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentInstrumentsTable> {
+  $$PaymentInstrumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get network => $composableBuilder(
+    column: $table.network,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get last4 => $composableBuilder(
+    column: $table.last4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get issuer => $composableBuilder(
+    column: $table.issuer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get handle => $composableBuilder(
+    column: $table.handle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get terms => $composableBuilder(
+    column: $table.terms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AccountsTableOrderingComposer get accountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentInstrumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentInstrumentsTable> {
+  $$PaymentInstrumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get network =>
+      $composableBuilder(column: $table.network, builder: (column) => column);
+
+  GeneratedColumn<String> get last4 =>
+      $composableBuilder(column: $table.last4, builder: (column) => column);
+
+  GeneratedColumn<String> get issuer =>
+      $composableBuilder(column: $table.issuer, builder: (column) => column);
+
+  GeneratedColumn<String> get handle =>
+      $composableBuilder(column: $table.handle, builder: (column) => column);
+
+  GeneratedColumn<String> get terms =>
+      $composableBuilder(column: $table.terms, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<bool> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$AccountsTableAnnotationComposer get accountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> transactionsRefs<T extends Object>(
+    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.paymentInstrumentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> recurringTransactionsRefs<T extends Object>(
+    Expression<T> Function($$RecurringTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$RecurringTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.recurringTransactions,
+          getReferencedColumn: (t) => t.paymentInstrumentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.recurringTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> detectedPaymentsRefs<T extends Object>(
+    Expression<T> Function($$DetectedPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$DetectedPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.detectedPayments,
+      getReferencedColumn: (t) => t.instrumentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DetectedPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.detectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PaymentInstrumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentInstrumentsTable,
+          PaymentInstrument,
+          $$PaymentInstrumentsTableFilterComposer,
+          $$PaymentInstrumentsTableOrderingComposer,
+          $$PaymentInstrumentsTableAnnotationComposer,
+          $$PaymentInstrumentsTableCreateCompanionBuilder,
+          $$PaymentInstrumentsTableUpdateCompanionBuilder,
+          (PaymentInstrument, $$PaymentInstrumentsTableReferences),
+          PaymentInstrument,
+          PrefetchHooks Function({
+            bool accountId,
+            bool transactionsRefs,
+            bool recurringTransactionsRefs,
+            bool detectedPaymentsRefs,
+          })
+        > {
+  $$PaymentInstrumentsTableTableManager(
+    _$AppDatabase db,
+    $PaymentInstrumentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaymentInstrumentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaymentInstrumentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaymentInstrumentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String?> network = const Value.absent(),
+                Value<String?> last4 = const Value.absent(),
+                Value<String?> issuer = const Value.absent(),
+                Value<String?> handle = const Value.absent(),
+                Value<String?> terms = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PaymentInstrumentsCompanion(
+                id: id,
+                accountId: accountId,
+                name: name,
+                kind: kind,
+                network: network,
+                last4: last4,
+                issuer: issuer,
+                handle: handle,
+                terms: terms,
+                isDefault: isDefault,
+                archived: archived,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int accountId,
+                required String name,
+                required String kind,
+                Value<String?> network = const Value.absent(),
+                Value<String?> last4 = const Value.absent(),
+                Value<String?> issuer = const Value.absent(),
+                Value<String?> handle = const Value.absent(),
+                Value<String?> terms = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PaymentInstrumentsCompanion.insert(
+                id: id,
+                accountId: accountId,
+                name: name,
+                kind: kind,
+                network: network,
+                last4: last4,
+                issuer: issuer,
+                handle: handle,
+                terms: terms,
+                isDefault: isDefault,
+                archived: archived,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PaymentInstrumentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                accountId = false,
+                transactionsRefs = false,
+                recurringTransactionsRefs = false,
+                detectedPaymentsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (transactionsRefs) db.transactions,
+                    if (recurringTransactionsRefs) db.recurringTransactions,
+                    if (detectedPaymentsRefs) db.detectedPayments,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (accountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.accountId,
+                                    referencedTable:
+                                        $$PaymentInstrumentsTableReferences
+                                            ._accountIdTable(db),
+                                    referencedColumn:
+                                        $$PaymentInstrumentsTableReferences
+                                            ._accountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (transactionsRefs)
+                        await $_getPrefetchedData<
+                          PaymentInstrument,
+                          $PaymentInstrumentsTable,
+                          Transaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PaymentInstrumentsTableReferences
+                              ._transactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PaymentInstrumentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).transactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.paymentInstrumentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (recurringTransactionsRefs)
+                        await $_getPrefetchedData<
+                          PaymentInstrument,
+                          $PaymentInstrumentsTable,
+                          RecurringTransaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PaymentInstrumentsTableReferences
+                              ._recurringTransactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PaymentInstrumentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).recurringTransactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.paymentInstrumentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (detectedPaymentsRefs)
+                        await $_getPrefetchedData<
+                          PaymentInstrument,
+                          $PaymentInstrumentsTable,
+                          DetectedPayment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PaymentInstrumentsTableReferences
+                              ._detectedPaymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PaymentInstrumentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).detectedPaymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.instrumentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PaymentInstrumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentInstrumentsTable,
+      PaymentInstrument,
+      $$PaymentInstrumentsTableFilterComposer,
+      $$PaymentInstrumentsTableOrderingComposer,
+      $$PaymentInstrumentsTableAnnotationComposer,
+      $$PaymentInstrumentsTableCreateCompanionBuilder,
+      $$PaymentInstrumentsTableUpdateCompanionBuilder,
+      (PaymentInstrument, $$PaymentInstrumentsTableReferences),
+      PaymentInstrument,
+      PrefetchHooks Function({
+        bool accountId,
+        bool transactionsRefs,
+        bool recurringTransactionsRefs,
+        bool detectedPaymentsRefs,
       })
     >;
 typedef $$TransactionsTableCreateCompanionBuilder =
@@ -4234,6 +8057,11 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<String?> note,
       required DateTime transactionDate,
       Value<int?> linkedTransactionId,
+      Value<int?> paymentInstrumentId,
+      Value<String?> paymentMethod,
+      Value<String?> merchant,
+      Value<String?> source,
+      Value<String?> sourceRef,
       Value<DateTime> createdAt,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
@@ -4246,6 +8074,11 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String?> note,
       Value<DateTime> transactionDate,
       Value<int?> linkedTransactionId,
+      Value<int?> paymentInstrumentId,
+      Value<String?> paymentMethod,
+      Value<String?> merchant,
+      Value<String?> source,
+      Value<String?> sourceRef,
       Value<DateTime> createdAt,
     });
 
@@ -4290,6 +8123,28 @@ final class $$TransactionsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static $PaymentInstrumentsTable _paymentInstrumentIdTable(_$AppDatabase db) =>
+      db.paymentInstruments.createAlias(
+        $_aliasNameGenerator(
+          db.transactions.paymentInstrumentId,
+          db.paymentInstruments.id,
+        ),
+      );
+
+  $$PaymentInstrumentsTableProcessedTableManager? get paymentInstrumentId {
+    final $_column = $_itemColumn<int>('payment_instrument_id');
+    if ($_column == null) return null;
+    final manager = $$PaymentInstrumentsTableTableManager(
+      $_db,
+      $_db.paymentInstruments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_paymentInstrumentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 }
 
 class $$TransactionsTableFilterComposer
@@ -4328,6 +8183,26 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<int> get linkedTransactionId => $composableBuilder(
     column: $table.linkedTransactionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchant => $composableBuilder(
+    column: $table.merchant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceRef => $composableBuilder(
+    column: $table.sourceRef,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4381,6 +8256,29 @@ class $$TransactionsTableFilterComposer
     );
     return composer;
   }
+
+  $$PaymentInstrumentsTableFilterComposer get paymentInstrumentId {
+    final $$PaymentInstrumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentInstrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TransactionsTableOrderingComposer
@@ -4419,6 +8317,26 @@ class $$TransactionsTableOrderingComposer
 
   ColumnOrderings<int> get linkedTransactionId => $composableBuilder(
     column: $table.linkedTransactionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get merchant => $composableBuilder(
+    column: $table.merchant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceRef => $composableBuilder(
+    column: $table.sourceRef,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4472,6 +8390,29 @@ class $$TransactionsTableOrderingComposer
     );
     return composer;
   }
+
+  $$PaymentInstrumentsTableOrderingComposer get paymentInstrumentId {
+    final $$PaymentInstrumentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentInstrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -4504,6 +8445,20 @@ class $$TransactionsTableAnnotationComposer
     column: $table.linkedTransactionId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get merchant =>
+      $composableBuilder(column: $table.merchant, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceRef =>
+      $composableBuilder(column: $table.sourceRef, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4553,6 +8508,30 @@ class $$TransactionsTableAnnotationComposer
     );
     return composer;
   }
+
+  $$PaymentInstrumentsTableAnnotationComposer get paymentInstrumentId {
+    final $$PaymentInstrumentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.paymentInstrumentId,
+          referencedTable: $db.paymentInstruments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaymentInstrumentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paymentInstruments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$TransactionsTableTableManager
@@ -4568,7 +8547,11 @@ class $$TransactionsTableTableManager
           $$TransactionsTableUpdateCompanionBuilder,
           (Transaction, $$TransactionsTableReferences),
           Transaction,
-          PrefetchHooks Function({bool accountId, bool categoryId})
+          PrefetchHooks Function({
+            bool accountId,
+            bool categoryId,
+            bool paymentInstrumentId,
+          })
         > {
   $$TransactionsTableTableManager(_$AppDatabase db, $TransactionsTable table)
     : super(
@@ -4591,6 +8574,11 @@ class $$TransactionsTableTableManager
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> transactionDate = const Value.absent(),
                 Value<int?> linkedTransactionId = const Value.absent(),
+                Value<int?> paymentInstrumentId = const Value.absent(),
+                Value<String?> paymentMethod = const Value.absent(),
+                Value<String?> merchant = const Value.absent(),
+                Value<String?> source = const Value.absent(),
+                Value<String?> sourceRef = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
@@ -4601,6 +8589,11 @@ class $$TransactionsTableTableManager
                 note: note,
                 transactionDate: transactionDate,
                 linkedTransactionId: linkedTransactionId,
+                paymentInstrumentId: paymentInstrumentId,
+                paymentMethod: paymentMethod,
+                merchant: merchant,
+                source: source,
+                sourceRef: sourceRef,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -4613,6 +8606,11 @@ class $$TransactionsTableTableManager
                 Value<String?> note = const Value.absent(),
                 required DateTime transactionDate,
                 Value<int?> linkedTransactionId = const Value.absent(),
+                Value<int?> paymentInstrumentId = const Value.absent(),
+                Value<String?> paymentMethod = const Value.absent(),
+                Value<String?> merchant = const Value.absent(),
+                Value<String?> source = const Value.absent(),
+                Value<String?> sourceRef = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
@@ -4623,6 +8621,11 @@ class $$TransactionsTableTableManager
                 note: note,
                 transactionDate: transactionDate,
                 linkedTransactionId: linkedTransactionId,
+                paymentInstrumentId: paymentInstrumentId,
+                paymentMethod: paymentMethod,
+                merchant: merchant,
+                source: source,
+                sourceRef: sourceRef,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -4633,60 +8636,84 @@ class $$TransactionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({accountId = false, categoryId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (accountId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.accountId,
-                                referencedTable: $$TransactionsTableReferences
-                                    ._accountIdTable(db),
-                                referencedColumn: $$TransactionsTableReferences
-                                    ._accountIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-                    if (categoryId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.categoryId,
-                                referencedTable: $$TransactionsTableReferences
-                                    ._categoryIdTable(db),
-                                referencedColumn: $$TransactionsTableReferences
-                                    ._categoryIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                accountId = false,
+                categoryId = false,
+                paymentInstrumentId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (accountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.accountId,
+                                    referencedTable:
+                                        $$TransactionsTableReferences
+                                            ._accountIdTable(db),
+                                    referencedColumn:
+                                        $$TransactionsTableReferences
+                                            ._accountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$TransactionsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$TransactionsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (paymentInstrumentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.paymentInstrumentId,
+                                    referencedTable:
+                                        $$TransactionsTableReferences
+                                            ._paymentInstrumentIdTable(db),
+                                    referencedColumn:
+                                        $$TransactionsTableReferences
+                                            ._paymentInstrumentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4703,7 +8730,11 @@ typedef $$TransactionsTableProcessedTableManager =
       $$TransactionsTableUpdateCompanionBuilder,
       (Transaction, $$TransactionsTableReferences),
       Transaction,
-      PrefetchHooks Function({bool accountId, bool categoryId})
+      PrefetchHooks Function({
+        bool accountId,
+        bool categoryId,
+        bool paymentInstrumentId,
+      })
     >;
 typedef $$BudgetsTableCreateCompanionBuilder =
     BudgetsCompanion Function({
@@ -5048,6 +9079,10 @@ typedef $$RecurringTransactionsTableCreateCompanionBuilder =
       required String frequency,
       required DateTime nextDate,
       Value<bool> isActive,
+      Value<int?> toAccountId,
+      Value<double?> toAmount,
+      Value<int?> paymentInstrumentId,
+      Value<DateTime?> endDate,
       Value<DateTime> createdAt,
     });
 typedef $$RecurringTransactionsTableUpdateCompanionBuilder =
@@ -5061,6 +9096,10 @@ typedef $$RecurringTransactionsTableUpdateCompanionBuilder =
       Value<String> frequency,
       Value<DateTime> nextDate,
       Value<bool> isActive,
+      Value<int?> toAccountId,
+      Value<double?> toAmount,
+      Value<int?> paymentInstrumentId,
+      Value<DateTime?> endDate,
       Value<DateTime> createdAt,
     });
 
@@ -5120,6 +9159,50 @@ final class $$RecurringTransactionsTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static $AccountsTable _toAccountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(
+          db.recurringTransactions.toAccountId,
+          db.accounts.id,
+        ),
+      );
+
+  $$AccountsTableProcessedTableManager? get toAccountId {
+    final $_column = $_itemColumn<int>('to_account_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_toAccountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PaymentInstrumentsTable _paymentInstrumentIdTable(_$AppDatabase db) =>
+      db.paymentInstruments.createAlias(
+        $_aliasNameGenerator(
+          db.recurringTransactions.paymentInstrumentId,
+          db.paymentInstruments.id,
+        ),
+      );
+
+  $$PaymentInstrumentsTableProcessedTableManager? get paymentInstrumentId {
+    final $_column = $_itemColumn<int>('payment_instrument_id');
+    if ($_column == null) return null;
+    final manager = $$PaymentInstrumentsTableTableManager(
+      $_db,
+      $_db.paymentInstruments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_paymentInstrumentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 }
 
 class $$RecurringTransactionsTableFilterComposer
@@ -5166,6 +9249,16 @@ class $$RecurringTransactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<double> get toAmount => $composableBuilder(
+    column: $table.toAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -5208,6 +9301,52 @@ class $$RecurringTransactionsTableFilterComposer
           }) => $$CategoriesTableFilterComposer(
             $db: $db,
             $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableFilterComposer get toAccountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableFilterComposer get paymentInstrumentId {
+    final $$PaymentInstrumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentInstrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5262,6 +9401,16 @@ class $$RecurringTransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get toAmount => $composableBuilder(
+    column: $table.toAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5312,6 +9461,52 @@ class $$RecurringTransactionsTableOrderingComposer
     );
     return composer;
   }
+
+  $$AccountsTableOrderingComposer get toAccountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableOrderingComposer get paymentInstrumentId {
+    final $$PaymentInstrumentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.paymentInstrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$RecurringTransactionsTableAnnotationComposer
@@ -5343,6 +9538,12 @@ class $$RecurringTransactionsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<double> get toAmount =>
+      $composableBuilder(column: $table.toAmount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5392,6 +9593,53 @@ class $$RecurringTransactionsTableAnnotationComposer
     );
     return composer;
   }
+
+  $$AccountsTableAnnotationComposer get toAccountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableAnnotationComposer get paymentInstrumentId {
+    final $$PaymentInstrumentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.paymentInstrumentId,
+          referencedTable: $db.paymentInstruments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaymentInstrumentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paymentInstruments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$RecurringTransactionsTableTableManager
@@ -5407,7 +9655,12 @@ class $$RecurringTransactionsTableTableManager
           $$RecurringTransactionsTableUpdateCompanionBuilder,
           (RecurringTransaction, $$RecurringTransactionsTableReferences),
           RecurringTransaction,
-          PrefetchHooks Function({bool accountId, bool categoryId})
+          PrefetchHooks Function({
+            bool accountId,
+            bool categoryId,
+            bool toAccountId,
+            bool paymentInstrumentId,
+          })
         > {
   $$RecurringTransactionsTableTableManager(
     _$AppDatabase db,
@@ -5442,6 +9695,10 @@ class $$RecurringTransactionsTableTableManager
                 Value<String> frequency = const Value.absent(),
                 Value<DateTime> nextDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<double?> toAmount = const Value.absent(),
+                Value<int?> paymentInstrumentId = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RecurringTransactionsCompanion(
                 id: id,
@@ -5453,6 +9710,10 @@ class $$RecurringTransactionsTableTableManager
                 frequency: frequency,
                 nextDate: nextDate,
                 isActive: isActive,
+                toAccountId: toAccountId,
+                toAmount: toAmount,
+                paymentInstrumentId: paymentInstrumentId,
+                endDate: endDate,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -5466,6 +9727,10 @@ class $$RecurringTransactionsTableTableManager
                 required String frequency,
                 required DateTime nextDate,
                 Value<bool> isActive = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<double?> toAmount = const Value.absent(),
+                Value<int?> paymentInstrumentId = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => RecurringTransactionsCompanion.insert(
                 id: id,
@@ -5477,6 +9742,10 @@ class $$RecurringTransactionsTableTableManager
                 frequency: frequency,
                 nextDate: nextDate,
                 isActive: isActive,
+                toAccountId: toAccountId,
+                toAmount: toAmount,
+                paymentInstrumentId: paymentInstrumentId,
+                endDate: endDate,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -5487,64 +9756,100 @@ class $$RecurringTransactionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({accountId = false, categoryId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (accountId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.accountId,
-                                referencedTable:
-                                    $$RecurringTransactionsTableReferences
-                                        ._accountIdTable(db),
-                                referencedColumn:
-                                    $$RecurringTransactionsTableReferences
-                                        ._accountIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-                    if (categoryId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.categoryId,
-                                referencedTable:
-                                    $$RecurringTransactionsTableReferences
-                                        ._categoryIdTable(db),
-                                referencedColumn:
-                                    $$RecurringTransactionsTableReferences
-                                        ._categoryIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                accountId = false,
+                categoryId = false,
+                toAccountId = false,
+                paymentInstrumentId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (accountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.accountId,
+                                    referencedTable:
+                                        $$RecurringTransactionsTableReferences
+                                            ._accountIdTable(db),
+                                    referencedColumn:
+                                        $$RecurringTransactionsTableReferences
+                                            ._accountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$RecurringTransactionsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$RecurringTransactionsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (toAccountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.toAccountId,
+                                    referencedTable:
+                                        $$RecurringTransactionsTableReferences
+                                            ._toAccountIdTable(db),
+                                    referencedColumn:
+                                        $$RecurringTransactionsTableReferences
+                                            ._toAccountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (paymentInstrumentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.paymentInstrumentId,
+                                    referencedTable:
+                                        $$RecurringTransactionsTableReferences
+                                            ._paymentInstrumentIdTable(db),
+                                    referencedColumn:
+                                        $$RecurringTransactionsTableReferences
+                                            ._paymentInstrumentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -5561,7 +9866,12 @@ typedef $$RecurringTransactionsTableProcessedTableManager =
       $$RecurringTransactionsTableUpdateCompanionBuilder,
       (RecurringTransaction, $$RecurringTransactionsTableReferences),
       RecurringTransaction,
-      PrefetchHooks Function({bool accountId, bool categoryId})
+      PrefetchHooks Function({
+        bool accountId,
+        bool categoryId,
+        bool toAccountId,
+        bool paymentInstrumentId,
+      })
     >;
 typedef $$GoalsTableCreateCompanionBuilder =
     GoalsCompanion Function({
@@ -5951,6 +10261,1286 @@ typedef $$GoalsTableProcessedTableManager =
       Goal,
       PrefetchHooks Function({bool accountId})
     >;
+typedef $$DetectedPaymentsTableCreateCompanionBuilder =
+    DetectedPaymentsCompanion Function({
+      Value<int> id,
+      required String fingerprint,
+      required String source,
+      Value<String?> sender,
+      Value<String?> packageName,
+      Value<String?> rawText,
+      required DateTime receivedAt,
+      required String parsed,
+      required int parserVersion,
+      Value<String?> amount,
+      Value<String?> currency,
+      required String direction,
+      Value<String?> kind,
+      Value<String?> merchant,
+      Value<String?> last4,
+      Value<DateTime?> occurredAt,
+      Value<String?> balanceAfter,
+      Value<int?> accountId,
+      Value<int?> toAccountId,
+      Value<int?> instrumentId,
+      Value<int?> categoryId,
+      required double confidence,
+      Value<String> status,
+      Value<int?> transactionId,
+      Value<int?> matchTransactionId,
+      Value<int?> duplicateOfId,
+      Value<bool> autoConfirmed,
+      Value<DateTime> createdAt,
+      Value<DateTime?> resolvedAt,
+    });
+typedef $$DetectedPaymentsTableUpdateCompanionBuilder =
+    DetectedPaymentsCompanion Function({
+      Value<int> id,
+      Value<String> fingerprint,
+      Value<String> source,
+      Value<String?> sender,
+      Value<String?> packageName,
+      Value<String?> rawText,
+      Value<DateTime> receivedAt,
+      Value<String> parsed,
+      Value<int> parserVersion,
+      Value<String?> amount,
+      Value<String?> currency,
+      Value<String> direction,
+      Value<String?> kind,
+      Value<String?> merchant,
+      Value<String?> last4,
+      Value<DateTime?> occurredAt,
+      Value<String?> balanceAfter,
+      Value<int?> accountId,
+      Value<int?> toAccountId,
+      Value<int?> instrumentId,
+      Value<int?> categoryId,
+      Value<double> confidence,
+      Value<String> status,
+      Value<int?> transactionId,
+      Value<int?> matchTransactionId,
+      Value<int?> duplicateOfId,
+      Value<bool> autoConfirmed,
+      Value<DateTime> createdAt,
+      Value<DateTime?> resolvedAt,
+    });
+
+final class $$DetectedPaymentsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $DetectedPaymentsTable, DetectedPayment> {
+  $$DetectedPaymentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AccountsTable _accountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(db.detectedPayments.accountId, db.accounts.id),
+      );
+
+  $$AccountsTableProcessedTableManager? get accountId {
+    final $_column = $_itemColumn<int>('account_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AccountsTable _toAccountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(db.detectedPayments.toAccountId, db.accounts.id),
+      );
+
+  $$AccountsTableProcessedTableManager? get toAccountId {
+    final $_column = $_itemColumn<int>('to_account_id');
+    if ($_column == null) return null;
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_toAccountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PaymentInstrumentsTable _instrumentIdTable(_$AppDatabase db) =>
+      db.paymentInstruments.createAlias(
+        $_aliasNameGenerator(
+          db.detectedPayments.instrumentId,
+          db.paymentInstruments.id,
+        ),
+      );
+
+  $$PaymentInstrumentsTableProcessedTableManager? get instrumentId {
+    final $_column = $_itemColumn<int>('instrument_id');
+    if ($_column == null) return null;
+    final manager = $$PaymentInstrumentsTableTableManager(
+      $_db,
+      $_db.paymentInstruments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_instrumentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $CategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(db.detectedPayments.categoryId, db.categories.id),
+      );
+
+  $$CategoriesTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<int>('category_id');
+    if ($_column == null) return null;
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TransactionsTable _transactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        $_aliasNameGenerator(
+          db.detectedPayments.transactionId,
+          db.transactions.id,
+        ),
+      );
+
+  $$TransactionsTableProcessedTableManager? get transactionId {
+    final $_column = $_itemColumn<int>('transaction_id');
+    if ($_column == null) return null;
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_transactionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TransactionsTable _matchTransactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        $_aliasNameGenerator(
+          db.detectedPayments.matchTransactionId,
+          db.transactions.id,
+        ),
+      );
+
+  $$TransactionsTableProcessedTableManager? get matchTransactionId {
+    final $_column = $_itemColumn<int>('match_transaction_id');
+    if ($_column == null) return null;
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_matchTransactionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DetectedPaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $DetectedPaymentsTable> {
+  $$DetectedPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sender => $composableBuilder(
+    column: $table.sender,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parsed => $composableBuilder(
+    column: $table.parsed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get parserVersion => $composableBuilder(
+    column: $table.parserVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchant => $composableBuilder(
+    column: $table.merchant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get last4 => $composableBuilder(
+    column: $table.last4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get balanceAfter => $composableBuilder(
+    column: $table.balanceAfter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get duplicateOfId => $composableBuilder(
+    column: $table.duplicateOfId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoConfirmed => $composableBuilder(
+    column: $table.autoConfirmed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AccountsTableFilterComposer get accountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableFilterComposer get toAccountId {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableFilterComposer get instrumentId {
+    final $$PaymentInstrumentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.instrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CategoriesTableFilterComposer get categoryId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableFilterComposer get transactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.transactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableFilterComposer get matchTransactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectedPaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DetectedPaymentsTable> {
+  $$DetectedPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sender => $composableBuilder(
+    column: $table.sender,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parsed => $composableBuilder(
+    column: $table.parsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get parserVersion => $composableBuilder(
+    column: $table.parserVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get merchant => $composableBuilder(
+    column: $table.merchant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get last4 => $composableBuilder(
+    column: $table.last4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get balanceAfter => $composableBuilder(
+    column: $table.balanceAfter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get duplicateOfId => $composableBuilder(
+    column: $table.duplicateOfId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoConfirmed => $composableBuilder(
+    column: $table.autoConfirmed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AccountsTableOrderingComposer get accountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableOrderingComposer get toAccountId {
+    final $$AccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableOrderingComposer get instrumentId {
+    final $$PaymentInstrumentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.instrumentId,
+      referencedTable: $db.paymentInstruments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentInstrumentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.paymentInstruments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CategoriesTableOrderingComposer get categoryId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableOrderingComposer get transactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.transactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableOrderingComposer get matchTransactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectedPaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DetectedPaymentsTable> {
+  $$DetectedPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get sender =>
+      $composableBuilder(column: $table.sender, builder: (column) => column);
+
+  GeneratedColumn<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawText =>
+      $composableBuilder(column: $table.rawText, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get parsed =>
+      $composableBuilder(column: $table.parsed, builder: (column) => column);
+
+  GeneratedColumn<int> get parserVersion => $composableBuilder(
+    column: $table.parserVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get direction =>
+      $composableBuilder(column: $table.direction, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get merchant =>
+      $composableBuilder(column: $table.merchant, builder: (column) => column);
+
+  GeneratedColumn<String> get last4 =>
+      $composableBuilder(column: $table.last4, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get balanceAfter => $composableBuilder(
+    column: $table.balanceAfter,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get duplicateOfId => $composableBuilder(
+    column: $table.duplicateOfId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoConfirmed => $composableBuilder(
+    column: $table.autoConfirmed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => column,
+  );
+
+  $$AccountsTableAnnotationComposer get accountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableAnnotationComposer get toAccountId {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.toAccountId,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PaymentInstrumentsTableAnnotationComposer get instrumentId {
+    final $$PaymentInstrumentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.instrumentId,
+          referencedTable: $db.paymentInstruments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PaymentInstrumentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.paymentInstruments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$CategoriesTableAnnotationComposer get categoryId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableAnnotationComposer get transactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.transactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableAnnotationComposer get matchTransactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DetectedPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DetectedPaymentsTable,
+          DetectedPayment,
+          $$DetectedPaymentsTableFilterComposer,
+          $$DetectedPaymentsTableOrderingComposer,
+          $$DetectedPaymentsTableAnnotationComposer,
+          $$DetectedPaymentsTableCreateCompanionBuilder,
+          $$DetectedPaymentsTableUpdateCompanionBuilder,
+          (DetectedPayment, $$DetectedPaymentsTableReferences),
+          DetectedPayment,
+          PrefetchHooks Function({
+            bool accountId,
+            bool toAccountId,
+            bool instrumentId,
+            bool categoryId,
+            bool transactionId,
+            bool matchTransactionId,
+          })
+        > {
+  $$DetectedPaymentsTableTableManager(
+    _$AppDatabase db,
+    $DetectedPaymentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DetectedPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DetectedPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DetectedPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> fingerprint = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> sender = const Value.absent(),
+                Value<String?> packageName = const Value.absent(),
+                Value<String?> rawText = const Value.absent(),
+                Value<DateTime> receivedAt = const Value.absent(),
+                Value<String> parsed = const Value.absent(),
+                Value<int> parserVersion = const Value.absent(),
+                Value<String?> amount = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
+                Value<String> direction = const Value.absent(),
+                Value<String?> kind = const Value.absent(),
+                Value<String?> merchant = const Value.absent(),
+                Value<String?> last4 = const Value.absent(),
+                Value<DateTime?> occurredAt = const Value.absent(),
+                Value<String?> balanceAfter = const Value.absent(),
+                Value<int?> accountId = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<int?> instrumentId = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int?> transactionId = const Value.absent(),
+                Value<int?> matchTransactionId = const Value.absent(),
+                Value<int?> duplicateOfId = const Value.absent(),
+                Value<bool> autoConfirmed = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+              }) => DetectedPaymentsCompanion(
+                id: id,
+                fingerprint: fingerprint,
+                source: source,
+                sender: sender,
+                packageName: packageName,
+                rawText: rawText,
+                receivedAt: receivedAt,
+                parsed: parsed,
+                parserVersion: parserVersion,
+                amount: amount,
+                currency: currency,
+                direction: direction,
+                kind: kind,
+                merchant: merchant,
+                last4: last4,
+                occurredAt: occurredAt,
+                balanceAfter: balanceAfter,
+                accountId: accountId,
+                toAccountId: toAccountId,
+                instrumentId: instrumentId,
+                categoryId: categoryId,
+                confidence: confidence,
+                status: status,
+                transactionId: transactionId,
+                matchTransactionId: matchTransactionId,
+                duplicateOfId: duplicateOfId,
+                autoConfirmed: autoConfirmed,
+                createdAt: createdAt,
+                resolvedAt: resolvedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String fingerprint,
+                required String source,
+                Value<String?> sender = const Value.absent(),
+                Value<String?> packageName = const Value.absent(),
+                Value<String?> rawText = const Value.absent(),
+                required DateTime receivedAt,
+                required String parsed,
+                required int parserVersion,
+                Value<String?> amount = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
+                required String direction,
+                Value<String?> kind = const Value.absent(),
+                Value<String?> merchant = const Value.absent(),
+                Value<String?> last4 = const Value.absent(),
+                Value<DateTime?> occurredAt = const Value.absent(),
+                Value<String?> balanceAfter = const Value.absent(),
+                Value<int?> accountId = const Value.absent(),
+                Value<int?> toAccountId = const Value.absent(),
+                Value<int?> instrumentId = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
+                required double confidence,
+                Value<String> status = const Value.absent(),
+                Value<int?> transactionId = const Value.absent(),
+                Value<int?> matchTransactionId = const Value.absent(),
+                Value<int?> duplicateOfId = const Value.absent(),
+                Value<bool> autoConfirmed = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+              }) => DetectedPaymentsCompanion.insert(
+                id: id,
+                fingerprint: fingerprint,
+                source: source,
+                sender: sender,
+                packageName: packageName,
+                rawText: rawText,
+                receivedAt: receivedAt,
+                parsed: parsed,
+                parserVersion: parserVersion,
+                amount: amount,
+                currency: currency,
+                direction: direction,
+                kind: kind,
+                merchant: merchant,
+                last4: last4,
+                occurredAt: occurredAt,
+                balanceAfter: balanceAfter,
+                accountId: accountId,
+                toAccountId: toAccountId,
+                instrumentId: instrumentId,
+                categoryId: categoryId,
+                confidence: confidence,
+                status: status,
+                transactionId: transactionId,
+                matchTransactionId: matchTransactionId,
+                duplicateOfId: duplicateOfId,
+                autoConfirmed: autoConfirmed,
+                createdAt: createdAt,
+                resolvedAt: resolvedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DetectedPaymentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                accountId = false,
+                toAccountId = false,
+                instrumentId = false,
+                categoryId = false,
+                transactionId = false,
+                matchTransactionId = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (accountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.accountId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._accountIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._accountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (toAccountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.toAccountId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._toAccountIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._toAccountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (instrumentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.instrumentId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._instrumentIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._instrumentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (transactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.transactionId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._transactionIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._transactionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (matchTransactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.matchTransactionId,
+                                    referencedTable:
+                                        $$DetectedPaymentsTableReferences
+                                            ._matchTransactionIdTable(db),
+                                    referencedColumn:
+                                        $$DetectedPaymentsTableReferences
+                                            ._matchTransactionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$DetectedPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DetectedPaymentsTable,
+      DetectedPayment,
+      $$DetectedPaymentsTableFilterComposer,
+      $$DetectedPaymentsTableOrderingComposer,
+      $$DetectedPaymentsTableAnnotationComposer,
+      $$DetectedPaymentsTableCreateCompanionBuilder,
+      $$DetectedPaymentsTableUpdateCompanionBuilder,
+      (DetectedPayment, $$DetectedPaymentsTableReferences),
+      DetectedPayment,
+      PrefetchHooks Function({
+        bool accountId,
+        bool toAccountId,
+        bool instrumentId,
+        bool categoryId,
+        bool transactionId,
+        bool matchTransactionId,
+      })
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5959,6 +11549,8 @@ class $AppDatabaseManager {
       $$AccountsTableTableManager(_db, _db.accounts);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
+  $$PaymentInstrumentsTableTableManager get paymentInstruments =>
+      $$PaymentInstrumentsTableTableManager(_db, _db.paymentInstruments);
   $$TransactionsTableTableManager get transactions =>
       $$TransactionsTableTableManager(_db, _db.transactions);
   $$BudgetsTableTableManager get budgets =>
@@ -5967,4 +11559,6 @@ class $AppDatabaseManager {
       $$RecurringTransactionsTableTableManager(_db, _db.recurringTransactions);
   $$GoalsTableTableManager get goals =>
       $$GoalsTableTableManager(_db, _db.goals);
+  $$DetectedPaymentsTableTableManager get detectedPayments =>
+      $$DetectedPaymentsTableTableManager(_db, _db.detectedPayments);
 }

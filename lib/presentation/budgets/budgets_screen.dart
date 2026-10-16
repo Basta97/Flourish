@@ -1,3 +1,7 @@
+import 'package:flourish/core/finance/transaction_classifier.dart';
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/error_text.dart';
+import 'package:flourish/core/services/preferences_service.dart';
 import '../../core/constants/app_constants.dart';
 import '../providers/finance_providers.dart';
 import '../wealth/finance_form.dart';
@@ -421,10 +425,12 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
         ),
       ],
       save: (j) async {
-        final amount = double.parse(j['amount']!);
-        if (!amount.isFinite || amount <= 0) {
-          throw ArgumentError('Enter a positive amount');
-        }
+        final parsed = AmountParser.parse(
+          j['amount']!,
+          currency: j['currency']!,
+        );
+        if (!parsed.isValid) throw ArgumentError(parsed.error);
+        final amount = parsed.value!.toDouble();
         final store = ref.read(financeStoreProvider);
         final unit = j['currency']!;
         if (await store.get('budgetVersions', '${budget.id}:opening') == null) {
@@ -495,23 +501,42 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
         ? metadata['currency'] as String
         : versions.first['currency'] as String;
     var spent = Amount.zero, missing = 0;
-    for (final t in await ref.read(databaseProvider).getAllTransactions()) {
-      if (t.categoryId != budget.categoryId ||
-          t.type != 'expense' ||
-          t.linkedTransactionId != null ||
-          t.transactionDate.isBefore(start) ||
-          !t.transactionDate.isBefore(end)) {
-        continue;
+    final db = ref.read(databaseProvider);
+    // A budget covers its category and every subcategory below it.
+    final parents = {
+      for (final p in await store.list('categoryParents'))
+        p['child'] as int: p['parent'] as int,
+    };
+    bool covered(int categoryId) {
+      final seen = <int>{};
+      for (int? c = categoryId; c != null && seen.add(c); c = parents[c]) {
+        if (c == budget.categoryId) return true;
       }
-      final details = await store.transactionDetails(t.id);
-      if (['asset', 'principal', 'transfer'].contains(details?['kind'])) {
-        continue;
-      }
+      return false;
+    }
+
+    final inRange = (await db.getAllTransactions())
+        .where(
+          (t) =>
+              covered(t.categoryId) &&
+              !t.transactionDate.isBefore(start) &&
+              t.transactionDate.isBefore(end),
+        )
+        .toList();
+    final details = await store.transactionDetailsFor(inRange.map((t) => t.id));
+    final categories = {for (final c in await db.getAllCategories()) c.id: c};
+    for (final t in inRange) {
+      final flow = TransactionClassifier.classify(
+        t,
+        details[t.id],
+        categories[t.categoryId],
+      );
+      if (flow != FlowClass.spending && flow != FlowClass.refund) continue;
       final amount = await valuation.transactionValue(t.id, unit);
       if (amount == null) {
         missing++;
       } else {
-        spent += amount;
+        spent += flow == FlowClass.refund ? -amount : amount;
       }
     }
     if (unit == currency) return (spent, originalLimit, unit, missing);
@@ -581,7 +606,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(pickableCategoriesProvider);
     final currency = ref.watch(defaultCurrencyProvider);
 
     return BottomSheetScaffold(
@@ -689,38 +714,88 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
       setState(() => _categoryError = 'Please select a category');
       hasError = true;
     }
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null || amount <= 0) {
-      setState(() => _amountError = 'Please enter a valid amount');
+    final parsed = AmountParser.parse(
+      _amountController.text,
+      currency: ref.read(defaultCurrencyProvider),
+    );
+    if (!parsed.isValid) {
+      setState(() => _amountError = parsed.error);
       hasError = true;
     }
     if (hasError) return;
+    final amount = parsed.value!.toDouble();
 
+    final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
     setState(() => _isSubmitting = true);
     try {
-      final dao = ref.read(budgetDaoProvider);
-      final budgetId = await dao.insertBudget(
-        BudgetsCompanion.insert(
-          categoryId: _categoryId!,
-          amount: amount!,
-          period: _period,
-          startDate: DateTime.now(),
-        ),
-      );
-      await ref.read(financeStoreProvider).put(
-        'budgetCurrencies',
-        '$budgetId',
-        {'currency': ref.read(defaultCurrencyProvider)},
-      );
+      final db = ref.read(budgetDaoProvider);
+      final unit = ref.read(defaultCurrencyProvider);
+      await db.transaction(() async {
+        final existing = await db.getAllBudgets();
+        if (existing.any(
+          (b) => b.categoryId == _categoryId && b.period == _period,
+        )) {
+          throw StateError(
+            'This category already has a $_period budget. Edit it instead.',
+          );
+        }
+        final budgetId = await db.insertBudget(
+          BudgetsCompanion.insert(
+            categoryId: _categoryId!,
+            amount: amount,
+            period: _period,
+            startDate: budgetPeriodStart(
+              _period,
+              DateTime.now(),
+              monthStartDay: PreferencesService.getInt(
+                'month_start_day',
+                defaultValue: 1,
+              ),
+              firstWeekday: firstWeekday,
+            ),
+          ),
+        );
+        await ref.read(financeStoreProvider).put(
+          'budgetCurrencies',
+          '$budgetId',
+          {'currency': unit},
+        );
+      });
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to create budget: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
+  }
+}
+
+/// Where a new budget's periods begin: the reporting month start day for
+/// monthly and yearly budgets, and the locale's first weekday for weekly ones
+/// ([firstWeekday] uses 0 = Sunday, as MaterialLocalizations does).
+DateTime budgetPeriodStart(
+  String period,
+  DateTime now, {
+  int monthStartDay = 1,
+  int firstWeekday = 1,
+}) {
+  final day = monthStartDay.clamp(1, 28);
+  final today = DateTime(now.year, now.month, now.day);
+  switch (period) {
+    case 'weekly':
+      final back = (today.weekday % 7 - firstWeekday) % 7;
+      return today.subtract(Duration(days: back));
+    case 'yearly':
+      final start = DateTime(now.year, 1, day);
+      return start.isAfter(today) ? DateTime(now.year - 1, 1, day) : start;
+    default:
+      final start = DateTime(now.year, now.month, day);
+      return start.isAfter(today)
+          ? DateTime(now.year, now.month - 1, day)
+          : start;
   }
 }
 

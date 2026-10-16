@@ -1,6 +1,6 @@
 # Flourish finance and holdings implementation
 
-The app remains local-first. SQLite schema 6 extends the existing six Drift tables with exact account balances, immutable transaction conversion metadata, and versioned financial records.
+The app remains local-first. SQLite schema 8 extends the original Drift tables with exact account balances, immutable transaction conversion metadata and versioned financial records (v6), cards and wallets with payment details on every entry (v7), and detected payments awaiting review (v8).
 
 ## Available flows
 
@@ -11,6 +11,10 @@ The app remains local-first. SQLite schema 6 extends the existing six Drift tabl
 - Wealth → Obligations supports certificates/deposits, fixed loans, receivables, manually agreed schedules, credit billing, installments, early settlements, confirmation, and reversal. Expected payments never change cash. Original schedules can be restored by reversing an early settlement.
 - Wealth → Reports shows historical cash activity, category rollups, income sources, allocation, currency exposure, recorded net-worth history, separate asset-price/FX gains, realized gains, and a scheduled-cash-flow forecast.
 - Wealth → Tools provides dated FX overrides, account management, templates, subcategories, receipts, reporting month start, reminders, device-auth locking, optional secure stock-feed credentials, encrypted backups, local backup history, CSV/XLSX import, and CSV export.
+- Cards & wallets: every bank, wallet or credit account can hold its debit/credit/prepaid cards, mobile wallets, InstaPay address or BNPL line (network, last 4, bank or wallet, FX fee). Entries record what paid (card or method), the merchant and where they came from (manual, recurring, detected…).
+- Spending in another currency: the add sheet records the price in the original currency and what the account was charged, with the card's foreign-transaction fee booked as a linked "Bank fees" entry. Refunds are filed under the expense category they reverse.
+- Credit cards: limit, purchase and cash-advance APR, statement and due days, minimum payment (% and floor) and fees live on the card. The account page shows available credit, how much of the limit is used, the last statement, what is still unpaid, the minimum due, an interest estimate and cash advances, with Pay card and "Interest or fee". Withdrawing cash from a card is a cash advance with its fee.
+- Payment detection: bank SMS and bank/wallet app alerts (Android notification listener) or Shortcuts automations (iOS) feed a review inbox. See "Payment detection" below.
 - Settings retains legacy JSON restoration and exports the complete new backup format. Goal and recurring-payment creation and budget editing are reachable. Budgets support current and past periods with retained limit changes.
 
 ## Financial rules
@@ -22,6 +26,14 @@ Opening holdings do not move cash. New funded contracts explicitly move principa
 Changing the reporting currency never rewrites the original amounts. Transaction-date rates and acquisition conversions are retained once available. Historical conversions that cannot be sourced remain incomplete. Legacy budgets have no stored currency and therefore require explicit confirmation through Edit before conversion.
 
 Rates and prices show source and effective date. A manual quote remains authoritative until explicitly cleared. Missing values are not zero valuations. Net-worth history starts with recorded observations rather than fabricated past appraisals.
+
+Every balance change goes through `FinancialLedgerService` (enforced by `test/architecture_test.dart`), including recurring rules, auto-income and undo. `TransactionClassifier` is the single rule for what counts as income, spending, refund, transfer, investment or principal; system categories (`SystemCategories`) are identified by a stored key and cannot be deleted or picked by hand when hidden. A dated conversion only uses a rate from within 7 days before the entry (`FxPolicy`); older snapshots are re-checked by `LedgerMaintenance`. Amounts are parsed by `AmountParser` (Arabic-Indic digits, comma or dot decimals, each currency's minor unit) and the ledger refuses an amount entered in a currency other than the account's.
+
+## Payment detection
+
+`lib/core/detection/` parses Egyptian bank and wallet messages in English and Arabic (`PaymentMessageParser`): amount and currency (EGP, LE, ج.م, جنيه, and foreign currencies by code, symbol or Arabic name: USD, US$, دولار, EUR, SAR, ريال, AED, GBP, TRY, THB…), the charged amount of foreign purchases, fees, card last 4, merchant or counterparty, date, balance and reference. Numbers only count as money next to a currency or amount word, so dates, phone numbers, card digits and balances are not mistaken for the payment; OTP, declined, promotional and statement messages are ignored. Messages are redacted before storage (card numbers to last 4, national IDs, codes, phone numbers).
+
+`DetectionService` stores each message once (fingerprint), treats the SMS and app alert of one payment as one, matches the card by its last 4 digits (then the bank's only account), suggests a category from the person's earlier choice for that merchant, and flags payments already entered by hand. A foreign-currency payment uses the bank's own figure in the account currency when the message gives one; otherwise it is converted at that day's exchange rate (through USD when there is no direct rate) and the card's foreign-transaction fee is booked on top, marked as an estimate, and the inbox shows it before confirming. With no usable rate the person enters the charged amount. Confirming books purchases (including foreign ones), refunds, ATM withdrawals into cash, transfers and card payments through the ledger. Optional automatic adding is limited to purchases and refunds from a recognised bank on a saved card with no doubt or possible duplicate, and never uses an exchange-rate estimate. Message text is kept for the chosen retention period and excluded from backups unless the person opts in. Parser fixtures are synthetic; extend `test/detection/parser_fixtures_test.dart` with redacted real messages.
 
 ## Feeds and offline behavior
 
@@ -57,4 +69,4 @@ The simulator integration scenario creates an account and holding through the ac
 
 Android release signing requires the owner's keystore and `android/key.properties` (see `android/key.properties.example`). Release builds explicitly reject absent credentials rather than using debug signing. App Store distribution likewise requires the owner's signing/provisioning configuration. No signing identities were created or published.
 
-Device-auth dialogs, scheduled-notification delivery, share extensions, and OCR still require targeted physical-device acceptance checks; an iOS simulator workflow does not prove those capabilities on every device.
+Device-auth dialogs, scheduled-notification delivery, share extensions, OCR, the Android notification listener and the iOS Shortcuts automations still require targeted physical-device acceptance checks; an iOS simulator workflow does not prove those capabilities on every device.

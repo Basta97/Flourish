@@ -68,6 +68,16 @@ class IconUtils {
         return Icons.currency_exchange;
       case 'monetization_on':
         return Icons.monetization_on;
+      case 'north_east':
+        return Icons.north_east_rounded;
+      case 'south_west':
+        return Icons.south_west_rounded;
+      case 'swap_horiz':
+        return Icons.swap_horiz_rounded;
+      case 'percent':
+        return Icons.percent_rounded;
+      case 'undo':
+        return Icons.undo_rounded;
       default:
         return Icons.circle;
     }

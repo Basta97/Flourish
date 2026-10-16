@@ -42,7 +42,9 @@ class AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = gradientFor(account.color);
-    final negative = account.balance < 0;
+    // Credit balances are stored as the amount owed: positive is debt.
+    final isCredit = account.type == 'credit';
+    final owesMoney = isCredit ? account.balance > 0 : account.balance < 0;
     final radius = BorderRadius.circular(Rad.xl);
 
     // Material keeps Text styling intact while the card flies in a Hero.
@@ -151,12 +153,23 @@ class AccountCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: Sp.xs),
+                    if (isCredit)
+                      Text(
+                        account.balance > 0
+                            ? 'OWED'
+                            : account.balance < 0
+                            ? 'CREDIT BALANCE'
+                            : 'NOTHING OWED',
+                        style: AppTextStyles.eyebrow.copyWith(
+                          color: _onCard.withValues(alpha: 0.75),
+                        ),
+                      ),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
                         CurrencyFormatter.format(
-                          account.balance,
+                          isCredit ? account.balance.abs() : account.balance,
                           currency: account.currency,
                         ),
                         style:
@@ -166,7 +179,7 @@ class AccountCard extends StatelessWidget {
                                         fontSize: 24,
                                       ))
                                 .copyWith(
-                                  color: negative
+                                  color: owesMoney
                                       ? const Color(0xFFFFC2BA)
                                       : _onCard,
                                 ),

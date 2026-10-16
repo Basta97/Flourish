@@ -1,3 +1,5 @@
+import 'package:flourish/core/utils/amount_parser.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import '../providers/finance_providers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -158,12 +160,18 @@ class AddAccountSheet extends ConsumerStatefulWidget {
 class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
+  final _limitController = TextEditingController();
+  final _aprController = TextEditingController();
+  final _statementDayController = TextEditingController(text: '25');
+  final _dueDayController = TextEditingController(text: '10');
+  String? _cardError;
   String _type = 'bank';
-  String _currency = 'USD';
+  late String _currency;
   int _color = AppColors.primary.toARGB32();
   String _icon = 'account_balance';
   bool _isSubmitting = false;
   String? _nameError;
+  String? _balanceError;
 
   @override
   void initState() {
@@ -175,6 +183,10 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
   void dispose() {
     _nameController.dispose();
     _balanceController.dispose();
+    _limitController.dispose();
+    _aprController.dispose();
+    _statementDayController.dispose();
+    _dueDayController.dispose();
     super.dispose();
   }
 
@@ -196,11 +208,22 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         TextField(
           controller: _balanceController,
           decoration: InputDecoration(
-            labelText: 'Initial Balance',
-            hintText: '0.00',
+            labelText: _type == 'credit'
+                ? 'Amount you owe now'
+                : 'Current balance',
+            helperText: _type == 'credit'
+                ? 'Enter debt as a positive number; 0 for a paid-off card'
+                : 'Leave empty for 0',
+            helperMaxLines: 2,
+            hintText: '0',
             prefixText: '${CurrencyFormatter.symbolFor(_currency)} ',
+            errorText: _balanceError,
           ),
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(
+            decimal: true,
+            signed: true,
+          ),
+          onChanged: (_) => setState(() => _balanceError = null),
         ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
@@ -242,6 +265,74 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
             }
           },
         ),
+        if (_type == 'credit') ...[
+          const SizedBox(height: Sp.md),
+          Text('Card terms', style: AppTextStyles.overline),
+          const SizedBox(height: Sp.sm),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _limitController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [AmountInputFormatter()],
+                  decoration: const InputDecoration(labelText: 'Credit limit'),
+                ),
+              ),
+              const SizedBox(width: Sp.md),
+              Expanded(
+                child: TextField(
+                  controller: _aprController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [AmountInputFormatter()],
+                  decoration: const InputDecoration(
+                    labelText: 'Interest % / year',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Sp.md),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _statementDayController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [AmountInputFormatter()],
+                  decoration: const InputDecoration(labelText: 'Statement day'),
+                ),
+              ),
+              const SizedBox(width: Sp.md),
+              Expanded(
+                child: TextField(
+                  controller: _dueDayController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [AmountInputFormatter()],
+                  decoration: const InputDecoration(labelText: 'Due day'),
+                ),
+              ),
+            ],
+          ),
+          if (_cardError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: Sp.sm),
+              child: Text(
+                _cardError!,
+                style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+              ),
+            ),
+          const SizedBox(height: Sp.xs),
+          Text(
+            'Fees (foreign transactions, cash advance, late payment) can be '
+            'added from the card page.',
+            style: AppTextStyles.caption,
+          ),
+        ],
         const SizedBox(height: Sp.md),
         Text('Icon', style: AppTextStyles.overline),
         const SizedBox(height: Sp.sm),
@@ -338,14 +429,72 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    Amount balance = Amount.zero;
+    if (_balanceController.text.trim().isNotEmpty) {
+      try {
+        balance = AmountParser.decimal(_balanceController.text);
+        if (balance.value.scale > CurrencyFormatter.decimalsFor(_currency)) {
+          throw ArgumentError(
+            'Use at most ${CurrencyFormatter.decimalsFor(_currency)} decimals',
+          );
+        }
+      } catch (e) {
+        setState(() => _balanceError = describeError(e));
+        return;
+      }
+    }
+
+    CardTerms? terms;
+    Amount apr = Amount.zero;
+    int statementDay = 25, dueDay = 10;
+    if (_type == 'credit' && _limitController.text.trim().isNotEmpty) {
+      try {
+        terms = CardTerms(
+          creditLimit: AmountParser.decimal(_limitController.text),
+        );
+        apr = _aprController.text.trim().isEmpty
+            ? Amount.zero
+            : AmountParser.decimal(_aprController.text);
+        statementDay = AmountParser.decimal(
+          _statementDayController.text,
+        ).toDouble().toInt();
+        dueDay = AmountParser.decimal(
+          _dueDayController.text,
+        ).toDouble().toInt();
+      } catch (e) {
+        setState(() => _cardError = describeError(e));
+        return;
+      }
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _cardError = null;
+    });
     try {
+      if (terms != null) {
+        await ref
+            .read(creditCardServiceProvider)
+            .createCard(
+              name: _nameController.text.trim(),
+              currency: _currency,
+              owed: balance,
+              terms: terms,
+              purchaseApr: apr,
+              statementDay: statementDay,
+              paymentDay: dueDay,
+              color: _color,
+              icon: _icon,
+            );
+        if (mounted) Navigator.pop(context);
+        return;
+      }
       final dao = ref.read(accountDaoProvider);
       await dao.insertAccount(
         AccountsCompanion.insert(
           name: _nameController.text.trim(),
           type: _type,
-          balance: Value(double.tryParse(_balanceController.text) ?? 0),
+          balance: Value(balance.toDouble()),
           currency: Value(_currency),
           color: _color,
           icon: _icon,
@@ -357,7 +506,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to add account: $e')));
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
   }

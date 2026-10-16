@@ -3,18 +3,17 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:drift/drift.dart' hide Column;
 import '../providers/finance_providers.dart';
 import '../providers/theme_providers.dart';
 import '../providers/database_provider.dart';
 import '../../core/finance/backup_service.dart';
+import '../../core/finance/ledger_maintenance.dart';
 import '../../core/finance/reminder_service.dart';
 import '../../core/services/preferences_service.dart';
 import '../../core/motion/motion.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/database/database.dart';
 
 final remindersProvider = Provider((ref) => ReminderService());
 
@@ -74,7 +73,10 @@ class _FinanceRuntimeState extends ConsumerState<FinanceRuntime>
     running = true;
     final db = ref.read(databaseProvider);
     try {
-      await db.processDueRecurringTransactions();
+      await LedgerMaintenance(
+        db,
+      ).run(preferredCurrency: ref.read(defaultCurrencyProvider));
+      await ref.read(recurringServiceProvider).processDue();
       if (!mounted) return;
       await _income();
       if (!mounted) return;
@@ -101,38 +103,29 @@ class _FinanceRuntimeState extends ConsumerState<FinanceRuntime>
         accountId = ref.read(monthlyIncomeAccountIdProvider),
         categoryId = ref.read(monthlyIncomeCategoryIdProvider);
     if (amount <= 0 || accountId == null || categoryId == null) return;
-    final now = DateTime.now(),
-        key = '${DateTime.now().year}-${DateTime.now().month}';
-    final last = DateTime(now.year, now.month + 1, 0).day;
-    final day = ref.read(monthlyIncomeDayProvider).clamp(1, last);
-    if (now.day < day ||
-        PreferencesService.getString('last_auto_income_month') == key) {
-      return;
-    }
-    final ledger = ref.read(financialLedgerProvider);
-    final database = ref.read(databaseProvider);
-    await database.transaction(() async {
-      final db = database;
-      final exists = (await db.getTransactionsByAccount(accountId)).any(
-        (t) =>
-            t.note == 'Auto monthly income' &&
-            t.transactionDate.year == now.year &&
-            t.transactionDate.month == now.month,
-      );
-      if (!exists) {
-        await ledger.insertTransactionAndUpdateBalance(
-          TransactionsCompanion.insert(
-            accountId: accountId,
-            categoryId: categoryId,
-            amount: amount,
-            type: 'income',
-            note: const Value('Auto monthly income'),
-            transactionDate: DateTime(now.year, now.month, day),
-          ),
+    final now = DateTime.now();
+    await ref
+        .read(recurringServiceProvider)
+        .processAutoIncome(
+          amount: Amount.fromNum(amount),
+          accountId: accountId,
+          categoryId: categoryId,
+          day: ref.read(monthlyIncomeDayProvider),
+          lastPostedMonth: switch (PreferencesService.getString(
+            'last_auto_income_month',
+          )) {
+            '' => null,
+            final month => month,
+          },
+          now: now,
         );
-      }
-    });
-    await PreferencesService.setString('last_auto_income_month', key);
+    final last = DateTime(now.year, now.month + 1, 0).day;
+    if (now.day >= ref.read(monthlyIncomeDayProvider).clamp(1, last)) {
+      await PreferencesService.setString(
+        'last_auto_income_month',
+        '${now.year}-${now.month}',
+      );
+    }
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
+import 'package:flourish/core/finance/recurring_service.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/data/finance/finance_store.dart';
 import 'package:flourish/core/finance/financial_ledger_service.dart';
@@ -380,8 +381,12 @@ void main() {
         ),
       );
       await Future.wait([
-        db.processDueRecurringTransactions(now: DateTime(2026, 3, 31)),
-        db.processDueRecurringTransactions(now: DateTime(2026, 3, 31)),
+        RecurringService(
+          FinancialLedgerService(db),
+        ).processDue(now: DateTime(2026, 3, 31)),
+        RecurringService(
+          FinancialLedgerService(db),
+        ).processDue(now: DateTime(2026, 3, 31)),
       ]);
       expect((await db.getAllTransactions()).length, 3);
       expect(await store.balance(id), Amount('1030'));

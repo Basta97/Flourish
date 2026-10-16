@@ -1,5 +1,4 @@
 import 'package:flourish/presentation/providers/finance_providers.dart';
-import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -10,6 +9,8 @@ import 'package:flourish/core/theme/app_spacing.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flourish/core/utils/date_formatter.dart';
+import 'package:flourish/core/utils/error_text.dart';
+import 'package:flourish/core/finance/payment_methods.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
@@ -94,7 +95,23 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
     final isIncome = t.type == 'income';
     final isTransfer = t.linkedTransactionId != null;
     final tone = isIncome ? palette.income : palette.textHigh;
+    final instrument = t.paymentInstrumentId == null
+        ? null
+        : (ref.watch(paymentInstrumentsProvider).valueOrNull ?? const [])
+              .where((i) => i.id == t.paymentInstrumentId)
+              .firstOrNull;
+    final paidWith =
+        instrument?.label ??
+        (t.paymentMethod == null
+            ? null
+            : PaymentMethods.label(t.paymentMethod!));
+    final merchant = t.merchant?.trim() ?? '';
+    final original =
+        ref.watch(transactionDetailsProvider(t.id)).valueOrNull?['original']
+            as Map?;
     final meta = [
+      if (merchant.isNotEmpty && widget.category != null) widget.category!.name,
+      ?paidWith,
       if ((widget.accountName ?? '').trim().isNotEmpty) widget.accountName!,
       if ((t.note ?? '').trim().isNotEmpty) t.note!.trim(),
     ].join(' · ');
@@ -122,12 +139,14 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.category?.name ??
-                        (isTransfer
-                            ? 'Transfer'
-                            : isIncome
-                            ? 'Income'
-                            : 'Expense'),
+                    merchant.isNotEmpty
+                        ? merchant
+                        : widget.category?.name ??
+                              (isTransfer
+                                  ? 'Transfer'
+                                  : isIncome
+                                  ? 'Income'
+                                  : 'Expense'),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: palette.textHigh,
                     ),
@@ -168,6 +187,13 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                       ),
                     ),
                   ),
+                  if (original != null)
+                    Text(
+                      '${original['currency']} ${original['amount']}',
+                      style: AppTextStyles.caption.copyWith(
+                        color: palette.textLow,
+                      ),
+                    ),
                   const SizedBox(height: Sp.xs),
                   Text(
                     widget.showTime
@@ -301,35 +327,29 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
   Future<void> _delete() async {
     final messenger = ScaffoldMessenger.of(context);
     final ledger = ref.read(financialLedgerProvider);
-    final db = ref.read(databaseProvider);
     final id = widget.transaction.id;
 
     // Collapse first so the row folds away, then remove the record.
     if (!Motion.reduced(context)) await _collapse.reverse();
     try {
-      final deletedTx = await db.getTransactionById(id);
-      await ledger.deleteTransactionAndUpdateBalance(id);
+      final deleted = await ledger.deleteWithUndo(id);
       ref.invalidate(transactionsProvider);
       ref.invalidate(accountsProvider);
       messenger.showSnackBar(
         SnackBar(
           content: const Text('Transaction deleted'),
-          action: deletedTx?.linkedTransactionId != null
+          action: deleted == null
               ? null
               : SnackBarAction(
                   label: 'Undo',
                   onPressed: () async {
-                    if (deletedTx == null) return;
-                    await ledger.insertTransactionAndUpdateBalance(
-                      TransactionsCompanion.insert(
-                        accountId: deletedTx.accountId,
-                        categoryId: deletedTx.categoryId,
-                        amount: deletedTx.amount,
-                        type: deletedTx.type,
-                        note: Value(deletedTx.note),
-                        transactionDate: deletedTx.transactionDate,
-                      ),
-                    );
+                    try {
+                      await ledger.restore(deleted);
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(describeError(e))),
+                      );
+                    }
                     ref.invalidate(transactionsProvider);
                     ref.invalidate(accountsProvider);
                   },
@@ -338,7 +358,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
       );
     } catch (e) {
       if (mounted) _collapse.forward();
-      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+      messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
     }
   }
 }

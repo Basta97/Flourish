@@ -10,5 +10,6 @@ Documentation for contributors, release owners, and anyone evaluating the projec
 | [Releases](RELEASE.md) | Maintainers | Versioning, Android signing, GitHub Releases, CI |
 | [Finance & holdings](FINANCE_IMPLEMENTATION.md) | Developers & QA | Ledger rules, feeds, backup, verification commands |
 | [Platforms](PLATFORMS.md) | Developers | Android vs iOS capabilities and import paths |
+| [Audit](AUDIT.md) | Developers & QA | Known bugs and logic gaps with severity and fix status |
 
 Verification screenshots (manual QA) live in [verification/](verification/).

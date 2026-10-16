@@ -15,12 +15,20 @@ class BackupService {
   static const tableNames = [
     'categories',
     'accounts',
+    'payment_instruments',
     'transactions',
     'budgets',
     'recurring_transactions',
     'goals',
     ...FinanceStore.tables,
+    'detected_payments',
   ];
+
+  /// Schema version that introduced each table added after v6.
+  static const requiredSince = {
+    'payment_instruments': 7,
+    'detected_payments': 8,
+  };
   static const settings = [
     'default_currency',
     'app_theme_mode',
@@ -31,12 +39,22 @@ class BackupService {
     'monthly_income_account_id',
     'monthly_income_category_id',
     'last_auto_income_month',
+    'detection_auto_confirm',
+    'detection_raw_text_days',
+    'detection_backup_raw_text',
+    'detection_notify',
   ];
   Future<Json> exportData() => db.transaction(() async {
     final tables = <String, dynamic>{};
+    // Message text stays on this device unless the person opted in.
+    final keepText = PreferencesService.getBool('detection_backup_raw_text');
     for (final table in tableNames) {
       tables[table] = (await db.customSelect('SELECT * FROM $table').get())
-          .map((r) => r.data)
+          .map(
+            (r) => table == 'detected_payments' && !keepText
+                ? {...r.data, 'raw_text': null}
+                : r.data,
+          )
           .toList();
     }
     final attachments = <String, String>{};
@@ -72,11 +90,16 @@ class BackupService {
         'Backup requires a newer version of Flourish',
       );
     }
-    final tables = payload['tables'] as Json;
+    final tables = Map<String, dynamic>.from(payload['tables'] as Json);
+    final version = payload['databaseVersion'] as int;
     for (final name in tableNames) {
-      if (tables[name] is! List) {
-        throw FormatException('Missing backup table: $name');
+      if (tables[name] is List) continue;
+      // Tables added after the backup was taken restore empty.
+      if (version < (requiredSince[name] ?? 0)) {
+        tables[name] = const [];
+        continue;
       }
+      throw FormatException('Missing backup table: $name');
     }
     final copied = <File>[];
     bool committed = false;
@@ -196,6 +219,11 @@ class BackupService {
           (c.accountId != null && !accounts.containsKey(c.accountId)) ||
           (c.cardAccountId != null && !accounts.containsKey(c.cardAccountId))) {
         throw const FormatException('Invalid contract references or amounts');
+      }
+      try {
+        c.card?.validate();
+      } on ArgumentError {
+        throw const FormatException('Invalid credit card terms');
       }
       contracts[c.id] = c;
     }

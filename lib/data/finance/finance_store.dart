@@ -96,6 +96,27 @@ class FinanceStore {
         : jsonDecode(rows.first.read<String>('payload')) as Json;
   }
 
+  /// Details for many transactions in a few queries instead of one each.
+  Future<Map<int, Json>> transactionDetailsFor(Iterable<int> ids) async {
+    final out = <int, Json>{};
+    final list = ids.toList();
+    for (var i = 0; i < list.length; i += 500) {
+      final chunk = list.sublist(i, (i + 500).clamp(0, list.length));
+      final rows = await db
+          .customSelect(
+            'SELECT transaction_id, payload FROM transaction_details '
+            'WHERE transaction_id IN (${List.filled(chunk.length, '?').join(',')})',
+            variables: [for (final id in chunk) Variable(id)],
+          )
+          .get();
+      for (final r in rows) {
+        out[r.read<int>('transaction_id')] =
+            jsonDecode(r.read<String>('payload')) as Json;
+      }
+    }
+    return out;
+  }
+
   Future<void> setTransactionDetails(
     int id,
     Json payload,

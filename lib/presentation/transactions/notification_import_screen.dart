@@ -1,3 +1,4 @@
+import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as paths;
 import '../../core/services/shared_import_service.dart';
@@ -162,11 +163,20 @@ class _NotificationImportScreenState
   }
 
   Future<void> _save() async {
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null ||
-        amount <= 0 ||
-        _accountId == null ||
-        _categoryId == null) {
+    final currency =
+        ref
+            .read(accountsProvider)
+            .valueOrNull
+            ?.where((a) => a.id == _accountId)
+            .firstOrNull
+            ?.currency ??
+        '';
+    final exact = AmountParser.parse(
+      _amountController.text,
+      currency: currency,
+    ).value;
+    final amount = exact?.toDouble();
+    if (amount == null || _accountId == null || _categoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Select account, category, and a valid amount first.'),
@@ -231,8 +241,9 @@ class _NotificationImportScreenState
               .read(financialLedgerProvider)
               .recordCash(
                 accountId: _accountId!,
-                amount: Amount.fromNum(amount),
+                amount: exact!,
                 type: _type,
+                expectCurrency: currency,
                 categoryId: _categoryId!,
                 note: note.isEmpty ? null : note,
               );
@@ -278,7 +289,7 @@ class _NotificationImportScreenState
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(pickableCategoriesProvider);
     final currency =
         accountsAsync.valueOrNull
             ?.where((a) => a.id == _accountId)

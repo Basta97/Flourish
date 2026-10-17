@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/detection/category_store.dart';
 import '../providers/finance_providers.dart';
 import '../providers/account_providers.dart';
 import '../providers/category_providers.dart';
@@ -570,38 +571,12 @@ Future<void> subcategory(BuildContext context, WidgetRef ref) async {
         },
       ),
     ],
-    save: (j) async {
-      final child = int.parse(j['child']!), parent = int.tryParse(j['parent']!);
-      final store = ref.read(financeStoreProvider);
-      if (parent == null) {
-        await store.remove('categoryParents', '$child');
-        return;
-      }
-      if (child == parent ||
-          categories.firstWhere((c) => c.id == child).type !=
-              categories.firstWhere((c) => c.id == parent).type) {
-        throw ArgumentError('Choose different categories of the same type');
-      }
-      final relationships = await store.list('categoryParents');
-      var cursor = parent;
-      final seen = {child};
-      while (true) {
-        if (!seen.add(cursor)) {
-          throw ArgumentError('Category hierarchy cannot contain a cycle');
-        }
-        final next =
-            relationships
-                    .where((r) => r['child'] == cursor)
-                    .firstOrNull?['parent']
-                as int?;
-        if (next == null) break;
-        cursor = next;
-      }
-      await store.put('categoryParents', '$child', {
-        'child': child,
-        'parent': parent,
-      });
-    },
+    save: (j) => CategoryHierarchy.assignParent(
+      ref.read(financeStoreProvider),
+      categories,
+      child: int.parse(j['child']!),
+      parent: int.tryParse(j['parent']!),
+    ),
   );
 }
 

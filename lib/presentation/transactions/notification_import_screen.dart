@@ -24,6 +24,15 @@ import 'package:flourish/shared/widgets/app_card.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/liquid_page.dart';
 
+/// Three buttons share one row on a phone, so trim the theme's generous
+/// horizontal padding; otherwise the labels wrap letter-by-letter.
+final ButtonStyle _compactButton = ButtonStyle(
+  padding: WidgetStateProperty.all(
+    const EdgeInsets.symmetric(horizontal: Sp.sm, vertical: 14),
+  ),
+  iconSize: WidgetStateProperty.all(18),
+);
+
 class NotificationImportScreen extends ConsumerStatefulWidget {
   const NotificationImportScreen({super.key, this.initialDraft});
 
@@ -389,6 +398,7 @@ class _NotificationImportScreenState
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () => _pasteFromClipboard(categories),
+                            style: _compactButton,
                             icon: const Icon(Icons.content_paste_go),
                             label: const Text('Paste'),
                           ),
@@ -397,6 +407,7 @@ class _NotificationImportScreenState
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () => _pickPhoto(categories),
+                            style: _compactButton,
                             icon: const Icon(Icons.photo_library_outlined),
                             label: const Text('Photo'),
                           ),
@@ -405,6 +416,7 @@ class _NotificationImportScreenState
                         Expanded(
                           child: FilledButton.icon(
                             onPressed: () => _parseNotification(categories),
+                            style: _compactButton,
                             icon: const Icon(Icons.auto_awesome),
                             label: const Text('Analyze'),
                           ),

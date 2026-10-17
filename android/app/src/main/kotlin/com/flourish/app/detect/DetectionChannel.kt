@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -61,6 +62,14 @@ object DetectionChannel {
                         result.success(null)
                     }
                     "candidates" -> result.success(DetectionConfig.candidates(app))
+                    "installedApps" -> Thread {
+                        val apps = try {
+                            installedApps(app)
+                        } catch (_: Exception) {
+                            emptyList()
+                        }
+                        main.post { result.success(apps) }
+                    }.start()
                     "consumePendingRoute" -> {
                         result.success(pendingRoute)
                         pendingRoute = null
@@ -88,6 +97,28 @@ object DetectionChannel {
             return
         }
         if (DetectionConfig.notify(context)) postSummary(context)
+    }
+
+    /**
+     * Apps with a launcher icon, so the person can pick their bank or wallet
+     * app before it posts anything. Visible through the launcher `<queries>`
+     * entry in the manifest; only labels and package names are returned.
+     */
+    private fun installedApps(context: Context): List<Map<String, String>> {
+        val pm = context.packageManager
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val found = if (Build.VERSION.SDK_INT >= 33) {
+            pm.queryIntentActivities(launcher, PackageManager.ResolveInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.queryIntentActivities(launcher, 0)
+        }
+        return found
+            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .filter { it.first != context.packageName }
+            .distinctBy { it.first }
+            .sortedBy { it.second.lowercase() }
+            .map { mapOf("packageName" to it.first, "label" to it.second) }
     }
 
     private fun openAccessSettings(context: Context) {

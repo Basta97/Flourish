@@ -5,6 +5,9 @@ class SharedImportDraft {
     this.recognizedText,
     this.imagePath,
     this.createdAt,
+    this.id,
+    this.sender,
+    this.packageName,
   });
 
   final String source;
@@ -12,6 +15,12 @@ class SharedImportDraft {
   final String? recognizedText;
   final String? imagePath;
   final DateTime? createdAt;
+
+  /// Set for messages from the detection queue: the queue entry, and who
+  /// sent it (SMS sender or notification title) from which app.
+  final String? id;
+  final String? sender;
+  final String? packageName;
 
   String get bestText {
     final recognized = recognizedText?.trim() ?? '';
@@ -26,14 +35,17 @@ class SharedImportDraft {
       return text;
     }
 
+    // Detection queue rows name their fields text/receivedAt.
+    final created = map['createdAt'] ?? map['receivedAt'];
     return SharedImportDraft(
       source: (map['source'] ?? 'shortcut').toString(),
-      rawText: (map['rawText'] ?? '').toString(),
+      rawText: (map['rawText'] ?? map['text'] ?? '').toString(),
       recognizedText: normalize(map['recognizedText']),
       imagePath: normalize(map['imagePath']),
-      createdAt: map['createdAt'] == null
-          ? null
-          : DateTime.tryParse(map['createdAt'].toString()),
+      createdAt: created == null ? null : DateTime.tryParse(created.toString()),
+      id: normalize(map['id']),
+      sender: normalize(map['sender']),
+      packageName: normalize(map['packageName']),
     );
   }
 }

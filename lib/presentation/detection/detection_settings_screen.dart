@@ -11,6 +11,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/app_card.dart';
+import '../../shared/widgets/bottom_sheet_scaffold.dart';
+import '../../shared/widgets/spring_bottom_sheet.dart';
 import '../../shared/widgets/liquid_page.dart';
 import '../providers/finance_providers.dart';
 import 'inbox_screen.dart' show kindLabel;
@@ -57,6 +59,7 @@ class _DetectionSettingsScreenState
   };
   bool? access;
   List<SourceCandidate> candidates = const [];
+  List<InstalledApp> installed = const [];
   final _test = TextEditingController();
   ParsedPayment? _tested;
 
@@ -87,12 +90,86 @@ class _DetectionSettingsScreenState
   Future<void> _refresh() async {
     final granted = await bridge.isAccessGranted();
     final found = await bridge.candidates();
+    final apps = android
+        ? await bridge.installedApps()
+        : const <InstalledApp>[];
     if (mounted) {
       setState(() {
         access = granted;
         candidates = found;
+        installed = apps;
       });
     }
+  }
+
+  Future<void> _toggle(String packageName, bool on) async {
+    setState(
+      () => on ? packages.add(packageName) : packages.remove(packageName),
+    );
+    await PreferencesService.setString(
+      'detection_packages',
+      jsonEncode(packages.toList()),
+    );
+    await _push();
+  }
+
+  /// Every launchable app, searchable, so a bank app can be picked before
+  /// it posts its first alert.
+  Future<void> _pickInstalled() async {
+    if (installed.isEmpty) {
+      final apps = await bridge.installedApps();
+      if (!mounted) return;
+      setState(() => installed = apps);
+    }
+    var query = '';
+    await showSpringBottomSheet<void>(
+      context: context,
+      builder: (sheet) => StatefulBuilder(
+        builder: (sheet, setSheet) {
+          final q = query.trim().toLowerCase();
+          final shown = [
+            for (final app in installed)
+              if (!defaultMessagingApps.contains(app.packageName) &&
+                  (q.isEmpty ||
+                      app.label.toLowerCase().contains(q) ||
+                      app.packageName.toLowerCase().contains(q)))
+                app,
+          ];
+          return BottomSheetScaffold(
+            title: 'Bank and wallet apps',
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Search apps',
+                  prefixIcon: Icon(Icons.search_rounded),
+                ),
+                onChanged: (v) => setSheet(() => query = v),
+              ),
+              const SizedBox(height: Sp.sm),
+              if (shown.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: Sp.md),
+                  child: Text(
+                    installed.isEmpty ? 'No apps found.' : 'No matching apps.',
+                    style: AppTextStyles.caption,
+                  ),
+                ),
+              for (final app in shown)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: packages.contains(app.packageName),
+                  title: Text(app.label),
+                  subtitle: Text(app.packageName, style: AppTextStyles.caption),
+                  onChanged: (v) async {
+                    await _toggle(app.packageName, v == true);
+                    setSheet(() {});
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _push() => bridge.configure(
@@ -156,6 +233,13 @@ class _DetectionSettingsScreenState
       ),
     );
     final caption = AppTextStyles.caption.copyWith(color: palette.textLow);
+    final labels = {for (final app in installed) app.packageName: app.label};
+    final seen = {for (final c in candidates) c.packageName};
+    // Picked from the installed list rather than from apps seen posting alerts.
+    final picked = [
+      for (final p in packages)
+        if (!seen.contains(p) && !defaultMessagingApps.contains(p)) p,
+    ]..sort((a, b) => (labels[a] ?? a).compareTo(labels[b] ?? b));
     return Scaffold(
       appBar: AppBar(title: const Text('Payment detection')),
       body: LiquidPageBackground(
@@ -211,10 +295,11 @@ class _DetectionSettingsScreenState
                   Text(
                     'Messaging apps are always read. Apps that posted '
                     'money-like notifications appear here; tick the ones from '
-                    'your bank or wallet.',
+                    'your bank or wallet, or choose them from your installed '
+                    'apps.',
                     style: caption,
                   ),
-                  if (candidates.isEmpty)
+                  if (candidates.isEmpty && picked.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: Sp.sm),
                       child: Text(
@@ -228,19 +313,27 @@ class _DetectionSettingsScreenState
                       value: packages.contains(c.packageName),
                       title: Text(c.label),
                       subtitle: Text('${c.count} alerts', style: caption),
-                      onChanged: (v) async {
-                        setState(() {
-                          v == true
-                              ? packages.add(c.packageName)
-                              : packages.remove(c.packageName);
-                        });
-                        await PreferencesService.setString(
-                          'detection_packages',
-                          jsonEncode(packages.toList()),
-                        );
-                        await _push();
-                      },
+                      onChanged: (v) => _toggle(c.packageName, v == true),
                     ),
+                  for (final p in picked)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: true,
+                      title: Text(labels[p] ?? p),
+                      subtitle: Text(
+                        'Chosen from installed apps',
+                        style: caption,
+                      ),
+                      onChanged: (v) => _toggle(p, v == true),
+                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _pickInstalled,
+                      icon: const Icon(Icons.apps_rounded),
+                      label: const Text('Choose from installed apps'),
+                    ),
+                  ),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     value: notify,

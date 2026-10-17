@@ -18,9 +18,6 @@ import java.time.Instant
  */
 class PaymentNotificationListener : NotificationListenerService() {
 
-    /** Recently queued texts, so updates of the same SMS thread queue once. */
-    private val recent = LinkedHashMap<Int, Long>()
-
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         try {
             handle(sbn)
@@ -44,11 +41,10 @@ class PaymentNotificationListener : NotificationListenerService() {
                 DetectionConfig.recordCandidate(context, sbn.packageName, label(sbn.packageName))
                 return
             }
-            val key = (sbn.packageName + "|" + text).hashCode()
-            val now = System.currentTimeMillis()
-            recent.entries.removeAll { now - it.value > 120_000 }
-            if (recent.containsKey(key)) continue
-            recent[key] = now
+            // Updates of the same SMS thread re-post its last message with the
+            // same timestamp; two real alerts with the same words do not.
+            val key = sbn.packageName + "|" + text + (if (time > 0) "|$time" else "")
+            if (!RecentAlerts.firstSeen(context, key)) continue
             DetectionQueue.append(
                 context,
                 text = text,

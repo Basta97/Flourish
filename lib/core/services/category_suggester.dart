@@ -93,7 +93,7 @@ class CategorySuggester {
       }
     }
     for (final entry in _keywords.entries) {
-      if (!lower.contains(entry.key)) continue;
+      if (!_hasWord(lower, entry.key)) continue;
       for (final c in eligible.values) {
         if (c.icon == entry.value || c.name.toLowerCase().contains(entry.key)) {
           scores[c.id] = (scores[c.id] ?? 0) + 6;
@@ -104,5 +104,17 @@ class CategorySuggester {
     return (scores.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
         .first
         .key;
+  }
+
+  /// Whole-word match, so "book" does not hit "Facebook" nor "rent"
+  /// "current". Arabic has no word boundaries in RegExp, so it matches as a
+  /// plain substring after a space or the start.
+  static bool _hasWord(String text, String word) {
+    if (RegExp(r'^[a-z0-9 ]+$').hasMatch(word)) {
+      return RegExp(
+        '(?<![a-z0-9])${RegExp.escape(word)}(?![a-z0-9])',
+      ).hasMatch(text);
+    }
+    return RegExp('(?:^|\\s|ال)${RegExp.escape(word)}').hasMatch(text);
   }
 }

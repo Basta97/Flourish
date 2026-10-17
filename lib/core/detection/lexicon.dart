@@ -114,7 +114,30 @@ class Lexicon {
   );
   static final promo = RegExp(
     r'cashback up to|up to \d+%|\boffer\b|\bwin\b|enjoy|don.t miss|'
-    r'apply now|خصم يصل|عرض|استمتع|اربح|لا تفوت|احصل علي',
+    r'apply now|\d+\s?% off|use (the )?code|promo code|get \d+\s?%|'
+    r'خصم يصل|خصم \d+\s?%|كوبون|كود الخصم|عرض|استمتع|اربح|لا تفوت|احصل علي',
+  );
+
+  /// Reminders that a payment is due. Unlike [notice], "payment of" in them
+  /// does not mean money moved.
+  static final due = RegExp(
+    r'\bis due\b|\bdue (on|by|date)\b|\boverdue\b|please pay|'
+    r'payment (is )?due|مستحق|موعد السداد|تاريخ الاستحقاق',
+  );
+
+  /// A due reminder that is actually a receipt ("thank you for your payment").
+  static final dueSettled = RegExp(
+    r'thank you for your payment|payment (has been )?received|تم سداد|تم استلام',
+  );
+
+  /// Salary credits are income, not transfers from a person.
+  static final salary = RegExp(r'\bsalary\b|\bpayroll\b|راتب|مرتب');
+
+  /// Spending verbs: a balance word before one of these does not make the
+  /// following number a balance ("Your balance is low. Spent 20 EGP").
+  static final spendVerb = RegExp(
+    r'\b(spent|paid|purchase|debited|charged|credited|received|deducted|withdrawn)\b|'
+    r'تم خصم|شراء|تم ايداع|تم سحب',
   );
 
   /// Words before an amount that make it a balance or limit, not the
@@ -157,10 +180,10 @@ class Lexicon {
     r'\bbill\b|fawry|utility|فاتوره|فوري|شحن رصيد|recharge',
   );
   static final deposit = RegExp(
-    r'deposit(ed)?|credited|salary|payroll|تم ايداع|ايداع|اضافه|تم اضافه|راتب|مرتب',
+    r'deposit(ed)?|credited|salary|payroll|تم ايداع|ايداع|اضافه|تم اضافه|اضيف|راتب|مرتب',
   );
   static final purchase = RegExp(
-    r'purchase|spent|charged|debited|\bpaid\b|payment of|\bpos\b|'
+    r'purchase|spent|charged|debited|deducted|\bpaid\b|payment of|\bpos\b|'
     r'transaction (of|at|on)|used (at|for)|شراء|تم خصم|خصم|دفع|مدفوعات|'
     r'عمليه بقيمه|عمليه شراء',
   );
@@ -193,7 +216,7 @@ class Lexicon {
   /// Where a merchant or counterparty name stops.
   static final nameEnd = RegExp(
     r'\s(?:on|using|with|via|by|card|ending|for|in|at)\b|\s(?:successfully|succeeded|equivalent|equiv|has|have|was|is|were)\b|\s(?:في|بتاريخ|يوم|بواسطه|ببطاقه|بطاقه|باستخدام|رصيد|الرصيد|عبر|بنجاح|بما|يعادل|علي)(?=\s|$|[.,])|'
-    r'[,;:!(]|\.(?=\s|$)|\s\d{1,2}[/-]\d{1,2}|\s(?:avail|bal|ref|trx)',
+    r'[,;:!(]|(?<!\b(?:st|mt|dr|co|mr|ms|jr))\.(?=\s|$)|\s\d{1,2}[/-]\d{1,2}|\s(?:avail|bal|ref|trx)',
   );
 
   static final reference = RegExp(

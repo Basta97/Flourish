@@ -15,10 +15,21 @@ import 'redact.dart';
 class PaymentMessageParser {
   PaymentMessageParser._();
 
-  static final _number = RegExp(r'(?<![\d])\d[\d,.]*');
-  static final _amountWord = RegExp(
-    r'(amount|value|sum|of|مبلغ|بمبلغ|بقيمه|قيمه|قدره)\s*:?\s*$',
+  /// Space-grouped thousands ("12 000") first, then any digit run.
+  static final _number = RegExp(
+    r'(?<![\d])\d{1,3}(?: \d{3})+(?:[.,]\d+)?(?![\d])|(?<![\d])\d[\d,.]*',
   );
+  static final _amountWord = RegExp(
+    r'(amount|value|sum|of|paid|spent|charged|debited|credited|deducted|'
+    r'withdrawn|مبلغ|بمبلغ|بقيمه|قيمه|قدره)\s*:?\s*$',
+  );
+
+  /// "Card 4521 EGP 250.00": a card's last 4 right after the word card is
+  /// never the amount, even with a currency next to it.
+  static final _cardBefore = RegExp(
+    r'(?:card|بطاقه|بطاقتك|بطاقتكم)\s*(?:no\.?|number|رقم)?\s*:?\s*$',
+  );
+  static final _thousands = RegExp(r'^\s?k(?![a-z])');
   static final _creditCard = RegExp(
     r'credit card|بطاقه (?:\S+ ){0,3}الائتمان|البطاقه الائتمانيه|ائتمانيه',
   );
@@ -35,6 +46,9 @@ class PaymentMessageParser {
     if (Lexicon.otp.hasMatch(f)) return const ParsedPayment.ignored('otp');
     if (Lexicon.declined.hasMatch(f)) {
       return const ParsedPayment.ignored('declined');
+    }
+    if (Lexicon.due.hasMatch(f) && !Lexicon.dueSettled.hasMatch(f)) {
+      return const ParsedPayment.ignored('notice');
     }
     final kind = _kind(f);
     if (Lexicon.notice.hasMatch(f) && !Lexicon.confirmed.hasMatch(f)) {
@@ -118,6 +132,10 @@ class PaymentMessageParser {
     if (Lexicon.refund.hasMatch(f)) return 'refund';
     if (Lexicon.cardPayment.hasMatch(f)) return 'card_payment';
     if (Lexicon.withdrawal.hasMatch(f)) return 'withdrawal';
+    if (Lexicon.salary.hasMatch(f) &&
+        (Lexicon.deposit.hasMatch(f) || Lexicon.transferIn.hasMatch(f))) {
+      return 'deposit';
+    }
     if (Lexicon.transferIn.hasMatch(f)) return 'transfer_in';
     if (Lexicon.transferOut.hasMatch(f)) return 'transfer_out';
     if (Lexicon.bill.hasMatch(f)) return 'bill_payment';
@@ -160,7 +178,8 @@ class PaymentMessageParser {
       // A sentence's full stop or comma is not part of the number.
       raw = raw.replaceAll(RegExp(r'[.,]+$'), '');
       if (raw.isEmpty) continue;
-      final start = m.start, end = m.start + raw.length;
+      final start = m.start;
+      var end = m.start + raw.length;
       final prev = start > 0 ? text[start - 1] : '';
       final next = end < text.length ? text[end] : '';
       final next2 = end + 1 < text.length ? text[end + 1] : '';
@@ -173,8 +192,14 @@ class PaymentMessageParser {
       }
       if ('x*•#X'.contains(prev) && prev.isNotEmpty) continue;
       if (RegExp(r'^0?1[0125]\d{8}$').hasMatch(raw)) continue;
-      final currency = _currencyNear(f, start, end);
       final window = f.substring(start - 40 < 0 ? 0 : start - 40, start);
+      if (RegExp(r'^\d{4}$').hasMatch(raw) && _cardBefore.hasMatch(window)) {
+        continue;
+      }
+      // "1.5k EGP": thousands suffix.
+      final k = _thousands.firstMatch(f.substring(end));
+      if (k != null) end += k.end;
+      final currency = _currencyNear(f, start, end);
       if (currency == null && !_amountWord.hasMatch(window)) continue;
       final parsed = AmountParser.parse(
         raw,
@@ -182,14 +207,20 @@ class PaymentMessageParser {
         lenient: true,
       );
       if (!parsed.isValid) continue;
+      var value = parsed.value!;
+      if (k != null) value = value * Amount('1000');
+      final balance = Lexicon.balanceLabel.firstMatch(window);
+      final spentAfterBalance =
+          balance != null &&
+          Lexicon.spendVerb.hasMatch(window.substring(balance.start));
       final role = Lexicon.equivalentLabel.hasMatch(window)
           ? _Role.equivalent
           : Lexicon.feeLabel.hasMatch(window)
           ? _Role.fee
-          : Lexicon.balanceLabel.hasMatch(window)
+          : balance != null && !spentAfterBalance
           ? (_limitWord.hasMatch(_label(window)) ? _Role.limit : _Role.balance)
           : _Role.amount;
-      out.add(_Candidate(parsed.value!, currency, start, end, role));
+      out.add(_Candidate(value, currency, start, end, role));
     }
     return out;
   }
@@ -242,7 +273,7 @@ class PaymentMessageParser {
   );
   static final _notName = RegExp(
     r'^(?:your|the|a|an|due|on|for|to|from|of|account|card|'
-    r'بطاقتك|حسابك|حساب|ماكينه|ماكينة|الصراف|رقم|مبلغ)(?=\s|$|[.,])',
+    r'بطاقتك|حسابك|لحسابك|حساب|ماكينه|ماكينة|الصراف|رقم|مبلغ|بتاريخ|يوم)(?=\s|$|[.,])',
     caseSensitive: false,
   );
 

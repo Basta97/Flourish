@@ -2,30 +2,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
 import 'package:flourish/data/database/database.dart';
-import 'package:flourish/core/services/transaction_notification_parser.dart';
+import 'package:flourish/core/detection/local_parser.dart';
+import 'package:flourish/domain/finance/amount.dart';
 
 void main() {
   test(
     'parses an Apple Pay spending notification into a draft transaction',
     () {
-      final parsed = TransactionNotificationParser.parse(
+      final parsed = LocalTransactionParser.parse(
         'Apple Pay: Card 1234 spent 24.90 USD at Starbucks',
       );
 
       expect(parsed.type, 'expense');
-      expect(parsed.amount, 24.90);
+      expect(parsed.amount, Amount('24.90'));
       expect(parsed.merchant, 'Starbucks');
       expect(parsed.confidence, greaterThan(0.5));
     },
   );
 
   test('detects income-style notification wording', () {
-    final parsed = TransactionNotificationParser.parse(
+    final parsed = LocalTransactionParser.parse(
       'Your salary account was credited with 3500 USD from Payroll',
     );
 
     expect(parsed.type, 'income');
-    expect(parsed.amount, 3500);
+    expect(parsed.amount, Amount('3500'));
     expect(parsed.merchant, 'Payroll');
   });
 

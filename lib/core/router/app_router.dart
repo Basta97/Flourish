@@ -9,6 +9,7 @@ import '../../presentation/transactions/transactions_screen.dart';
 import '../../presentation/wealth/wealth_screen.dart';
 import '../../presentation/search/search_screen.dart';
 import '../../presentation/settings/settings_screen.dart';
+import '../../presentation/settings/ai_settings_screen.dart';
 import '../../presentation/categories/categories_management_screen.dart';
 import '../../presentation/recurring/recurring_transactions_screen.dart';
 import '../../presentation/goals/goals_screen.dart';
@@ -83,6 +84,11 @@ final appRouter = GoRouter(
       path: '/goals',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const GoalsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/ai',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AiSettingsScreen(),
     ),
     GoRoute(
       path: '/smart-import',

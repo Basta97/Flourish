@@ -11,6 +11,7 @@ import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/theme_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
+import 'package:flourish/presentation/providers/detection_providers.dart';
 import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
 import 'package:flourish/shared/widgets/segmented_pill.dart';
 import 'package:flourish/core/motion/motion.dart';
@@ -336,6 +337,18 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
               transactionDate: _date,
             ),
           );
+      if (_categoryId != widget.transaction.categoryId) {
+        // Teach Smart Import the corrected category for this merchant.
+        final details = await ref
+            .read(financeStoreProvider)
+            .transactionDetails(widget.transaction.id);
+        final key = details?['merchantKey'];
+        if (key is String && key.isNotEmpty) {
+          await ref
+              .read(categoryLearningProvider)
+              .learn(merchantKey: key, type: _type, categoryId: _categoryId);
+        }
+      }
       ref.invalidate(transactionsProvider);
       ref.invalidate(accountsProvider);
 

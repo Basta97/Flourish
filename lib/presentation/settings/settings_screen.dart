@@ -170,6 +170,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: 'Paste bank alerts to create transactions',
                   onTap: () => context.push('/smart-import'),
                 ),
+                _SettingTile(
+                  icon: Icons.psychology_alt_outlined,
+                  tint: const Color(0xFF8B7CF6),
+                  title: 'AI Assistant',
+                  subtitle: 'DeepSeek, OpenRouter, Groq or Gemini for detection',
+                  onTap: () => context.push('/settings/ai'),
+                ),
               ],
             ),
 

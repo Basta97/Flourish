@@ -193,8 +193,45 @@ class FinancialLedgerService {
             updated.transactionDate,
             details?['kind'] ?? 'cash',
           );
+          final kept = {
+            for (final key in annotationKeys)
+              if (details?[key] != null) key: details![key],
+          };
+          if (kept.isNotEmpty) await annotate(updated.id, kept);
         }
       });
+
+  /// Detection metadata kept on a transaction (merchant, where it came from,
+  /// which import batch created it). Survives edits.
+  static const annotationKeys = [
+    'merchant',
+    'merchantKey',
+    'source',
+    'importBatchId',
+    'rawText',
+    'originalCurrency',
+  ];
+
+  Future<void> annotate(int id, Json extra) async {
+    final details = await store.transactionDetails(id) ?? const {};
+    await store.setTransactionDetails(id, {...details, ...extra});
+  }
+
+  /// Deletes every transaction created by one import, newest first.
+  Future<int> undoImportBatch(String batchId) => db.transaction(() async {
+    final rows = await db
+        .customSelect(
+          "SELECT transaction_id FROM transaction_details WHERE json_extract(payload, '\$.importBatchId') = ?",
+          variables: [Variable(batchId)],
+        )
+        .get();
+    final ids = rows.map((r) => r.read<int>('transaction_id')).toList()
+      ..sort((a, b) => b.compareTo(a));
+    for (final id in ids) {
+      await deleteTransactionAndUpdateBalance(id);
+    }
+    return ids.length;
+  });
   Future<void> deleteTransactionAndUpdateBalance(
     int id,
   ) => db.transaction(() async {

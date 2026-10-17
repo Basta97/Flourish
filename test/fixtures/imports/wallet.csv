@@ -1,0 +1,6 @@
+account;category;currency;amount;ref_currency_amount;type;payment_type;payment_type_local;note;date;gps_latitude;gps_longitude;gps_accuracy_in_meters;warranty_in_month;transfer;payee;labels;envelope_id;custom_category
+Cash;Groceries;EUR;-23,40;-23,40;Expenses;CASH;Cash;Weekly;2024-03-02T10:15:00.000Z;;;;0;false;Lidl;;1000;false
+Bank;Salary;EUR;1500,00;1500,00;Income;TRANSFER;Bank transfer;;2024-03-01T08:00:00.000Z;;;;0;false;Employer;;5000;false
+Bank;Transfer;EUR;-200,00;-200,00;Expenses;TRANSFER;Bank transfer;To cash;2024-03-03T09:00:00.000Z;;;;0;true;;;20001;false
+Cash;Transfer;EUR;200,00;200,00;Income;TRANSFER;Bank transfer;To cash;2024-03-03T09:00:00.000Z;;;;0;true;;;20001;false
+Bank;Restaurant;EUR;abc;;Expenses;CASH;Cash;;2024-03-04T19:00:00.000Z;;;;0;false;;;1000;false

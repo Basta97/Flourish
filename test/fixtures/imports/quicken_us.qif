@@ -1,0 +1,62 @@
+!Option:AutoSwitch
+!Account
+NChecking
+TBank
+^
+NSavings
+TBank
+^
+!Clear:AutoSwitch
+!Account
+NChecking
+TBank
+^
+!Type:Bank
+D1/ 1'24
+T1,000.00
+POpening Balance
+L[Checking]
+^
+D1/2'24
+T-1,234.56
+PLandlord
+MJanuary rent
+LHousing:Rent
+^
+D01/15/2024
+T-150.00
+PSupermarket
+SFood:Groceries
+$-100.00
+EWeekly shop
+SHousehold
+$-50.00
+^
+D1/20'24
+T-300.00
+PMove to savings
+L[Savings]
+^
+D1/25'24
+T2,000.00
+PEmployer
+LSalary/Work
+^
+DNot a date
+T-5.00
+^
+!Account
+NSavings
+TBank
+^
+!Type:Bank
+D1/20'24
+T300.00
+PMove from checking
+L[Checking]
+^
+!Type:Cat
+NFood
+DFood
+E
+^

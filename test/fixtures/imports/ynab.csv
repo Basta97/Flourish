@@ -1,0 +1,6 @@
+﻿"Account","Flag","Date","Payee","Category Group/Category","Category Group","Category","Memo","Outflow","Inflow","Cleared"
+"Checking","","06/01/2024","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","","$0.00","$1,000.00","Reconciled"
+"Checking","","06/03/2024","Grocer","Everyday Expenses: Groceries","Everyday Expenses","Groceries","milk","$45.10","$0.00","Cleared"
+"Checking","Red","06/15/2024","Transfer : Savings","","","","rainy day","$250.00","$0.00","Cleared"
+"Savings","","06/15/2024","Transfer : Checking","","","","rainy day","$0.00","$250.00","Cleared"
+"Checking","","06/20/2024","Employer","Inflow: Ready to Assign","Inflow","Ready to Assign","","$0.00","$2,400.00","Cleared"

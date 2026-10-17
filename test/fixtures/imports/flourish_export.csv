@@ -1,0 +1,4 @@
+"Date","Income/Expense","Account","Category","Amount","Currency","Note","Merchant","Paid with","Original amount","Original currency"
+"2024-07-01T13:45:00.000","expense","CIB","Dining","350.5","EGP","Dinner","Zooba","Visa ••1234","",""
+"2024-07-02T09:00:00.000","income","CIB","Salary","40000","EGP","","","","",""
+"2024-07-03T10:00:00.000","refund","CIB","Other","10","EGP","","","","",""

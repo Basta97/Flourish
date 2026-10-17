@@ -1,0 +1,6 @@
+Date,Wallet,Type,Category name,Amount,Currency,Note,Labels,Author
+2024-05-01T12:30:00+02:00,Main,Expense,Food & Drink,-15.75,USD,Pizza,,Sam
+2024-05-02T08:00:00+02:00,Main,Income,Salary,3200,USD,,work,Sam
+2024-05-03T09:00:00+02:00,Main,Transfer,Transfer,-100,USD,,,Sam
+2024-05-03T09:00:00+02:00,Savings,Transfer,Transfer,100,USD,,,Sam
+2024-05-04T09:00:00+02:00,Main,Transfer,Transfer,-40,USD,Orphan,,Sam

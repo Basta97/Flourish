@@ -1,0 +1,7 @@
+﻿Period,Accounts,Category,Subcategory,Note,EGP,Income/Expense,Description,Amount,Currency,Accounts
+01/31/2024 18:20:00,Cash,Food,Lunch,Koshary,85,Exp.,with team,85,EGP,85
+01/31/2024 09:00:00,Bank,Salary,,January,"25,000.00",Income,,"25,000.00",EGP,"25,000.00"
+02/01/2024 10:00:00,Bank,Cash,,ATM,2000,Transfer-Out,,2000,EGP,2000
+02/01/2024 10:00:00,Cash,Bank,,ATM,2000,Transfer-In,,2000,EGP,2000
+02/02/2024 12:00:00,Cash,Transport,Taxi,,120,Exp.,,120,EGP,120
+02/03/2024,Cash,Gift,,,50,Bonus,,50,EGP,50

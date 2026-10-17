@@ -1,0 +1,6 @@
+date,account,category,amount,currency,converted amount,currency,description
+02/04/2024,Cash,Food,"-1,250.00",EGP,"-1,250.00",EGP,Groceries
+05/04/2024,Card,Salary,30000,EGP,30000,EGP,
+06/04/2024,Card,To 'Cash',-500,EGP,-500,EGP,
+06/04/2024,Cash,From 'Card',500,EGP,500,EGP,
+31/04/2024,Cash,Food,-10,EGP,-10,EGP,Bad date

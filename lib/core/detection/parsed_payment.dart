@@ -47,6 +47,13 @@ class ParsedPayment {
 
   /// otp, declined, promo, no_amount — the message is not a payment.
   final String? ignoreReason;
+
+  /// True once the AI stage reviewed this message.
+  final bool aiAssisted;
+
+  /// A category to create on confirm because none of the existing ones fits
+  /// (see `ProposedCategory`); stored as its JSON.
+  final Json? proposedCategory;
   const ParsedPayment({
     required this.kind,
     required this.direction,
@@ -65,6 +72,8 @@ class ParsedPayment {
     this.availableCredit,
     required this.confidence,
     this.ignoreReason,
+    this.aiAssisted = false,
+    this.proposedCategory,
   });
 
   const ParsedPayment.ignored(this.ignoreReason)
@@ -83,7 +92,9 @@ class ParsedPayment {
       occurredAt = null,
       balanceAfter = null,
       availableCredit = null,
-      confidence = 0;
+      confidence = 0,
+      aiAssisted = false,
+      proposedCategory = null;
 
   bool get ignored => ignoreReason != null;
 
@@ -106,6 +117,8 @@ class ParsedPayment {
     'availableCredit': availableCredit?.toString(),
     'confidence': confidence,
     'ignoreReason': ignoreReason,
+    if (aiAssisted) 'aiAssisted': true,
+    if (proposedCategory != null) 'proposedCategory': proposedCategory,
   };
 
   factory ParsedPayment.fromJson(Json j) {
@@ -130,6 +143,46 @@ class ParsedPayment {
       availableCredit: a('availableCredit'),
       confidence: (j['confidence'] as num?)?.toDouble() ?? 0,
       ignoreReason: j['ignoreReason'],
+      aiAssisted: j['aiAssisted'] == true,
+      proposedCategory: j['proposedCategory'] as Json?,
     );
   }
+
+  ParsedPayment copyWith({
+    String? kind,
+    String? direction,
+    Amount? amount,
+    String? currency,
+    String? merchant,
+    String? counterparty,
+    DateTime? occurredAt,
+    double? confidence,
+    String? ignoreReason,
+    bool clearIgnore = false,
+    bool? aiAssisted,
+    Json? proposedCategory,
+    bool clearProposal = false,
+  }) => ParsedPayment(
+    kind: kind ?? this.kind,
+    direction: direction ?? this.direction,
+    amount: amount ?? this.amount,
+    currency: currency ?? this.currency,
+    bookedAmount: bookedAmount,
+    bookedCurrency: bookedCurrency,
+    fee: fee,
+    last4: last4,
+    merchant: merchant ?? this.merchant,
+    counterparty: counterparty ?? this.counterparty,
+    reference: reference,
+    issuerId: issuerId,
+    occurredAt: occurredAt ?? this.occurredAt,
+    balanceAfter: balanceAfter,
+    availableCredit: availableCredit,
+    confidence: confidence ?? this.confidence,
+    ignoreReason: clearIgnore ? null : ignoreReason ?? this.ignoreReason,
+    aiAssisted: aiAssisted ?? this.aiAssisted,
+    proposedCategory: clearProposal
+        ? null
+        : proposedCategory ?? this.proposedCategory,
+  );
 }

@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/bottom_sheet_scaffold.dart';
 import '../../shared/widgets/spring_bottom_sheet.dart';
 import '../../shared/widgets/liquid_page.dart';
+import '../providers/ai_providers.dart';
 import '../providers/finance_providers.dart';
 import 'inbox_screen.dart' show kindLabel;
 
@@ -389,6 +391,18 @@ class _DetectionSettingsScreenState
                   setState(() => auto = v);
                   await PreferencesService.setBool('detection_auto_confirm', v);
                 },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.psychology_alt_outlined),
+                title: const Text('AI for unclear messages'),
+                subtitle: Text(
+                  ref.watch(aiSettingsProvider).enabled
+                      ? 'On · ${ref.watch(aiSettingsProvider).preset.label}'
+                      : 'Off · DeepSeek, OpenRouter, Groq or Gemini',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/settings/ai'),
               ),
             ]),
             section('Privacy', [

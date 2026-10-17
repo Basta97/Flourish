@@ -1,3 +1,4 @@
+import 'package:flourish/presentation/settings/ai_settings_screen.dart';
 import 'package:flourish/presentation/detection/inbox_screen.dart';
 import 'package:flourish/presentation/detection/detection_settings_screen.dart';
 import 'package:flourish/presentation/payment_methods/payment_methods_screen.dart';
@@ -86,6 +87,11 @@ final appRouter = GoRouter(
       path: '/inbox',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const InboxScreen(),
+    ),
+    GoRoute(
+      path: '/settings/ai',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const AiSettingsScreen(),
     ),
     GoRoute(
       path: '/settings/detection',

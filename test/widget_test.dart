@@ -4,31 +4,30 @@ import 'package:drift/drift.dart';
 import 'package:flourish/core/finance/financial_ledger_service.dart';
 import 'package:flourish/core/finance/recurring_service.dart';
 import 'package:flourish/data/database/database.dart';
-import 'package:flourish/core/services/transaction_notification_parser.dart';
+import 'package:flourish/core/detection/parsed_payment.dart';
+import 'package:flourish/core/detection/payment_parser.dart';
+import 'package:flourish/domain/finance/models.dart' show Amount;
 
 void main() {
-  test(
-    'parses an Apple Pay spending notification into a draft transaction',
-    () {
-      final parsed = TransactionNotificationParser.parse(
-        'Apple Pay: Card 1234 spent 24.90 USD at Starbucks',
-      );
-
-      expect(parsed.type, 'expense');
-      expect(parsed.amount, 24.90);
-      expect(parsed.merchant, 'Starbucks');
-      expect(parsed.confidence, greaterThan(0.5));
-    },
+  ParsedPayment parse(String text) => PaymentMessageParser.parse(
+    RawMessage(text: text, receivedAt: DateTime(2026, 10, 17), source: 'paste'),
   );
 
+  test('parses an Apple Pay spending notification into a payment', () {
+    final parsed = parse('Apple Pay: Card 1234 spent 24.90 USD at Starbucks');
+    expect(parsed.direction, 'expense');
+    expect(parsed.amount, Amount('24.90'));
+    expect(parsed.merchant, 'Starbucks');
+    expect(parsed.confidence, greaterThan(0.5));
+  });
+
   test('detects income-style notification wording', () {
-    final parsed = TransactionNotificationParser.parse(
+    final parsed = parse(
       'Your salary account was credited with 3500 USD from Payroll',
     );
-
-    expect(parsed.type, 'income');
-    expect(parsed.amount, 3500);
-    expect(parsed.merchant, 'Payroll');
+    expect(parsed.direction, 'income');
+    expect(parsed.amount, Amount('3500'));
+    expect(parsed.kind, 'deposit');
   });
 
   test('clamps monthly recurring dates at month end', () {

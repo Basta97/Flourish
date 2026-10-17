@@ -13,6 +13,7 @@ import '../../core/finance/market_data_service.dart';
 import '../../core/finance/valuation_service.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
+import 'ai_providers.dart';
 import 'theme_providers.dart';
 import 'transaction_providers.dart';
 export '../../domain/finance/models.dart';
@@ -113,7 +114,11 @@ final accountDetailsProvider = FutureProvider<Map<int, AccountDetails>>((
 });
 
 final detectionServiceProvider = Provider(
-  (ref) => DetectionService(ref.watch(financialLedgerProvider)),
+  (ref) => DetectionService(
+    ref.watch(financialLedgerProvider),
+    assist: () => ref.read(aiAssistProvider.future),
+    newCategories: ref.watch(aiSettingsProvider).allowNewCategories,
+  ),
 );
 final detectionBridgeProvider = Provider<DetectionBridge>(
   (ref) => MethodChannelDetectionBridge(),

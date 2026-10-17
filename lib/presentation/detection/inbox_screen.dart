@@ -16,6 +16,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/liquid_page.dart';
 import '../providers/account_providers.dart';
+import '../providers/ai_providers.dart';
 import '../providers/category_providers.dart';
 import '../providers/finance_providers.dart';
 import '../wealth/finance_form.dart';
@@ -55,7 +56,12 @@ class InboxScreen extends ConsumerWidget {
         .where((r) => r.status == 'duplicate' || r.status == 'dismissed')
         .take(30)
         .toList();
-    final ready = pending.where(_ready).toList();
+    final service = ref.read(detectionServiceProvider);
+    final ready = pending.where((r) => _ready(service, r)).toList();
+    final aiReady = ref.watch(aiAssistProvider).valueOrNull != null;
+    final unclear = pending
+        .where((r) => r.confidence < 0.7 && !service.parsedOf(r).aiAssisted)
+        .toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payments to review'),
@@ -88,6 +94,23 @@ class InboxScreen extends ConsumerWidget {
                   120,
                 ),
                 children: [
+                  if (aiReady && unclear.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Sp.md),
+                      child: OutlinedButton.icon(
+                        onPressed: () => askAi(
+                          context,
+                          ref,
+                          [for (final r in unclear) r.id],
+                        ),
+                        icon: const Icon(Icons.psychology_alt_outlined),
+                        label: Text(
+                          unclear.length == 1
+                              ? 'Check the unclear payment with AI'
+                              : 'Check ${unclear.length} unclear payments with AI',
+                        ),
+                      ),
+                    ),
                   if (ready.length > 1)
                     Padding(
                       padding: const EdgeInsets.only(bottom: Sp.md),
@@ -122,11 +145,13 @@ class InboxScreen extends ConsumerWidget {
     );
   }
 
-  /// Ready for one tap: an account and, when needed, a category.
-  static bool _ready(DetectedPayment r) =>
+  /// Ready for one tap: an account and, when needed, a category (an
+  /// existing one or one to create).
+  static bool _ready(DetectionService service, DetectedPayment r) =>
       r.accountId != null &&
       r.matchTransactionId == null &&
       (r.categoryId != null ||
+          service.proposalOf(r) != null ||
           [
             'transfer_out',
             'transfer_in',
@@ -160,6 +185,32 @@ class InboxScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Runs the AI stage on [ids] and reports the outcome.
+Future<void> askAi(BuildContext context, WidgetRef ref, List<int> ids) async {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(const SnackBar(content: Text('Asking the AI…')));
+  try {
+    final changed = await ref
+        .read(detectionServiceProvider)
+        .assistPending(ids: ids);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            changed == 0
+                ? 'The AI had nothing to add'
+                : 'Updated $changed payment${changed == 1 ? '' : 's'}',
+          ),
+        ),
+      );
+  } catch (e) {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('AI unavailable: ${describeError(e)}')));
   }
 }
 
@@ -203,6 +254,7 @@ class _DetectedCard extends ConsumerWidget {
     final category = categories
         .where((c) => c.id == row.categoryId)
         .firstOrNull;
+    final proposal = service.proposalOf(row);
     final instrument = (ref.watch(paymentInstrumentsProvider).valueOrNull ?? [])
         .where((i) => i.id == row.instrumentId)
         .firstOrNull;
@@ -222,6 +274,7 @@ class _DetectedCard extends ConsumerWidget {
       account?.name ?? 'Choose an account',
       ?instrument?.label,
       if (category != null) category.name,
+      if (category == null && proposal != null) '✨ New: ${proposal.label}',
       DateFormat('d MMM, HH:mm').format(when),
       from,
     ].join(' · ');
@@ -288,7 +341,17 @@ class _DetectedCard extends ConsumerWidget {
             if (row.status == 'duplicate')
               const _Flag('Same payment as another alert'),
             if (p.confidence < 0.7 && pending)
-              const _Flag('Unclear message: check the details'),
+              _Flag(
+                'Unclear message: check the details',
+                action:
+                    !p.aiAssisted &&
+                        row.rawText != null &&
+                        ref.watch(aiAssistProvider).valueOrNull != null
+                    ? 'Ask AI'
+                    : null,
+                onAction: () => askAi(context, ref, [row.id]),
+              ),
+            if (p.aiAssisted && pending) const _Flag('Checked with AI'),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -436,7 +499,9 @@ class _DetectedCard extends ConsumerWidget {
             initial: '${row.categoryId ?? ''}',
             required: false,
             options: {
-              '': 'Automatic',
+              '': ref.read(detectionServiceProvider).proposalOf(row) == null
+                  ? 'Automatic'
+                  : '✨ New: ${ref.read(detectionServiceProvider).proposalOf(row)!.label}',
               for (final c in categories.where((c) => c.type == categoryType))
                 '${c.id}': c.name,
             },

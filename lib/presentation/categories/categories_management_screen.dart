@@ -244,28 +244,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
   int _color = AppColors.fallbackColor;
   String? _nameError;
 
-  static const _availableIcons = [
-    'payments',
-    'laptop',
-    'trending_up',
-    'restaurant',
-    'directions_car',
-    'shopping_bag',
-    'receipt_long',
-    'movie',
-    'favorite',
-    'school',
-    'home',
-    'more_horiz',
-    'flight',
-    'pets',
-    'child_care',
-    'sports_soccer',
-    'music_note',
-    'coffee',
-    'work',
-    'local_hospital',
-  ];
+  static final _availableIcons = IconUtils.categoryIcons.keys.toList();
 
   @override
   void initState() {

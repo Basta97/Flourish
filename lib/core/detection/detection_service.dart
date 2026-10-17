@@ -4,11 +4,12 @@ import '../../data/database/database.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
 import '../finance/financial_ledger_service.dart';
-import '../finance/system_categories.dart';
 import '../finance/valuation_service.dart';
 import '../services/category_suggester.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/fingerprint.dart';
+import '../ai/ai_payment_assist.dart';
+import 'category_resolver.dart';
 import 'issuers.dart';
 import 'normalizer.dart';
 import 'parsed_payment.dart';
@@ -63,11 +64,25 @@ class ConfirmResult {
 /// confirmed. Everything stays on the device.
 class DetectionService {
   final FinancialLedgerService ledger;
-  DetectionService(this.ledger);
+
+  /// The optional AI stage; resolves to null when AI is off or has no key.
+  final Future<AiPaymentAssist?> Function()? assist;
+
+  /// Whether unmatched merchants may get a proposed new category.
+  final bool newCategories;
+  DetectionService(this.ledger, {this.assist, this.newCategories = true});
   AppDatabase get db => ledger.db;
   FinanceStore get store => ledger.store;
 
   static const _window = Duration(minutes: 15);
+
+  /// Receipt images waiting for their detected payment to be confirmed,
+  /// keyed by detected payment id.
+  static const receiptCollection = 'detectionReceipts';
+
+  /// Keeps [path] as the receipt of detected payment [id] once confirmed.
+  Future<void> attachReceipt(int id, String path) =>
+      store.put(receiptCollection, '$id', {'path': path}, notify: false);
 
   /// Parses and stores [message]. Returns null when it is not a payment or
   /// was already received.
@@ -76,7 +91,13 @@ class DetectionService {
     bool autoConfirm = false,
   }) async {
     final cleaned = MessageNormalizer.clean(message.text);
-    final parsed = PaymentMessageParser.parse(message);
+    var parsed = PaymentMessageParser.parse(message);
+    AiPaymentResult? ai;
+    if (parsed.ignored) {
+      // The AI may read a payment the parser found no amount in.
+      ai = await _tryAi(cleaned, parsed);
+      if (ai != null && !ai.payment.ignored) parsed = ai.payment;
+    }
     if (parsed.ignored) {
       final key = parsed.ignoreReason!;
       final stats = await store.get('detectionStats', key);
@@ -102,7 +123,16 @@ class DetectionService {
     final account = match.accountId == null
         ? null
         : await db.getAccountById(match.accountId!);
-    final category = await _category(parsed, account);
+    final category = await _category(
+      parsed,
+      account,
+      text: cleaned,
+      aiCategoryId: ai?.categoryId,
+      aiProposed: ai?.proposed,
+    );
+    if (category.proposed != null) {
+      parsed = parsed.copyWith(proposedCategory: category.proposed!.toJson());
+    }
     final existing = account == null
         ? null
         : await _existingEntry(parsed, account, occurred);
@@ -129,7 +159,7 @@ class DetectionService {
             balanceAfter: Value(parsed.balanceAfter?.toString()),
             accountId: Value(match.accountId),
             instrumentId: Value(match.instrumentId),
-            categoryId: Value(category),
+            categoryId: Value(category.categoryId),
             confidence: parsed.confidence,
             status: Value(duplicateOf == null ? 'pending' : 'duplicate'),
             duplicateOfId: Value(duplicateOf),
@@ -326,7 +356,16 @@ class DetectionService {
     MessageNormalizer.clean(merchant),
   ).replaceAll(RegExp(r'[^a-z0-9؀-ۿ]+'), ' ').trim();
 
-  Future<int?> _category(ParsedPayment p, Account? account) async {
+  /// Merchant rule (the person's last choice) → AI pick → history and
+  /// keywords → local concept table → "Other". A miss in an existing
+  /// category may come back as a proposal to create one on confirm.
+  Future<CategoryResolution> _category(
+    ParsedPayment p,
+    Account? account, {
+    String text = '',
+    int? aiCategoryId,
+    ProposedCategory? aiProposed,
+  }) async {
     final type = switch (p.kind) {
       'refund' => 'expense',
       _ => p.direction,
@@ -337,7 +376,7 @@ class DetectionService {
       'withdrawal',
       'card_payment',
     ].contains(p.kind)) {
-      return null;
+      return const CategoryResolution();
     }
     final merchant = p.merchant ?? p.counterparty;
     if (merchant != null) {
@@ -345,20 +384,133 @@ class DetectionService {
       final id = rule?['categoryId'] as int?;
       if (id != null) {
         final c = await db.getCategoryById(id);
-        if (c != null && c.type == type) return id;
+        if (c != null && c.type == type) {
+          return CategoryResolution(categoryId: id);
+        }
       }
     }
-    final categories = SystemCategories.pickable(await db.getAllCategories());
+    final all = await db.getAllCategories();
+    final resolver = CategoryResolver(all, allowNew: newCategories);
+    final query = CategoryQuery(
+      type: type,
+      merchant: merchant ?? '',
+      text: text,
+      aiCategoryId: aiCategoryId,
+      aiProposed: aiProposed,
+    );
+    final fromAi = resolver.fromAi(query);
+    if (fromAi.found) return fromAi;
     final recent = (await db.getAllTransactions()).take(500).toList();
     final suggested = CategorySuggester.suggest(
       '${merchant ?? ''} ${p.kind ?? ''}',
       recent,
-      categories: categories,
+      categories: resolver.categories,
       type: type,
     );
-    if (suggested != null) return suggested;
-    return (await db.fallbackCategoryFor(type)).id;
+    if (suggested != null) return CategoryResolution(categoryId: suggested);
+    final concept = resolver.fromConcept(query);
+    if (concept.found) return concept;
+    return CategoryResolution(
+      categoryId: (await db.fallbackCategoryFor(type)).id,
+    );
   }
+
+  Future<AiPaymentResult?> _tryAi(String text, ParsedPayment local) async {
+    final ai = await assist?.call();
+    if (ai == null || !ai.wants(local, text)) return null;
+    try {
+      final results = await ai.improve(
+        [AiPaymentRequest(text, local)],
+        await db.getAllCategories(),
+      );
+      return results.single;
+    } catch (_) {
+      return null; // Offline or misconfigured: keep the on-device reading.
+    }
+  }
+
+  /// Sends pending payments the parser was unsure about (or [ids], even when
+  /// sure) to the AI and applies what passes validation. Returns how many
+  /// changed; throws when the AI could not be reached so the UI can say so.
+  Future<int> assistPending({List<int>? ids}) async {
+    final ai = await assist?.call();
+    if (ai == null) return 0;
+    final rows = ids == null
+        ? await (db.select(
+            db.detectedPayments,
+          )..where((d) => d.status.equals('pending'))).get()
+        : await (db.select(
+            db.detectedPayments,
+          )..where((d) => d.id.isIn(ids))).get();
+    final todo = [
+      for (final r in rows)
+        if (r.rawText != null &&
+            r.status == 'pending' &&
+            (ids != null || ai.wants(parsedOf(r), r.rawText!)))
+          r,
+    ];
+    if (todo.isEmpty) return 0;
+    final results = await ai.improve(
+      [for (final r in todo) AiPaymentRequest(r.rawText!, parsedOf(r))],
+      await db.getAllCategories(),
+    );
+    var changed = 0;
+    for (var i = 0; i < todo.length; i++) {
+      final result = results[i];
+      if (result == null) continue;
+      await _applyAi(todo[i], result);
+      changed++;
+    }
+    if (changed > 0) db.notifyFinanceChanged();
+    return changed;
+  }
+
+  Future<void> _applyAi(DetectedPayment row, AiPaymentResult result) async {
+    var p = result.payment;
+    if (p.ignored) {
+      await (db.update(db.detectedPayments)..where((d) => d.id.equals(row.id)))
+          .write(
+            DetectedPaymentsCompanion(
+              parsed: Value(jsonEncode(p.toJson())),
+              status: const Value('dismissed'),
+              resolvedAt: Value(DateTime.now()),
+            ),
+          );
+      return;
+    }
+    final account = row.accountId == null
+        ? null
+        : await db.getAccountById(row.accountId!);
+    final category = await _category(
+      p,
+      account,
+      text: row.rawText ?? '',
+      aiCategoryId: result.categoryId,
+      aiProposed: result.proposed,
+    );
+    p = category.proposed == null
+        ? p.copyWith(clearProposal: true)
+        : p.copyWith(proposedCategory: category.proposed!.toJson());
+    await (db.update(db.detectedPayments)..where((d) => d.id.equals(row.id)))
+        .write(
+          DetectedPaymentsCompanion(
+            parsed: Value(jsonEncode(p.toJson())),
+            amount: Value(p.amount?.toString()),
+            currency: Value(p.currency),
+            direction: Value(p.direction),
+            kind: Value(p.kind),
+            merchant: Value(p.merchant ?? p.counterparty),
+            occurredAt: Value(p.occurredAt ?? row.occurredAt),
+            categoryId: Value(category.categoryId),
+            confidence: Value(p.confidence),
+          ),
+        );
+  }
+
+  /// The new category this payment would create on confirm, if any.
+  ProposedCategory? proposalOf(DetectedPayment row) => row.categoryId != null
+      ? null
+      : ProposedCategory.fromJson(parsedOf(row).proposedCategory);
 
   /// A manual entry that probably records the same payment.
   Future<int?> _existingEntry(
@@ -447,7 +599,12 @@ class DetectionService {
             : 'Enter the amount',
       );
     }
-    final categoryId = draft.categoryId ?? row.categoryId;
+    var categoryId = draft.categoryId ?? row.categoryId;
+    final proposal = draft.categoryId == null ? proposalOf(row) : null;
+    if (categoryId == null && proposal != null && proposal.type ==
+        (p.kind == 'refund' ? 'expense' : p.direction)) {
+      categoryId = await CategoryResolver.ensure(db, store, proposal);
+    }
     int transactionId;
     switch (p.kind) {
       case 'withdrawal' || 'transfer_out' || 'card_payment'
@@ -523,6 +680,17 @@ class DetectionService {
             sourceRef: row.fingerprint,
           );
         }
+    }
+    final receipt = await store.get(receiptCollection, '$id');
+    if (receipt != null) {
+      final attachmentId = ledger.newId();
+      await store.put('attachments', attachmentId, {
+        'id': attachmentId,
+        'path': receipt['path'],
+        'transactionId': transactionId,
+        'date': DateTime.now().toIso8601String(),
+      });
+      await store.remove(receiptCollection, '$id');
     }
     await (db.update(db.detectedPayments)..where((d) => d.id.equals(id))).write(
       DetectedPaymentsCompanion(

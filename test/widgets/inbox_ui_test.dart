@@ -41,6 +41,8 @@ class FakeBridge implements DetectionBridge {
   @override
   Future<List<SourceCandidate>> candidates() async => const [];
   @override
+  Future<List<InstalledApp>> installedApps() async => const [];
+  @override
   Future<String?> consumePendingRoute() async => null;
   @override
   Stream<void> get events => _events.stream;

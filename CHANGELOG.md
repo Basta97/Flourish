@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reports by payment method, card or wallet, currency, and fees and interest paid; CSV export columns for merchant, payment and original amount.
 - Payment detection: English/Arabic parser for Egyptian banks and wallets, a review inbox with duplicate detection, merchant category learning and optional automatic adding; Android notification listener and iOS Shortcuts actions.
 - Detected payments in USD and other currencies: the Android filter and the parser know foreign codes, symbols and Arabic names; without the bank's EGP figure the charge is estimated at the day's exchange rate plus the card's foreign-transaction fee.
+- Payment detection on Android: pick bank and wallet apps from every installed app, before they post an alert; repeat notifications are ignored for 24 hours, even after the app restarts.
 - Recurring transfers (card autopay, savings), end dates and editing; a "Cards & wallets" screen; [audit](docs/AUDIT.md) of known issues.
 
 ### Fixed

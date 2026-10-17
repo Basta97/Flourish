@@ -28,6 +28,12 @@ class SourceCandidate {
   const SourceCandidate(this.packageName, this.label, this.count);
 }
 
+/// An app with a launcher icon, offered when picking bank and wallet apps.
+class InstalledApp {
+  final String packageName, label;
+  const InstalledApp(this.packageName, this.label);
+}
+
 /// The native side of payment detection.
 abstract class DetectionBridge {
   /// Messages captured since the last [ack], oldest first. Delivery is
@@ -44,6 +50,9 @@ abstract class DetectionBridge {
     required bool notify,
   });
   Future<List<SourceCandidate>> candidates();
+
+  /// Android: launchable apps, sorted by label. Empty elsewhere.
+  Future<List<InstalledApp>> installedApps();
 
   /// Route requested by tapping a detection notification, if any.
   Future<String?> consumePendingRoute();
@@ -106,6 +115,19 @@ class MethodChannelDetectionBridge implements DetectionBridge {
             '${r['packageName']}',
             '${r['label'] ?? r['packageName']}',
             (r['count'] as num?)?.toInt() ?? 0,
+          ),
+    ];
+  }
+
+  @override
+  Future<List<InstalledApp>> installedApps() async {
+    final rows = await _call<List<Object?>>('installedApps') ?? const [];
+    return [
+      for (final r in rows)
+        if (r is Map && r['packageName'] != null)
+          InstalledApp(
+            '${r['packageName']}',
+            '${r['label'] ?? r['packageName']}',
           ),
     ];
   }

@@ -7,6 +7,7 @@ import '../../core/finance/recurring_service.dart';
 import '../../core/finance/credit_card_service.dart';
 import '../../core/detection/detection_bridge.dart';
 import '../../core/detection/detection_service.dart';
+import '../../core/models/shared_import_draft.dart';
 import '../../data/database/database.dart';
 import '../../core/finance/market_data_service.dart';
 import '../../core/finance/valuation_service.dart';
@@ -117,6 +118,27 @@ final detectionServiceProvider = Provider(
 final detectionBridgeProvider = Provider<DetectionBridge>(
   (ref) => MethodChannelDetectionBridge(),
 );
+
+/// Messages captured on the device and not yet acknowledged, oldest first,
+/// as drafts for a batch review. Reading does not remove them: acknowledge
+/// with `detectionBridgeProvider.ack` using each draft's [id]. The detection
+/// runtime moves the queue into the inbox on launch and resume, so this is
+/// usually empty while the app runs; invalidate it to read again.
+final pendingDetectedImportsProvider =
+    FutureProvider.autoDispose<List<SharedImportDraft>>((ref) async {
+      final queued = await ref.watch(detectionBridgeProvider).peek();
+      return [
+        for (final q in queued)
+          SharedImportDraft(
+            id: q.id,
+            source: q.message.source,
+            rawText: q.message.text,
+            sender: q.message.sender,
+            packageName: q.message.packageName,
+            createdAt: q.message.receivedAt,
+          ),
+      ];
+    });
 
 /// Every detected payment, newest first.
 final detectedPaymentsProvider = StreamProvider<List<DetectedPayment>>(

@@ -1,3 +1,4 @@
+import 'package:csv/csv.dart' as csv;
 import '../../core/finance/payment_methods.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -14,6 +15,11 @@ import '../providers/category_providers.dart';
 import '../providers/transaction_providers.dart';
 import '../providers/theme_providers.dart';
 import '../../core/finance/backup_service.dart';
+import '../../core/ai/ai_column_mapper.dart';
+import '../../core/finance/import/import_sources.dart';
+import '../../core/utils/error_text.dart';
+import '../providers/ai_providers.dart';
+import 'import_review_screen.dart';
 import '../../core/finance/spreadsheet_import_service.dart';
 import '../../core/services/preferences_service.dart';
 import '../../data/database/database.dart';
@@ -177,8 +183,11 @@ class FinanceToolsView extends ConsumerWidget {
       ),
       ListTile(
         leading: const Icon(Icons.table_chart_outlined),
-        title: const Text('Import CSV / Excel'),
-        subtitle: const Text('Map columns, preview rows, and skip duplicates'),
+        title: const Text('Import from other apps'),
+        subtitle: const Text(
+          'Money Manager, Wallet, Monefy, Spendee, YNAB, bank CSV, OFX, QIF '
+          'or Excel · review before anything is added',
+        ),
         onTap: () => importSpreadsheet(context, ref),
       ),
       ListTile(
@@ -904,172 +913,247 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
   try {
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['csv', 'xlsx'],
+      allowedExtensions: ['csv', 'txt', 'xlsx', 'ofx', 'qfx', 'qif'],
     );
-    if (picked?.files.single.path == null) return;
-    final service = SpreadsheetImportService(ref.read(financialLedgerProvider)),
-        sheets = await SpreadsheetImportService(
-          ref.read(financialLedgerProvider),
-        ).read(File(picked!.files.single.path!));
-    if (sheets.isEmpty || !context.mounted) return;
-    String selected = sheets.keys.first;
-    int header = 0;
-    final chosen = await financeForm(
-      context,
-      title: 'Choose spreadsheet table',
-      fields: [
-        FinanceField(
-          'sheet',
-          'Worksheet',
-          initial: selected,
-          options: {for (final name in sheets.keys) name: name},
-        ),
-        const FinanceField(
-          'header',
-          'Header row number',
-          initial: '1',
-          numeric: true,
-        ),
-      ],
-      save: (j) async {
-        selected = j['sheet']!;
-        header = int.parse(j['header']!) - 1;
-        if (header < 0 || header >= sheets[selected]!.length) {
-          throw ArgumentError('Invalid header row');
-        }
-      },
+    final filePath = picked?.files.single.path;
+    if (filePath == null || !context.mounted) return;
+    final name = path.basename(filePath);
+    final lower = name.toLowerCase();
+    final legacy = SpreadsheetImportService(ref.read(financialLedgerProvider));
+    final options = ImportOptions(
+      defaultCurrency: ref.read(defaultCurrencyProvider),
     );
-    if (!context.mounted || chosen != true) return;
-    final matrix = sheets[selected]!;
-    final columns = {
-      for (var i = 0; i < matrix[header].length; i++)
-        '$i': matrix[header][i].isEmpty ? 'Column ${i + 1}' : matrix[header][i],
-    };
-    final aliases = {
-      'date': ['date'],
-      'type': ['income/expense', 'type'],
-      'account': ['account'],
-      'category': ['category'],
-      'amount': ['amount'],
-      'currency': ['currency'],
-      'note': ['note', 'description'],
-      'destination': ['destination', 'to account'],
-    };
-    await financeForm(
-      context,
-      title: 'Map columns',
-      fields: [
-        for (final e in aliases.entries)
-          FinanceField(
-            e.key,
-            e.key,
-            initial:
-                columns.entries
-                    .where(
-                      (c) => e.value.contains(c.value.toLowerCase().trim()),
-                    )
-                    .firstOrNull
-                    ?.key ??
-                '-1',
-            options: {'-1': 'Not mapped', ...columns},
-          ),
-        const FinanceField(
-          'sign',
-          'Amount convention',
-          initial: 'typed',
-          options: {
-            'typed': 'Positive amounts with a Type column',
-            'signed': 'Signed bank amounts: negative = expense',
-          },
-        ),
-        const FinanceField(
-          'decimal',
-          'Decimal separator',
-          initial: '.',
-          options: {'.': 'Period (1,234.56)', ',': 'Comma (1.234,56)'},
-        ),
-        const FinanceField(
-          'pattern',
-          'Date format for non-ISO dates',
-          initial: 'dd/MM/yyyy',
-        ),
-      ],
-      submit: 'Preview',
-      save: (j) async {
-        final mapping = {
-          for (final key in aliases.keys) key: int.parse(j[key]!),
-        };
-        if ([
-          'date',
-          if (j['sign'] != 'signed') 'type',
-          'account',
-          'amount',
-        ].any((k) => mapping[k] == -1)) {
-          throw ArgumentError('Map date, type, account, and amount');
-        }
-        final preview = await service.preview(
-          matrix.skip(header + 1).toList(),
-          mapping,
-          fallbackCurrency: ref.read(defaultCurrencyProvider),
-          datePattern: j['pattern']!,
-          signedAmounts: j['sign'] == 'signed',
-          decimalSeparator: j['decimal']!,
-        );
-        if (!context.mounted) return;
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(
-              '${preview.rows.length} records · ${preview.duplicates} duplicates skipped',
+
+    // Spreadsheets are read as CSV so app presets recognise them too.
+    List<List<String>>? matrix;
+    String content;
+    if (lower.endsWith('.xlsx')) {
+      final sheets = await legacy.read(File(filePath));
+      if (sheets.isEmpty || !context.mounted) return;
+      var selected = sheets.keys.first;
+      if (sheets.length > 1) {
+        final chosen = await financeForm(
+          context,
+          title: 'Choose worksheet',
+          fields: [
+            FinanceField(
+              'sheet',
+              'Worksheet',
+              initial: selected,
+              options: {for (final n in sheets.keys) n: n},
             ),
-            content: SizedBox(
-              width: 480,
-              height: 400,
-              child: ListView(
-                children: [
-                  const Text(
-                    'Imported history changes account balances. Reconcile opening balances afterward if necessary.',
-                  ),
-                  for (final error in preview.errors)
-                    Text(
-                      error,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  for (final row in preview.rows.take(50))
-                    ListTile(
-                      title: Text('${row['date']} · ${row['type']}'),
-                      subtitle: Text('${row['account']} · ${row['category']}'),
-                      trailing: Text('${row['amount']} ${row['currency']}'),
-                    ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: preview.errors.isNotEmpty
-                    ? null
-                    : () => Navigator.pop(ctx, true),
-                child: const Text('Import'),
-              ),
-            ],
-          ),
+          ],
+          save: (j) async => selected = j['sheet']!,
         );
-        if (confirmed != true) throw StateError('Import cancelled');
-        await service.apply(preview);
-        invalidateFinance(ref);
-      },
+        if (chosen != true || !context.mounted) return;
+      }
+      matrix = sheets[selected]!;
+      content = csv.csv.encode(matrix);
+    } else {
+      content = utf8.decode(
+        await File(filePath).readAsBytes(),
+        allowMalformed: true,
+      );
+    }
+
+    final source = ImportSources.detect(
+      lower.endsWith('.xlsx') ? 'sheet.csv' : name,
+      content,
     );
+    if (!context.mounted) return;
+    if (source != null) {
+      await _openImportReview(
+        context,
+        source.parse(content, options: options),
+        source.name,
+      );
+      return;
+    }
+    if (RegExp(r'\.(ofx|qfx|qif)$').hasMatch(lower)) {
+      throw const FormatException('This file could not be read');
+    }
+    matrix ??= csv.csv
+        .decode(content)
+        .map((r) => r.map((v) => v?.toString() ?? '').toList())
+        .toList();
+    if (!context.mounted) return;
+    await _manualImport(context, ref, matrix, legacy);
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Import: $e')));
+      ).showSnackBar(SnackBar(content: Text('Import: ${describeError(e)}')));
     }
   }
+}
+
+Future<void> _openImportReview(
+  BuildContext context,
+  ImportParseResult parsed,
+  String sourceName,
+) async {
+  if (parsed.rows.isEmpty) {
+    throw FormatException(
+      parsed.errors.isEmpty
+          ? 'No transactions found in this file'
+          : parsed.errors.first.toString(),
+    );
+  }
+  if (!context.mounted) return;
+  await Navigator.of(context).push(
+    MaterialPageRoute<bool>(
+      builder: (_) => ImportReviewScreen(parsed: parsed, sourceName: sourceName),
+    ),
+  );
+}
+
+/// A file no preset recognises: the person maps the columns (optionally
+/// pre-filled by the AI), then reviews like any other import.
+Future<void> _manualImport(
+  BuildContext context,
+  WidgetRef ref,
+  List<List<String>> matrix,
+  SpreadsheetImportService legacy,
+) async {
+  if (matrix.isEmpty) throw const FormatException('The file is empty');
+  var header = 0;
+  final headerChosen = await financeForm(
+    context,
+    title: 'Which row has the column names?',
+    fields: const [
+      FinanceField('header', 'Header row number', initial: '1', numeric: true),
+    ],
+    save: (j) async {
+      header = int.parse(j['header']!) - 1;
+      if (header < 0 || header >= matrix.length) {
+        throw ArgumentError('Invalid header row');
+      }
+    },
+  );
+  if (headerChosen != true || !context.mounted) return;
+  final names = matrix[header];
+  final body = matrix.skip(header + 1).toList();
+  final columns = {
+    for (var i = 0; i < names.length; i++)
+      '$i': names[i].isEmpty ? 'Column ${i + 1}' : names[i],
+  };
+  final aliases = {
+    'date': ['date'],
+    'type': ['income/expense', 'type'],
+    'account': ['account'],
+    'category': ['category'],
+    'amount': ['amount'],
+    'currency': ['currency'],
+    'note': ['note', 'description'],
+    'destination': ['destination', 'to account'],
+  };
+
+  AiColumnMapping? ai;
+  final client = await ref.read(aiClientProvider.future);
+  if (client != null && context.mounted) {
+    final ask = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Map the columns with AI?'),
+        content: const Text(
+          'Sends the column names and 5 rows, with account numbers, phones '
+          'and emails masked. You can change every choice afterwards.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Map myself'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Use AI'),
+          ),
+        ],
+      ),
+    );
+    if (ask == true) {
+      try {
+        ai = await AiColumnMapper(
+          client,
+          usage: ref.read(aiUsageTrackerProvider),
+        ).map(names, body);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('AI mapping unavailable: ${describeError(e)}')),
+          );
+        }
+      }
+    }
+  }
+  if (!context.mounted) return;
+
+  String initialFor(String key) {
+    final fromAi = ai?.columns[key];
+    if (fromAi != null) return '$fromAi';
+    return columns.entries
+            .where((c) => aliases[key]!.contains(c.value.toLowerCase().trim()))
+            .firstOrNull
+            ?.key ??
+        '-1';
+  }
+
+  ImportParseResult? parsed;
+  await financeForm(
+    context,
+    title: ai == null ? 'Map columns' : 'Map columns (suggested by AI)',
+    fields: [
+      for (final key in aliases.keys)
+        FinanceField(
+          key,
+          key,
+          initial: initialFor(key),
+          options: {'-1': 'Not mapped', ...columns},
+        ),
+      FinanceField(
+        'sign',
+        'Amount convention',
+        initial: ai?.signedAmounts == true ? 'signed' : 'typed',
+        options: const {
+          'typed': 'Positive amounts with a Type column',
+          'signed': 'Signed bank amounts: negative = expense',
+        },
+      ),
+      FinanceField(
+        'decimal',
+        'Decimal separator',
+        initial: ai?.decimalSeparator ?? '.',
+        options: const {'.': 'Period (1,234.56)', ',': 'Comma (1.234,56)'},
+      ),
+      FinanceField(
+        'pattern',
+        'Date format for non-ISO dates',
+        initial: ai?.dateFormat ?? 'dd/MM/yyyy',
+      ),
+    ],
+    submit: 'Review',
+    save: (j) async {
+      final mapping = {for (final key in aliases.keys) key: int.parse(j[key]!)};
+      if ([
+        'date',
+        if (j['sign'] != 'signed') 'type',
+        'account',
+        'amount',
+      ].any((k) => mapping[k] == -1)) {
+        throw ArgumentError('Map date, type, account, and amount');
+      }
+      final preview = await legacy.preview(
+        body,
+        mapping,
+        fallbackCurrency: ref.read(defaultCurrencyProvider),
+        datePattern: j['pattern']!,
+        signedAmounts: j['sign'] == 'signed',
+        decimalSeparator: j['decimal']!,
+      );
+      parsed = legacy.toParseResult(preview, firstLine: header + 2);
+    },
+  );
+  final result = parsed;
+  if (result == null || !context.mounted) return;
+  await _openImportReview(context, result, 'Spreadsheet');
 }

@@ -32,4 +32,14 @@ ICONS: ${icons.join(', ')}
 
 Example input: {"today":"2026-10-17","categories":[{"id":2,"name":"Food & Drinks","type":"expense"},{"id":9,"name":"Other","type":"expense"}],"messages":[{"i":0,"text":"POS SPINNEYS ZAYED 1,250.50 EGP card ****4521 15/10"},{"i":1,"text":"رمز التحقق [CODE] لعملية دفع بقيمة 300 جنيه"}]}
 Example output: {"results":[{"i":0,"ignore":null,"kind":"purchase","direction":"expense","amount":"1250.50","currency":"EGP","date":"2026-10-15","merchant":"Spinneys","counterparty":null,"category":{"new":{"name":"Groceries","icon":"local_grocery_store","parent":"Food & Drinks"}},"confidence":0.93},{"i":1,"ignore":"otp","kind":null,"direction":"expense","amount":null,"currency":null,"date":null,"merchant":null,"counterparty":null,"category":null,"confidence":0.95}]}''';
+
+  static const columnsVersion = 'map-v1';
+
+  static const columnsSystem = '''
+You map the columns of a spreadsheet exported from a finance app or bank to Flourish fields. Reply with one JSON object only:
+{"columns": {"date": int|null, "type": int|null, "account": int|null, "category": int|null, "amount": int|null, "currency": int|null, "note": int|null, "destination": int|null},
+ "date_format": ICU pattern such as "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd.MM.yyyy HH:mm",
+ "decimal_separator": "." or ",",
+ "signed_amounts": true when expenses are negative numbers in the amount column and there is no income/expense column}
+Columns are 0-based indexes into "header". Use null when a field is absent. "type" is a column whose values say income, expense or transfer. "destination" is the receiving account of transfers. Rows in "sample" may be partly masked; never invent columns.''';
 }

@@ -8,6 +8,7 @@ import '../../domain/finance/models.dart';
 import '../../data/database/database.dart';
 import 'financial_ledger_service.dart';
 import '../utils/fingerprint.dart' as fp;
+import 'import/import_source.dart';
 
 class ImportPreview {
   final List<Json> rows;
@@ -127,6 +128,34 @@ class SpreadsheetImportService {
       }
     }
     return ImportPreview(output, errors, duplicates);
+  }
+
+  /// The manually mapped rows of [preview] in the shape every import source
+  /// produces, so they go through the same review and duplicate checks.
+  ImportParseResult toParseResult(ImportPreview preview, {int firstLine = 2}) {
+    String? text(Object? v) {
+      final t = v?.toString().trim() ?? '';
+      return t.isEmpty ? null : t;
+    }
+
+    return ImportParseResult(
+      'csv.manual',
+      [
+        for (final (i, row) in preview.rows.indexed)
+          RawImportRow(
+            date: dateOf(row['date']),
+            amount: amountOf(row['amount']),
+            type: row['type'] as String,
+            account: text(row['account']),
+            destinationAccount: text(row['destination']),
+            category: text(row['category']),
+            note: text(row['note']),
+            currency: text(row['currency']),
+            sourceLine: firstLine + i,
+          ),
+      ],
+      errors: [for (final e in preview.errors) ImportIssue(0, e)],
+    );
   }
 
   Future<int> apply(ImportPreview preview) => ledger.db.transaction(() async {

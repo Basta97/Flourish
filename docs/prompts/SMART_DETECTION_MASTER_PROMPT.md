@@ -25,8 +25,10 @@ Read `docs/ARCHITECTURE.md`, `docs/FINANCE_IMPLEMENTATION.md` and
   `CategorySuggester` (history + keywords) → `CategoryConcepts` →
   fallback. `CategoryResolver` dedups near-identical names and creates
   proposals (`CategoryResolver.ensure`) only on confirm.
-- File import parsers: `lib/core/finance/import/` (OFX/QFX, QIF, app CSV
-  presets) — pure, tested, not yet wired into the import UI.
+- File import: `lib/core/finance/import/` parsers (OFX/QFX, QIF, app CSV
+  presets) → `FileImportService.plan` (account map, category decisions,
+  FITID/row keys, possible duplicates) → `ImportReviewScreen` → `apply`
+  (one DB transaction, `sourceRef` = batch id) → `undo`.
 
 **Non-negotiables**
 
@@ -49,11 +51,7 @@ Read `docs/ARCHITECTURE.md`, `docs/FINANCE_IMPLEMENTATION.md` and
 
 **Open phases**
 
-- Wire `lib/core/finance/import/` into Wealth → Tools → Import: auto-detect
-  the preset, map unknown categories (existing / new / let AI decide), FITID
-  and fuzzy duplicates, transfer pairing, review before apply.
-- AI column mapping for unknown CSV/XLSX headers (header + 5 redacted rows →
-  column map, date format, decimal separator, sign convention).
+- "Let AI decide" for categories not in Flourish during file import.
 - PDF statements: text extraction (e.g. `pdfrx`), local table heuristic,
   AI page-chunk fallback; scanned PDFs need OCR.
 - Verify the five app CSV presets built from third-party docs against real

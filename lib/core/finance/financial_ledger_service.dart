@@ -716,6 +716,8 @@ class FinancialLedgerService {
     DateTime? date,
     int? editId,
     String? expectCurrency,
+    String? source,
+    String? sourceRef,
   }) => db.transaction(() async {
     positive(amount);
     if (fromAccountId == toAccountId) {
@@ -766,6 +768,8 @@ class FinancialLedgerService {
       note: note ?? 'Transfer: ${from.name} → ${to.name}',
       kind: 'transfer',
       date: date,
+      source: source,
+      sourceRef: sourceRef,
     );
     final incoming = await recordCash(
       accountId: toAccountId,
@@ -774,6 +778,8 @@ class FinancialLedgerService {
       note: note ?? 'Transfer: ${from.name} → ${to.name}',
       kind: 'transfer',
       date: date,
+      source: source,
+      sourceRef: sourceRef,
     );
     await (db.update(db.transactions)..where((t) => t.id.equals(out))).write(
       TransactionsCompanion(linkedTransactionId: Value(incoming)),

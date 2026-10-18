@@ -1,0 +1,2070 @@
+{
+  "@@locale": "en",
+  "appTitle": "Flourish",
+  "greetingNight": "Good night",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "showAmounts": "Show amounts",
+  "hideAmounts": "Hide amounts",
+  "settings": "Settings",
+  "paymentsToReview": "{count, plural, =1{1 payment to review} other{{count} payments to review}}",
+  "@paymentsToReview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recentActivity": "Recent activity",
+  "seeAll": "See all",
+  "thisMonth": "This month",
+  "income": "Income",
+  "spending": "Spending",
+  "saved": "Saved",
+  "needHistoricalRates": "{count, plural, =1{1 transaction needs historical exchange rates.} other{{count} transactions need historical exchange rates.}}",
+  "@needHistoricalRates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "holdings": "Holdings",
+  "budgets": "Budgets",
+  "goals": "Goals",
+  "recurring": "Recurring",
+  "importAction": "Import",
+  "noActivityYet": "No activity yet",
+  "noActivitySubtitle": "Add your first transaction and it will show up here.",
+  "getStartedTitle": "Let’s get you set up",
+  "getStartedSubtitle": "Add an account and your first transaction to get started.",
+  "addTransaction": "Add transaction",
+  "addAnAccount": "Add an account",
+  "motivationTitle": "Daily boost",
+  "motivationWinTitle": "Nice work",
+  "motivationNextHint": "Shows another encouraging line",
+  "motivationSaved": "You kept {amount} this month. Keep it growing!",
+  "@motivationSaved": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationGoalMilestone": "{percent}% of “{goal}” reached. You’re getting there!",
+  "@motivationGoalMilestone": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationGoalDone": "“{goal}” is fully funded. Well done!",
+  "@motivationGoalDone": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "motivationQuote1": "Small steps today, more freedom tomorrow.",
+  "motivationQuote2": "Every amount you track is money you control.",
+  "motivationQuote3": "Saving a little beats saving nothing.",
+  "motivationQuote4": "Your future self will thank you.",
+  "motivationQuote5": "Consistency beats intensity. Log today’s spending.",
+  "motivationQuote6": "A budget tells your money where to go.",
+  "motivationQuote7": "Progress, not perfection.",
+  "navHome": "Home",
+  "navLedger": "Ledger",
+  "navAccounts": "Accounts",
+  "navWealth": "Wealth",
+  "add": "Add",
+  "pageNotFound": "The page \"{page}\" does not exist.",
+  "@pageNotFound": {
+    "placeholders": {
+      "page": {
+        "type": "String"
+      }
+    }
+  },
+  "accountNotFound": "Account not found",
+  "accountNotFoundSubtitle": "That account link is invalid or no longer available.",
+  "expense": "Expense",
+  "transfer": "Transfer",
+  "scanOrImport": "Scan or import",
+  "whatToAdd": "WHAT DO YOU WANT TO ADD?",
+  "appearance": "Appearance",
+  "theme": "Theme",
+  "themeName": "{mode, select, light{Light} dark{Dark} other{System}}",
+  "@themeName": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "language": "Language",
+  "languageDevice": "Device language",
+  "hideAmountsSubtitle": "Show balances as dots until you tap the eye",
+  "defaultCurrency": "Default Currency",
+  "manage": "Manage",
+  "budgetsSubtitle": "Spending limits by category",
+  "savingsGoals": "Savings Goals",
+  "savingsGoalsSubtitle": "Targets and progress",
+  "recurringSubtitle": "Bills, salaries and subscriptions",
+  "cardsWallets": "Cards & wallets",
+  "cardsWalletsSubtitle": "Debit and credit cards, wallets, InstaPay",
+  "categories": "Categories",
+  "categoriesSubtitle": "Add, edit, or delete transaction categories",
+  "paymentDetection": "Payment detection",
+  "paymentDetectionSubtitle": "Find payments in bank and wallet alerts",
+  "smartImport": "Smart Import",
+  "smartImportSubtitle": "Paste bank alerts to create transactions",
+  "monthlyAutoIncome": "Monthly Auto Income",
+  "autoMonthlyIncome": "Auto Monthly Income",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "monthlyIncomeAmount": "Monthly Income Amount",
+  "dayOfMonth": "Day of Month",
+  "incomeAccount": "Income Account",
+  "selectAccount": "Select account",
+  "incomeCategory": "Income Category",
+  "selectCategory": "Select category",
+  "data": "Data",
+  "exportData": "Export Data",
+  "exportDataSubtitle": "Save your data as JSON",
+  "importData": "Import Data",
+  "importDataSubtitle": "Restore from a JSON backup",
+  "resetAllData": "Reset All Data",
+  "resetAllDataSubtitle": "Delete all accounts, transactions, and budgets",
+  "about": "About",
+  "version": "Version",
+  "builtWith": "Built with",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidBackup": "Invalid or empty backup file.",
+  "importBackup": "Import Backup",
+  "importBackupWarning": "This will erase all current data and replace it with the backup. This cannot be undone.",
+  "cancel": "Cancel",
+  "backupRestored": "Complete backup restored.",
+  "importedRecords": "Imported {count} records successfully.",
+  "@importedRecords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resetAllDataWarning": "This will delete all your accounts, transactions, budgets, and settings. This cannot be undone.",
+  "allDataReset": "All data has been reset",
+  "reset": "Reset",
+  "toolsMoney": "Money",
+  "toolsImportExport": "Import & export",
+  "toolsSecurity": "Security & backup",
+  "exchangeRates": "Exchange rates",
+  "exchangeRatesSubtitle": "Sources, dates, and manual overrides",
+  "manageAccounts": "Manage accounts",
+  "manageAccountsSubtitle": "Edit, group, archive, and reconcile balances",
+  "savedTemplates": "Saved transaction templates",
+  "savedTemplatesSubtitle": "Reuse frequent entries",
+  "subcategories": "Subcategories",
+  "subcategoriesSubtitle": "Split categories into finer groups",
+  "receiptAttachments": "Receipt attachments",
+  "receiptAttachmentsSubtitle": "Photos and files linked to entries",
+  "reportingMonthStarts": "Reporting month starts on",
+  "dayNumber": "Day {day}",
+  "@dayNumber": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "reportingMonth": "Reporting month",
+  "startDayRange": "Start day (1–28)",
+  "chooseDayRange": "Choose a day from 1 to 28",
+  "importFromApps": "Import from other apps",
+  "importFromAppsSubtitle": "Money Manager, Wallet, Monefy, Spendee, YNAB, bank CSV, OFX, QIF, Excel or PDF statements · review before anything is added",
+  "exportCsv": "Export transactions as CSV",
+  "exportCsvSubtitle": "Opens in any spreadsheet app",
+  "paymentReminders": "Payment reminders",
+  "paymentRemindersSubtitle": "Local notifications for expected payments and maturities",
+  "paymentRemindersEnabled": "Payment reminders enabled",
+  "deviceLock": "Device authentication lock",
+  "deviceLockOn": "Enabled · tap to disable",
+  "deviceLockOff": "Disabled · tap to enable",
+  "setUpPasscodeFirst": "Set up your device passcode first",
+  "changeAppLockReason": "Change Flourish app lock",
+  "stockApiKey": "Stock quote API key",
+  "stockApiKeySubtitle": "Optional Alpha Vantage key · stored securely on this device",
+  "alphaVantageKey": "Alpha Vantage API key",
+  "personalApiKey": "Personal API key",
+  "exportBackup": "Export encrypted backup",
+  "exportBackupSubtitle": "Includes holdings, contracts, activity, settings, and receipts",
+  "restoreBackup": "Restore encrypted backup",
+  "restoreBackupSubtitle": "Replaces everything with a backup file",
+  "backupHistory": "Automatic backup history",
+  "backupHistorySubtitle": "Seven local daily backups · remain on this device",
+  "save": "Save",
+  "enterField": "Enter {field}",
+  "@enterField": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "owedCaps": "OWED",
+  "creditBalanceCaps": "CREDIT BALANCE",
+  "nothingOwedCaps": "NOTHING OWED",
+  "noPaymentAccounts": "No bank, wallet or card accounts",
+  "addOneFromAccounts": "Add one from Accounts first",
+  "searchTransactionsHint": "Search transactions...",
+  "all": "All",
+  "searchTransactions": "Search transactions",
+  "searchSubtitle": "Type to search by note or type",
+  "noResults": "No results found",
+  "unlockReason": "Unlock your Flourish finances",
+  "authCancelled": "Authentication cancelled",
+  "unlockToContinue": "Unlock with your device authentication to continue.",
+  "financesLocked": "Your finances are locked.",
+  "unlock": "Unlock",
+  "screenshotAiTitle": "Read screenshots with AI?",
+  "screenshotAiBody": "Android's on-device text reader cannot read Arabic. With this on, a screenshot you choose to read with AI is sent as an image to {provider}. An image cannot be masked: names, card or account numbers and balances visible in it are sent too.",
+  "@screenshotAiBody": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "freeTiersKeep": "Free tiers may keep what you send.",
+  "screenshotAiFooter": "On-device reading stays the default; nothing is sent until you tap \"Read with AI\". You can turn this off in AI settings.",
+  "notNow": "Not now",
+  "turnOn": "Turn on",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "pick": "Pick",
+  "futureDateTitle": "Date is in the future",
+  "futureDateBody": "This entry is dated {date} but changes the account balance now. For a payment that has not happened yet, a recurring payment or reminder may fit better.",
+  "@futureDateBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "changeDate": "Change date",
+  "saveAnyway": "Save anyway",
+  "edit": "Edit",
+  "delete": "Delete",
+  "deleteTransactionTitle": "Delete transaction?",
+  "deleteTransactionBody": "This removes the transaction and rebalances the linked account automatically.",
+  "keep": "Keep",
+  "transactionDeleted": "Transaction deleted",
+  "undo": "Undo",
+  "manageAccount": "Manage account",
+  "deleteAccount": "Delete account",
+  "transactions": "Transactions",
+  "errorLoadingTransactions": "Error loading transactions",
+  "errorLoadingAccount": "Error loading account",
+  "transaction": "Transaction",
+  "deleteAccountTitle": "Delete Account",
+  "deleteAccountBody": "Delete \"{name}\"? Accounts with transactions must be archived instead, so their history stays in your reports.",
+  "@deleteAccountBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inThisMonth": "In this month",
+  "outThisMonth": "Out this month",
+  "noTransactions": "No transactions",
+  "addTransactionToStart": "Add a transaction to get started.",
+  "cardsWalletsHelp": "Add the cards and wallets that pay from this account so spending shows what paid and detected payments find the right account.",
+  "defaultLower": "default",
+  "fxFee": "FX fee {percent}%",
+  "@fxFee": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "cashNoCards": "Cash accounts have no cards or wallets",
+  "addCardOrWallet": "Add card or wallet",
+  "editNamed": "Edit {name}",
+  "@editNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "instrumentName": "Name (e.g. CIB Visa)",
+  "type": "Type",
+  "cardNetwork": "Card network",
+  "noneNotCard": "None / not a card",
+  "last4Digits": "Last 4 digits (matches bank messages)",
+  "bankOrWallet": "Bank or wallet",
+  "other": "Other",
+  "walletHandle": "Wallet number or InstaPay address",
+  "foreignFeeOptional": "Foreign transaction fee, % (optional)",
+  "defaultForAccount": "Default for this account",
+  "no": "No",
+  "yes": "Yes",
+  "status": "Status",
+  "inUse": "In use",
+  "archived": "Archived",
+  "manageCategories": "Manage Categories",
+  "noCategories": "No categories",
+  "errorLoadingCategories": "Error loading categories",
+  "category": "Category",
+  "systemCategoryLocked": "Used for automatic entries; cannot be deleted",
+  "deleteCategory": "Delete Category",
+  "deleteCategoryWithTx": "\"{name}\" has {count} transactions. They will move to \"{target}\", and budgets for this category will be removed.",
+  "@deleteCategoryWithTx": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "otherIncome": "Other income",
+  "deleteCategoryEmpty": "Delete \"{name}\"? Budgets for it will be removed.",
+  "@deleteCategoryEmpty": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editCategory": "Edit Category",
+  "addCategory": "Add Category",
+  "categoryName": "Category Name",
+  "icon": "Icon",
+  "color": "Color",
+  "saveChanges": "Save Changes",
+  "enterName": "Please enter a name",
+  "noAccountsYet": "No accounts yet",
+  "addFirstAccount": "Add your first account to start tracking.",
+  "accountCount": "{count, plural, =1{1 ACCOUNT} other{{count} ACCOUNTS}}",
+  "@accountCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorLoadingAccounts": "Error loading accounts",
+  "addAccount": "Add Account",
+  "accountName": "Account name",
+  "accountNameHint": "e.g. Main Bank",
+  "amountOweNow": "Amount you owe now",
+  "currentBalance": "Current balance",
+  "debtPositiveHint": "Enter debt as a positive number; 0 for a paid-off card",
+  "leaveEmptyZero": "Leave empty for 0",
+  "accountType": "Account Type",
+  "currency": "Currency",
+  "cardTerms": "Card terms",
+  "creditLimit": "Credit limit",
+  "interestPerYear": "Interest % / year",
+  "statementDay": "Statement day",
+  "dueDay": "Due day",
+  "cardFeesLater": "Fees (foreign transactions, cash advance, late payment) can be added from the card page.",
+  "enterAccountName": "Please enter an account name",
+  "maxDecimals": "Use at most {count} decimals",
+  "@maxDecimals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transfers": "Transfers",
+  "search": "Search",
+  "listView": "List view",
+  "calendarView": "Calendar view",
+  "allAccounts": "All accounts",
+  "allCategories": "All categories",
+  "showingDay": "Showing {day} · show whole month",
+  "@showingDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotLoadTransactions": "Could not load transactions",
+  "nothingHereYet": "Nothing here yet",
+  "noTransactionsPeriod": "No transactions in this period.",
+  "previousMonth": "Previous month",
+  "chooseDateRange": "Choose date range",
+  "clearRange": "Clear range",
+  "nextMonth": "Next month",
+  "goal": "Goal",
+  "noGoalsYet": "No goals yet",
+  "noGoalsSubtitle": "Set a savings goal to start tracking progress.",
+  "errorLoadingGoals": "Error loading goals",
+  "goalReached": "Goal reached",
+  "percentSaved": "{percent}% saved",
+  "@percentSaved": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "ofTarget": "of {amount}",
+  "@ofTarget": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pastDeadline": "Past deadline",
+  "daysLeft": "{count, plural, =1{1 day left} other{{count} days left}}",
+  "@daysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteGoal": "Delete goal",
+  "deleteGoalTitle": "Delete goal?",
+  "deleteGoalBody": "\"{name}\" and its progress will be removed.",
+  "@deleteGoalBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addToGoal": "Add to \"{name}\"",
+  "@addToGoal": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "amount": "Amount",
+  "contribute": "Contribute",
+  "newSavingsGoal": "New Savings Goal",
+  "goalName": "Goal Name",
+  "goalNameHint": "e.g. New Laptop",
+  "targetAmount": "Target Amount",
+  "deadline": "Deadline",
+  "linkedAccount": "Linked Account",
+  "createGoal": "Create Goal",
+  "addCashOrBankFirst": "Add a cash or bank account first",
+  "apiKeyRemoved": "API key removed",
+  "apiKeySaved": "API key saved",
+  "saveApiKeyFirst": "Save an API key first",
+  "noModelsForKey": "No models available for this key",
+  "addAiConfigFirst": "Add a base URL, model and API key first",
+  "connectedTo": "Connected to {model}",
+  "@connectedTo": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "connectedNoJson": "Connected, but the model did not follow the JSON instruction. Try another model.",
+  "aiAssistant": "AI Assistant",
+  "useAiWhenUnsure": "Use AI when unsure",
+  "useAiWhenUnsureSubtitle": "Flourish reads alerts on your phone first. Only messages it cannot read confidently are sent to the AI.",
+  "provider": "Provider",
+  "freeTier": "{provider} · free tier",
+  "@freeTier": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "baseUrl": "Base URL",
+  "model": "Model",
+  "chooseModel": "Choose model",
+  "apiKey": "API key",
+  "apiKeySavedHint": "•••••••• (saved)",
+  "pasteYourKey": "Paste your key",
+  "saveKey": "Save key",
+  "keyStorageNote": "Stored in the device keychain. Leave empty and save to remove it.",
+  "testConnection": "Test connection",
+  "askBelowConfidence": "Ask the AI below {percent}% confidence",
+  "@askBelowConfidence": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "percentConfidence": "{percent}% confidence",
+  "@percentConfidence": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "higherSendsMore": "Higher sends more messages to the AI (better accuracy, more requests).",
+  "aiSuggestCategories": "Let AI suggest new categories",
+  "aiSuggestCategoriesSubtitle": "New categories are shown with ✨ and only created when you save.",
+  "hidePersonalData": "Hide personal data",
+  "hidePersonalDataFree": "Always on for free providers, which may keep prompts.",
+  "hidePersonalDataSubtitle": "Masks account and card numbers, phones and emails before sending.",
+  "readArabicScreenshots": "Read Arabic screenshots with AI",
+  "providerNoImages": "{provider} cannot read images; choose a model that can, such as Gemini.",
+  "@providerNoImages": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "sendsImageUnmasked": "Sends the image itself, unmasked, when you tap \"Read with AI\" in Smart Import.",
+  "aiUsageThisMonth": "This month: {requests} requests · {tokens} tokens",
+  "@aiUsageThisMonth": {
+    "placeholders": {
+      "requests": {
+        "type": "String"
+      },
+      "tokens": {
+        "type": "String"
+      }
+    }
+  },
+  "aiConnection": "Connection",
+  "aiBehaviour": "Behaviour",
+  "aiUsage": "Usage",
+  "importedSummary": "{count, plural, =1{Imported 1 transaction} other{Imported {count} transactions}}",
+  "@importedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "skippedCount": "{count} skipped",
+  "@skippedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reconcileOpening": "Reconcile opening balances if needed.",
+  "reviewImport": "Review import",
+  "importCount": "{count, plural, =1{Import 1 transaction} other{Import {count} transactions}}",
+  "@importCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newCount": "{count} new",
+  "@newCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "alreadyImportedCount": "{count} already imported",
+  "@alreadyImportedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "possibleDuplicatesCount": "{count} possible duplicates",
+  "@possibleDuplicatesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unreadableCount": "{count} unreadable",
+  "@unreadableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unverifiedLayout": "This layout was built from documentation, not a real export. Check a few rows below before importing.",
+  "andMore": "…and {count} more",
+  "@andMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountInFile": "“{name}” in the file · {rows}",
+  "@accountInFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "rows": {
+        "type": "String"
+      }
+    }
+  },
+  "rowCount": "{count, plural, =1{1 row} other{{count} rows}}",
+  "@rowCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "createNewAccount": "Create new account ({currency})",
+  "@createNewAccount": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "categoriesNotInApp": "Categories not in Flourish",
+  "chooseCategoryDest": "Choose where each one goes. New categories keep the parent from the file.",
+  "createNamed": "Create “{name}”",
+  "@createNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "changePerAccount": "Change per account",
+  "nothingSelected": "Nothing selected",
+  "alreadyImported": "Already imported",
+  "possibleDuplicate": "Possible duplicate",
+  "cannotImport": "Cannot import",
+  "moreRowsFollow": "{count} more rows follow the same choices",
+  "@moreRowsFollow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noTextTryAi": "No readable text found. For Arabic, try \"Read with AI\".",
+  "noTextTypeInstead": "No readable text found. Type or paste the alert instead.",
+  "textRecognitionFailed": "Text recognition failed: {error}",
+  "@textRecognitionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "providerNoImagesSettings": "{provider} cannot read images. Choose a model that can, such as Gemini, in AI settings.",
+  "@providerNoImagesSettings": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNoText": "The AI found no readable text in this image.",
+  "modelCannotReadImage": "This model could not read the image ({error}). Choose a model that reads images in AI settings.",
+  "@modelCannotReadImage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiReadingFailed": "AI reading failed: {error}",
+  "@aiReadingFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiUnavailableOnDevice": "AI unavailable, showing on-device results",
+  "noNewPayments": "No new payments found",
+  "paymentsReady": "{count, plural, =1{1 payment ready to review} other{{count} payments ready to review}}",
+  "@paymentsReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "skippedNotices": "{count} skipped (codes, offers, notices or already added)",
+  "@skippedNotices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotAnalyse": "Could not analyse: {error}",
+  "@couldNotAnalyse": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "reviewSharedScreenshot": "Review shared payment screenshot",
+  "pasteAlertsTitle": "Paste bank, wallet or Apple Pay alerts",
+  "pasteAlertsBody": "Paste one alert or many at once. Each one is read on your phone and added to Payments to review.",
+  "keepAsReceipt": "Keep this image as a receipt",
+  "readWithAiArabic": "Read with AI (Arabic)",
+  "alertText": "Alert text",
+  "alertTextFrom": "Alert text (from {source})",
+  "@alertTextFrom": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "alertExample": "Example: Apple Pay: Card 1234 spent 24.90 USD at Starbucks",
+  "paste": "Paste",
+  "photo": "Photo",
+  "analyze": "Analyze",
+  "aiSecondReading": "Unclear alerts get a second reading from AI.",
+  "readOnPhone": "Read on your phone. Add an AI provider for tricky alerts.",
+  "aiSettings": "AI settings",
+  "setUp": "Set up",
+  "obligations": "Obligations",
+  "reports": "Reports",
+  "tools": "Tools",
+  "pricesRefreshed": "Prices refreshed",
+  "refreshPrices": "Refresh prices",
+  "couldNotLoadNetWorth": "Could not load net worth.",
+  "netWorthCaps": "NET WORTH",
+  "knownNetWorthCaps": "KNOWN NET WORTH",
+  "trendLineLater": "Your trend line appears after a few days of tracking.",
+  "assets": "Assets",
+  "debts": "Debts",
+  "liquid": "Liquid",
+  "pricesMissing": "Some prices or exchange rates are missing. Totals include known values only.",
+  "pricesStale": "Some prices are more than 72 hours old. Pull down to refresh.",
+  "reportingCurrency": "Reporting currency",
+  "pageNotFoundTitle": "Page not found",
+  "notFound": "Not Found",
+  "destinationUnavailable": "This destination is unavailable or may have moved.",
+  "backHome": "Back Home",
+  "somethingWentWrong": "Something went wrong",
+  "tryAgain": "Try Again",
+  "newTransaction": "New Transaction",
+  "noAccountsAddFirst": "No accounts available. Please add an account first.",
+  "needTwoAccounts": "Add at least 2 accounts to transfer.",
+  "from": "From",
+  "to": "To",
+  "amountReceivedIn": "Amount received in {currency}",
+  "@amountReceivedIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "whatArrived": "What actually arrived after conversion",
+  "transferFeeIn": "Transfer fee in {currency} (optional)",
+  "@transferFeeIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "account": "Account",
+  "refundFor": "Refund for",
+  "merchantOptional": "Merchant or payee (optional)",
+  "addNote": "Add a note",
+  "addRefund": "Add Refund",
+  "addExpense": "Add Expense",
+  "addIncome": "Add Income",
+  "paidWith": "Paid with",
+  "overCardLimit": "This goes over the card limit by {amount}.",
+  "@overCardLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "isRefund": "This is a refund",
+  "isRefundSubtitle": "Money back that reduces spending",
+  "paidOtherCurrency": "Paid in another currency",
+  "paidOtherCurrencySubtitle": "e.g. USD online or abroad, charged in {currency}",
+  "@paidOtherCurrencySubtitle": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "priceIn": "Price in {currency}",
+  "@priceIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "feeIncluded": "Charged amount already includes the bank fee",
+  "chargedAmountNote": "The amount above is what {account} was charged. Set a foreign transaction fee on the card to track it.",
+  "@chargedAmountNote": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "fxFeeInside": "Foreign transaction fee {percent}%: {fee} inside {charged}. Use the amount on your statement when you have it.",
+  "@fxFeeInside": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "fee": {
+        "type": "String"
+      },
+      "charged": {
+        "type": "String"
+      }
+    }
+  },
+  "fxFeeOnTop": "Foreign transaction fee {percent}%: {fee} on top of {charged}. Use the amount on your statement when you have it.",
+  "@fxFeeOnTop": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "fee": {
+        "type": "String"
+      },
+      "charged": {
+        "type": "String"
+      }
+    }
+  },
+  "selectAccountError": "Please select an account",
+  "selectDestinationError": "Please select destination account",
+  "sameAccountsError": "Transfer source and destination must be different",
+  "selectCategoryError": "Please select a category",
+  "chooseCurrency": "Choose a currency",
+  "transferEditNote": "Changes apply to both linked accounts and the transfer fee.",
+  "editTransfer": "Edit transfer",
+  "deleteTransfer": "Delete transfer",
+  "editTransaction": "Edit Transaction",
+  "refundReduces": "Refund · reduces spending in its category",
+  "editLinkedTransfer": "Edit linked transfer",
+  "fromAccount": "From account",
+  "toAccount": "To account",
+  "sourceAmount": "Source amount",
+  "destinationAmount": "Destination amount",
+  "sourceCurrencyFee": "Source-currency fee",
+  "date": "Date",
+  "note": "Note",
+  "deleteTransactionTitle2": "Delete Transaction",
+  "deleteTransactionConfirm": "Are you sure? The account balance will be adjusted.",
+  "paidOriginal": "Paid {currency} {amount}.",
+  "@paidOriginal": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paidOriginalWithFee": "Paid {currency} {amount}; the {percent}% foreign transaction fee follows this amount.",
+  "@paidOriginalWithFee": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "noRateForDate": "No {from}→{to} rate for this date. Enter the amount in {to}.",
+  "@noRateForDate": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "convertedAtRate": "Converted {from} {amount} to {to} at the rate for this date. Check it matches what was charged.",
+  "@convertedAtRate": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "recurringPayment": "Recurring payment",
+  "recurringTransactions": "Recurring Transactions",
+  "noRecurring": "No recurring transactions",
+  "setUpAutomatic": "Set up automatic transactions",
+  "errorLoading": "Error loading",
+  "pausedCaps": "PAUSED",
+  "frequencyNext": "{frequency} · next {date}",
+  "@frequencyNext": {
+    "placeholders": {
+      "frequency": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notPosted": "Not posted: {reason}",
+  "@notPosted": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "recurringOptions": "Recurring options",
+  "pause": "Pause",
+  "resume": "Resume",
+  "daily": "Daily",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "yearly": "Yearly",
+  "newRecurring": "New Recurring Transaction",
+  "editRecurring": "Edit Recurring Transaction",
+  "toAccountHint": "To account (e.g. your credit card or savings)",
+  "chargedTo": "Charged to",
+  "notSet": "Not set",
+  "frequency": "Frequency",
+  "firstOccurrence": "First Occurrence",
+  "nextOccurrence": "Next Occurrence",
+  "endsOptional": "Ends (optional)",
+  "noEndDate": "No end date",
+  "never": "Never",
+  "noteOptional": "Note (optional)",
+  "createRecurring": "Create Recurring",
+  "chooseTransferTarget": "Choose the account to transfer to",
+  "selectAccountCategory": "Please select account and category",
+  "startInPast": "Start date is in the past",
+  "tooManyMissed": "More than 24 payments fall before today. The schedule will start from its next date; add older payments manually if you need them.",
+  "missedPayments": "{count, plural, =1{1 payment falls before today. Post it now, or start from the next date?} other{{count} payments fall before today. Post them now, or start from the next date?}}",
+  "@missedPayments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startFromNext": "Start from next date",
+  "postCount": "Post {count}",
+  "@postCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noBudgets": "No budgets set",
+  "noBudgetsSubtitle": "Create a budget to track your spending limits.",
+  "createABudget": "Create a budget",
+  "activeBudgets": "{count, plural, =1{1 ACTIVE BUDGET} other{{count} ACTIVE BUDGETS}}",
+  "@activeBudgets": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorLoadingBudgets": "Error loading budgets",
+  "deleteBudget": "Delete Budget",
+  "deleteBudgetConfirm": "Are you sure you want to delete this budget?",
+  "budgetUsedPercent": "{percent}% of budget used",
+  "@budgetUsedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetOptions": "Budget options",
+  "budgetConfirmCurrency": "Budget {amount} · confirm its original currency using Edit.",
+  "@budgetConfirmCurrency": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overBy": "Over by {amount}",
+  "@overBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingUsed": "{amount} remaining · {percent}% used",
+  "@remainingUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "recordsNeedRates": "{count} records need exchange rates; spending is incomplete.",
+  "@recordsNeedRates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "previousBudgetPeriod": "Previous budget period",
+  "nextBudgetPeriod": "Next budget period",
+  "editBudget": "Edit budget",
+  "originalBudgetCurrency": "Original budget currency",
+  "budgetAmount": "Budget amount",
+  "startDate": "Start date",
+  "period": "Period",
+  "createBudget": "Create Budget",
+  "budgetAmountTitle": "Budget Amount",
+  "budgetExists": "This category already has a {period} budget. Edit it instead.",
+  "@budgetExists": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "cardPaymentNote": "Card payment: {name}",
+  "@cardPaymentNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cardInterest": "Card interest",
+  "annualCardFee": "Annual card fee",
+  "cardFee": "Card fee",
+  "charge": "Charge",
+  "interest": "Interest",
+  "latePaymentFee": "Late payment fee",
+  "annualFee": "Annual fee",
+  "otherBankFee": "Other bank fee",
+  "cardDetails": "Card details",
+  "cardDetailsHelp": "Add the limit, statement and due days and fees to see available credit, the minimum payment and interest.",
+  "setUpCardTerms": "Set up card terms",
+  "credit": "Credit",
+  "editCardTerms": "Edit card terms",
+  "available": "Available",
+  "limit": "Limit",
+  "limitUsed": "{percent}% of the limit used",
+  "@limitUsed": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "under30Tip": "keeping it under 30% helps your credit",
+  "overLimitBy": "Over the limit by {amount}",
+  "@overLimitBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "lastStatement": "Last statement",
+  "stillToPay": "Still to pay",
+  "minimumDue": "Minimum due",
+  "minimumDueBy": "Minimum due by {date}",
+  "@minimumDueBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "interestIfUnpaid": "Interest if unpaid (est.)",
+  "cashAdvances": "Cash advances",
+  "payCard": "Pay card",
+  "interestOrFee": "Interest or fee",
+  "termsOf": "{name} terms",
+  "@termsOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "creditLimitIn": "Credit limit ({currency})",
+  "@creditLimitIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "purchaseInterest": "Purchase interest, % a year",
+  "statementClosingDay": "Statement closing day (1–31)",
+  "paymentDueDay": "Payment due day (1–31)",
+  "minimumPaymentPercent": "Minimum payment, % of statement",
+  "minimumPaymentAtLeast": "Minimum payment at least ({currency})",
+  "@minimumPaymentAtLeast": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "foreignFeePercent": "Foreign transaction fee, %",
+  "cashAdvanceFee": "Cash advance fee, %",
+  "cashAdvanceFeeMin": "Cash advance fee at least ({currency})",
+  "@cashAdvanceFeeMin": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "cashAdvanceInterest": "Cash advance interest, % a year",
+  "latePaymentFeeIn": "Late payment fee ({currency})",
+  "@latePaymentFeeIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "addAccountToPayFrom": "Add a {currency} bank or cash account to pay from",
+  "@addAccountToPayFrom": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "payNamed": "Pay {name}",
+  "@payNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "payFrom": "Pay from",
+  "amountMinimum": "Amount (minimum {amount})",
+  "@amountMinimum": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "pay": "Pay",
+  "chargeOn": "Charge on {name}",
+  "@chargeOn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "amountIn": "Amount ({currency})",
+  "@amountIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "statementDate": "Statement date",
+  "buy": "Buy",
+  "sell": "Sell",
+  "setPrice": "Set price",
+  "useFeed": "Use feed",
+  "linkMortgage": "Link mortgage",
+  "adjust": "Adjust",
+  "split": "Split",
+  "activity": "Activity",
+  "actualIncomeInAccount": "Actual income in account currency",
+  "pricePerUnitIn": "Price per unit in {currency}",
+  "@pricePerUnitIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "addHolding": "Add holding",
+  "addHoldingHelp": "Add gold, investments, property, crypto, or another asset. Existing holdings do not change your cash balance.",
+  "missingPrice": "Missing price",
+  "needsPrice": "Needs price",
+  "costUnknown": "Cost {amount} {currency}",
+  "@costUnknown": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "unknown": "unknown",
+  "assetName": "Asset name",
+  "assetClass": "Asset class",
+  "quantityGrams": "Quantity / weight in grams",
+  "acquisitionCurrency": "Acquisition currency",
+  "totalCostShare": "Total cost of your share (blank if unknown)",
+  "tickerSymbol": "Ticker / crypto symbol",
+  "exchangeHint": "Exchange (EGX, NASDAQ, etc.)",
+  "whereHeld": "Where it is held",
+  "ownershipFraction": "Ownership fraction (1 = 100%)",
+  "goldKarat": "Gold karat",
+  "priceSource": "Price source",
+  "datedManualPrices": "Dated manual prices",
+  "freeMarketFeed": "Free market feed when supported",
+  "currentResalePrice": "Current unit / gram resale price (optional)",
+  "openingDate": "Opening date",
+  "priceMustBePositive": "Price must be positive",
+  "valueNamed": "Value {name}",
+  "@valueNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "resalePricePerUnit": "Resale price per unit / gram",
+  "quoteCurrency": "Quote currency",
+  "quoteDate": "Quote date",
+  "source": "Source",
+  "ownershipLine": "{quantity} {unit} · ownership {percent}%",
+  "@ownershipLine": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "unrealizedGainCaps": "UNREALIZED GAIN",
+  "gainUnknown": "Unknown — cost or price unavailable",
+  "linkPropertyMortgage": "Link property and mortgage",
+  "existingObligation": "Existing obligation (counted once in net worth)",
+  "noLinkedMortgage": "No linked mortgage",
+  "manualAppraisals": "This asset uses dated manual appraisals.",
+  "adjustHoldingAudit": "Adjust holding with an audit record",
+  "correctQuantity": "Correct quantity",
+  "totalAcquisitionCost": "Total acquisition cost (blank if unknown)",
+  "custodyLocation": "Custody / location",
+  "adjustReason": "Reason for adjustment",
+  "stockSplit": "Stock split / quantity adjustment",
+  "newUnitsPerOld": "New units per old unit",
+  "createCashAccountFirst": "Create a cash account first",
+  "cashAccount": "Cash account",
+  "incomeType": "Income type",
+  "dividend": "Dividend",
+  "rent": "Rent",
+  "quantity": "Quantity",
+  "actualGrossCash": "Actual gross cash in account currency (optional)",
+  "feeInAccount": "Fee in account currency",
+  "transactionDate": "Transaction date",
+  "activityOf": "{name} activity",
+  "@activityOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownCost": "Unknown cost",
+  "gainLabel": "Gain {amount}",
+  "@gainLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "close": "Close",
+  "assetGold": "Gold",
+  "assetStock": "Stock",
+  "assetFund": "Fund",
+  "assetCrypto": "Crypto",
+  "assetProperty": "Property",
+  "assetCustom": "Other asset",
+  "ratesMatures": "{rate}% · matures {date}",
+  "@ratesMatures": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "contractDeposit": "Deposit",
+  "contractCertificate": "Certificate",
+  "contractLoan": "Loan",
+  "contractReceivable": "Money owed to you",
+  "contractCreditCard": "Credit card",
+  "addContractOrDebt": "Add contract or debt",
+  "expectedPaymentsNote": "Expected payments never change cash until you confirm receipt or payment.",
+  "owed": "Owed",
+  "principal": "Principal",
+  "addContractObligation": "Add contract or obligation",
+  "name": "Name",
+  "existingPrincipal": "Existing outstanding / invested principal",
+  "annualInterestCoupon": "Annual interest / coupon (%)",
+  "counterparty": "Bank / person / lender",
+  "interestConvention": "Interest convention",
+  "flatRate": "Flat fixed annual rate / periodic coupons",
+  "reducingBalance": "Reducing balance, equal installments",
+  "manualSchedule": "Enter an agreed schedule manually",
+  "paymentsPerYear": "Payments per year",
+  "quarterly": "Quarterly",
+  "halfYearly": "Half-yearly",
+  "maturityDate": "Maturity / end date",
+  "payoutAccount": "Cash / payout account",
+  "linkedCard": "Linked credit card (cards only)",
+  "cardStatementDay": "Card statement day",
+  "cardPaymentDay": "Card payment day",
+  "movePrincipalNow": "Move principal from/to cash now?",
+  "existingPosition": "No — this is an existing position",
+  "recordNewFunding": "Yes — record new funding",
+  "cardDaysRange": "Card days must be 1–31",
+  "principalAnnual": "{amount} {currency} · {rate}% annual",
+  "@principalAnnual": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "equalInstallmentsNote": "Equal installments; periodic rate = annual rate / payments per year.",
+  "flatCouponsNote": "Flat coupons; final partial period is prorated by actual days in the scheduled period.",
+  "outstandingAmount": "Outstanding {amount} {currency}",
+  "@outstandingAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "billedLine": "Billed {billed} · unbilled {unbilled}\nOlder / opening {older} · due {due}",
+  "@billedLine": {
+    "placeholders": {
+      "billed": {
+        "type": "String"
+      },
+      "unbilled": {
+        "type": "String"
+      },
+      "older": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "addAgreedPayment": "Add agreed payment",
+  "earlySettlement": "Early settlement",
+  "outstandingPrincipal": "Outstanding principal",
+  "agreedFinalInterest": "Agreed final interest / fee",
+  "noLinkedCashAccount": "No linked cash account",
+  "recordEarlySettlement": "Record early settlement",
+  "principalInterestLine": "Principal {principal} · interest {interest}",
+  "@principalInterestLine": {
+    "placeholders": {
+      "principal": {
+        "type": "String"
+      },
+      "interest": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmed": "Confirmed",
+  "reverseConfirmedPayment": "Reverse confirmed payment",
+  "reversePaymentTitle": "Reverse payment?",
+  "reversePaymentBody": "This reverses the linked cash entries and marks the payment unpaid.",
+  "reverse": "Reverse",
+  "confirmActual": "Confirm actual {amount} {currency}",
+  "@confirmActual": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "cashAccountRecordNow": "Cash account · record actual payment now",
+  "confirm": "Confirm",
+  "payCreditCard": "Pay credit card",
+  "dueDate": "Due date",
+  "principalAmount": "Principal amount",
+  "interestAmount": "Interest amount",
+  "enterPositivePayment": "Enter a positive payment",
+  "notRecorded": "Not recorded",
+  "feesForeign": "Foreign transaction fees",
+  "feesTransfer": "Transfer fees",
+  "feesCashAdvance": "Cash advance fees",
+  "feesLate": "Late payment fees",
+  "feesAnnual": "Annual card fees",
+  "feesInvestment": "Investment fees",
+  "feesOther": "Other bank fees",
+  "percentVsLast": "{percent}% vs last",
+  "@percentVsLast": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "priceFxGain": "Price {price} · FX {fx}",
+  "@priceFxGain": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "fx": {
+        "type": "String"
+      }
+    }
+  },
+  "expenses": "Expenses",
+  "spendingByCategory": "Spending by category",
+  "noSpendingMonth": "No spending this month.",
+  "totalCaps": "TOTAL",
+  "howYouPaid": "How you paid",
+  "byCardOrWallet": "By card or wallet",
+  "spendingByCurrency": "Spending by currency",
+  "convertedAtEachDate": "Converted to your reporting currency at each date.",
+  "feesInterestPaid": "Fees and interest paid",
+  "incomeSources": "Income sources",
+  "noIncomeMonth": "No income this month.",
+  "assetAllocation": "Asset allocation",
+  "noValuedAssets": "No valued assets yet.",
+  "currencyExposure": "Currency exposure",
+  "originalAmounts": "Original amounts, before conversion.",
+  "holdingGains": "Holding gains since opening",
+  "holdingGainsNote": "Price gains and the FX effect on acquisition cost are separate. Missing acquisition history stays unknown.",
+  "noGainsYet": "No gains recorded yet.",
+  "netWorthHistory": "Net worth history",
+  "netWorthHistoryNote": "Recorded observations only. No values are invented before tracking began.",
+  "chartAppearsLater": "The chart appears after a few days of tracking.",
+  "expectedCashFlow": "Expected cash flow · next 30 days",
+  "expectedCashFlowNote": "Based on unconfirmed contract schedules. This is a projection, not available cash.",
+  "realizedGains": "Realized investment gains",
+  "noRealizedGains": "No realized gains yet.",
+  "bankWalletApps": "Bank and wallet apps",
+  "searchApps": "Search apps",
+  "noAppsFound": "No apps found.",
+  "noMatchingApps": "No matching apps.",
+  "readAlertsTitle": "Read payment alerts?",
+  "readAlertsBody": "Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, card numbers are reduced to their last 4 digits, and nothing leaves your phone. You review every payment before it is added, unless you turn on automatic adding.",
+  "continueAction": "Continue",
+  "detectFromNotifications": "Detect payments from notifications",
+  "detectFromNotificationsSubtitle": "Bank SMS and bank or wallet app alerts go to your inbox",
+  "accessGranted": "Notification access granted",
+  "accessNeeded": "Notification access needed",
+  "restrictedSettingsHint": "If the switch is greyed out, open App info › ⋮ › Allow restricted settings first.",
+  "grant": "Grant",
+  "messagingAlwaysRead": "Messaging apps are always read. Apps that posted money-like notifications appear here; tick the ones from your bank or wallet, or choose them from your installed apps.",
+  "noneSeenYet": "None seen yet. They appear after the next alert.",
+  "alertsCount": "{count} alerts",
+  "@alertsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chosenFromInstalled": "Chosen from installed apps",
+  "chooseFromInstalled": "Choose from installed apps",
+  "notifyNewPayments": "Notify me about new payments",
+  "iosShortcutsIntro": "iOS does not let apps read messages, so Shortcuts sends them to Flourish. Set this up once (iOS 17 or later):",
+  "iosStep1": "Open Shortcuts › Automation › New Automation › Message.",
+  "iosStep2": "Message Contains: EGP. Choose Run Immediately. Make one more automation for each word your bank uses: جنيه, ج.م, and the currencies you pay in abroad or online, such as USD, دولار, EUR, SAR.",
+  "iosStep3": "Add the action \"Import Transaction Text\" from Flourish and pass it the Message and Sender.",
+  "iosStep4": "For Apple Pay: New Automation › Wallet › choose your cards › Run Immediately › \"Log Card Payment\" with Amount, Merchant and Card.",
+  "paymentsArriveInbox": "Payments arrive in your inbox without opening Flourish.",
+  "addingPayments": "Adding payments",
+  "autoAddClear": "Add clear payments automatically",
+  "autoAddClearSubtitle": "Only purchases and refunds from a recognised bank, on a card you saved with its last 4 digits, with no doubt about the amount or a possible duplicate. Everything else waits for you.",
+  "aiForUnclear": "AI for unclear messages",
+  "aiOnProvider": "On · {provider}",
+  "@aiOnProvider": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiOffProviders": "Off · DeepSeek, OpenRouter, Groq or Gemini",
+  "privacy": "Privacy",
+  "keepMessageText": "Keep message text after review",
+  "dontKeep": "Don't keep",
+  "daysCount": "{count} days",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "includeTextInBackups": "Include message text in backups",
+  "messageTextDeleted": "Message text deleted",
+  "deleteAllMessageText": "Delete all message text now",
+  "testMessage": "Test a message",
+  "pasteAlert": "Paste a bank or wallet alert",
+  "notAPayment": "Not a payment ({reason}).",
+  "@notAPayment": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "percentSure": "{percent}% sure",
+  "@percentSure": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "kindPurchase": "Purchase",
+  "kindWithdrawal": "Cash withdrawal",
+  "kindMoneySent": "Money sent",
+  "kindMoneyReceived": "Money received",
+  "kindDeposit": "Deposit",
+  "kindRefund": "Refund",
+  "kindBillPayment": "Bill payment",
+  "kindCardPayment": "Card payment",
+  "kindFee": "Fee",
+  "kindPayment": "Payment",
+  "addedPayments": "Added {count} payments",
+  "@addedPayments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedWithProblems": "Added {count}; {problems} need a look: {first}",
+  "@addedWithProblems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "problems": {
+        "type": "int"
+      },
+      "first": {
+        "type": "String"
+      }
+    }
+  },
+  "askingAi": "Asking the AI…",
+  "aiNothingToAdd": "The AI had nothing to add",
+  "updatedPayments": "{count, plural, =1{Updated 1 payment} other{Updated {count} payments}}",
+  "@updatedPayments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiUnavailable": "AI unavailable: {error}",
+  "@aiUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "convertingTo": "Converting to {currency}…",
+  "@convertingTo": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "noRateYetEdit": "No exchange rate yet · tap Edit to enter the {currency} amount",
+  "@noRateYetEdit": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "cardFeePercent": " + {percent}% card fee",
+  "@cardFeePercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "rateEstimate": "exchange rate estimate",
+  "paymentsToReviewTitle": "Payments to review",
+  "detectionSettings": "Detection settings",
+  "nothingDetected": "Nothing detected yet",
+  "nothingDetectedSubtitle": "Turn on payment detection to collect bank and wallet alerts here, or paste an alert.",
+  "setUpDetection": "Set up detection",
+  "checkUnclear": "{count, plural, =1{Check the unclear payment with AI} other{Check {count} unclear payments with AI}}",
+  "@checkUnclear": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addReady": "Add {count} ready payments",
+  "@addReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allCaughtUp": "All caught up.",
+  "addedAutoThisWeek": "Added automatically this week",
+  "duplicatesDismissed": "Duplicates and dismissed ({count})",
+  "@duplicatesDismissed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chooseAnAccount": "Choose an account",
+  "newProposal": "✨ New: {name}",
+  "@newProposal": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chargedAmountLine": " · charged {currency} {amount}",
+  "@chargedAmountLine": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "maybeEnteredAlready": "You may have entered this already",
+  "sameEntry": "Same entry",
+  "sameAsOtherAlert": "Same payment as another alert",
+  "unclearMessage": "Unclear message: check the details",
+  "askAi": "Ask AI",
+  "checkedWithAi": "Checked with AI",
+  "showMessage": "Show message",
+  "dismiss": "Dismiss",
+  "reviewAgain": "Review again",
+  "bankBalanceDiffers": "The bank says your balance is {balance}; Flourish differs by {difference}.",
+  "@bankBalanceDiffers": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "difference": {
+        "type": "String"
+      }
+    }
+  },
+  "matchBank": "Match bank",
+  "matchedBankBalance": "Matched balance in bank message",
+  "reviewPayment": "Review payment",
+  "chargedToAccountPaid": "Charged to the account ({account}); paid {currency} {amount}",
+  "@chargedToAccountPaid": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "chargedInEmpty": "Charged in {account} (empty: exchange rate + card fee); paid {currency} {amount}",
+  "@chargedInEmpty": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "automatic": "Automatic",
+  "wentToYourAccount": "Went to one of your accounts?",
+  "noSomeoneElse": "No, someone else",
+  "choose": "Choose",
+  "cameFromYourAccount": "Came from one of your accounts?",
+  "merchantOrPerson": "Merchant or person",
+  "paymentAdded": "Payment added",
+  "accountGone": "Account no longer exists",
+  "chooseDifferentCurrencies": "Choose different currencies",
+  "chooseDifferentCategories": "Choose different categories of the same type",
+  "categoryCycle": "Category hierarchy cannot contain a cycle",
+  "typeRestoreConfirm": "Type RESTORE to confirm",
+  "chooseImportFile": "Choose a CSV, Excel (.xlsx), OFX/QFX, QIF or PDF statement",
+  "fileUnreadable": "This file could not be read",
+  "importError": "Import: {error}",
+  "@importError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfPasswordProtected": "This PDF is password protected. Enter its password to import it.",
+  "pdfNoText": "This PDF has no text, it looks like a scan. Import needs a text PDF: download the statement from your bank's website or app, or export CSV, Excel or OFX instead.",
+  "pdfNoTable": "No transaction table found in this PDF. Set up AI in Settings to read unusual layouts, or export CSV, Excel or OFX from your bank.",
+  "noTransactionsInFile": "No transactions found in this file",
+  "fileEmpty": "The file is empty",
+  "invalidHeaderRow": "Invalid header row",
+  "mapRequiredColumns": "Map date, type, account, and amount",
+  "columnNumber": "Column {n}",
+  "@columnNumber": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "manualOverride": "manual override",
+  "transactionNumber": "Transaction {id}",
+  "@transactionNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "manageNamed": "Manage {name}",
+  "@manageNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "active": "Active",
+  "include": "Include",
+  "exclude": "Exclude",
+  "pdfStatementAi": "PDF statement (AI)",
+  "readingPage": "Reading page {page} of {total}…",
+  "@readingPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "readingPart": "Reading part {part} of {total}…",
+  "@readingPart": {
+    "placeholders": {
+      "part": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pdfAiBody": "No table Flourish recognises was found. The text of {pages, plural, =1{1 page} other{{pages} pages}} ({requests, plural, =1{1 request} other{{requests} requests}}) goes to {provider}, with account and card numbers, IBANs, phones, emails and customer name lines removed. Amounts, dates and descriptions are sent. Rows whose amount is not on the page are left out, and you review everything before it is added.",
+  "@pdfAiBody": {
+    "placeholders": {
+      "pages": {
+        "type": "int"
+      },
+      "requests": {
+        "type": "int"
+      },
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiMappingUnavailable": "AI mapping unavailable: {error}",
+  "@aiMappingUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "typedAmounts": "Positive amounts with a Type column",
+  "signedAmounts": "Signed bank amounts: negative = expense",
+  "decimalPeriod": "Period (1,234.56)",
+  "decimalComma": "Comma (1.234,56)",
+  "accountsTitle": "Accounts",
+  "institution": "Institution",
+  "group": "Group",
+  "includeInWealth": "Include in wealth totals",
+  "owedPerStatement": "Amount owed per statement (optional)",
+  "reconciledBalance": "Reconciled balance (optional)",
+  "reconciliationReason": "Reconciliation reason",
+  "reconciliationHistory": "Reconciliation history",
+  "resumeAutomaticRate": "Resume automatic rate",
+  "manualExchangeRate": "Manual exchange rate",
+  "oneSourceUnitEquals": "One source unit equals",
+  "effectiveDate": "Effective date",
+  "addOverride": "Add override",
+  "transactionTemplates": "Transaction templates",
+  "newTemplate": "New template",
+  "saveTemplate": "Save template",
+  "reviewTemplateTx": "Review template transaction",
+  "templateName": "Template name",
+  "amountInAccountCurrency": "Amount in account currency",
+  "recordTransaction": "Record transaction",
+  "assignSubcategory": "Assign subcategory",
+  "childCategory": "Child category",
+  "parentCategory": "Parent category",
+  "noParent": "No parent",
+  "receipts": "Receipts",
+  "attachReceipt": "Attach receipt",
+  "encryptedBackup": "Encrypted backup",
+  "passwordMin10": "Password (10+ characters)",
+  "export": "Export",
+  "replaceFromBackup": "Replace current finances from backup",
+  "backupPassword": "Backup password",
+  "typeRestoreReplaceAll": "Type RESTORE to replace all current data",
+  "restore": "Restore",
+  "localBackupHistory": "Local backup history",
+  "restoreLocalBackup": "Restore this local backup",
+  "typeRestoreReplace": "Type RESTORE to replace current data",
+  "chooseWorksheet": "Choose worksheet",
+  "worksheet": "Worksheet",
+  "pdfStatement": "PDF statement",
+  "readStatementAi": "Read this statement with AI?",
+  "useAi": "Use AI",
+  "aiNoTransactionsPdf": "The AI found no transactions in this PDF",
+  "pdfPassword": "PDF password",
+  "password": "Password",
+  "pdfPasswordHint": "Banks often use your ID or account number",
+  "open": "Open",
+  "whichHeaderRow": "Which row has the column names?",
+  "headerRowNumber": "Header row number",
+  "mapColumnsAiTitle": "Map the columns with AI?",
+  "mapColumnsAiBody": "Sends the column names and 5 rows, with account numbers, phones and emails masked. You can change every choice afterwards.",
+  "mapMyself": "Map myself",
+  "mapColumns": "Map columns",
+  "mapColumnsAi": "Map columns (suggested by AI)",
+  "notMapped": "Not mapped",
+  "amountConvention": "Amount convention",
+  "decimalSeparator": "Decimal separator",
+  "dateFormatNonIso": "Date format for non-ISO dates",
+  "review": "Review",
+  "spreadsheet": "Spreadsheet",
+  "amountEnter": "Enter an amount",
+  "amountCheckFormat": "Check the number format",
+  "amountNumbersOnly": "Enter numbers only",
+  "amountNoDecimals": "{currency} has no decimals",
+  "@amountNoDecimals": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "amountMaxDecimals": "Use at most {digits} decimals for {currency}",
+  "@amountMaxDecimals": {
+    "placeholders": {
+      "digits": {
+        "type": "int"
+      },
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "amountAboveZero": "Enter an amount above zero",
+  "methodCash": "Cash",
+  "methodDebitCard": "Debit card",
+  "methodCreditCard": "Credit card",
+  "methodPrepaidCard": "Prepaid card",
+  "methodMobileWallet": "Mobile wallet",
+  "methodInstaPay": "InstaPay",
+  "methodBankTransfer": "Bank transfer",
+  "methodBnpl": "Installments (BNPL)",
+  "methodCard": "Card",
+  "intlLimit": "International limit",
+  "intlLimitIn": "International limit ({currency})",
+  "@intlLimitIn": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "intlLimitOptional": "International limit (optional)",
+  "availableAbroad": "Available abroad",
+  "overIntlLimitBy": "Over the international limit by {amount}",
+  "@overIntlLimitBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overCardIntlLimit": "This goes over the card's international limit by {amount}.",
+  "@overCardIntlLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bankSaidAvailable": "Bank message on {date}: {amount} available",
+  "@bankSaidAvailable": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bankSaidIntlAvailable": "Bank message on {date}: {amount} available abroad",
+  "@bankSaidIntlAvailable": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bankLimitDiffers": "The bank says {available} is available on this card; Flourish differs by {difference}.",
+  "@bankLimitDiffers": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      },
+      "difference": {
+        "type": "String"
+      }
+    }
+  },
+  "matchedBankLimit": "Matched available limit in bank message",
+  "catSalary": "Salary",
+  "catFreelance": "Freelance",
+  "catInvestment": "Investment",
+  "catFood": "Food & Drinks",
+  "catTransport": "Transport",
+  "catShopping": "Shopping",
+  "catBills": "Bills & Utilities",
+  "catEntertainment": "Entertainment",
+  "catHealth": "Health",
+  "catEducation": "Education",
+  "catHousing": "Housing",
+  "catTransferOut": "Transfer Out",
+  "catTransferIn": "Transfer In",
+  "catInvestmentPurchases": "Investment purchases",
+  "catInvestmentSales": "Investment sales",
+  "catPrincipalPaid": "Principal paid",
+  "catPrincipalReceived": "Principal received",
+  "catBankFees": "Bank fees",
+  "catInterestCharges": "Interest & charges",
+  "catInterestEarned": "Interest earned"
+}

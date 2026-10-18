@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/core/utils/error_text.dart';
 import '../providers/finance_providers.dart';
@@ -38,7 +39,7 @@ class AccountsScreen extends ConsumerWidget {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(title: const Text('Accounts')),
+          SliverAppBar.large(title: Text(context.l10n.navAccounts)),
           CupertinoSliverRefreshControl(
             onRefresh: () async {
               ref.invalidate(accountsProvider);
@@ -59,15 +60,15 @@ class AccountsScreen extends ConsumerWidget {
                     hasScrollBody: false,
                     child: EmptyState(
                       icon: Icons.account_balance_wallet_outlined,
-                      title: 'No accounts yet',
-                      subtitle: 'Add your first account to start tracking.',
+                      title: context.l10n.noAccountsYet,
+                      subtitle: context.l10n.addFirstAccount,
                       action: FilledButton.icon(
                         onPressed: () => showSpringBottomSheet(
                           context: context,
                           builder: (_) => const AddAccountSheet(),
                         ),
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Add an account'),
+                        label: Text(context.l10n.addAnAccount),
                       ),
                     ),
                   ),
@@ -83,7 +84,7 @@ class AccountsScreen extends ConsumerWidget {
                   ),
                   sliver: SliverToBoxAdapter(
                     child: Text(
-                      '${accounts.length} ${accounts.length == 1 ? 'ACCOUNT' : 'ACCOUNTS'}',
+                      context.l10n.accountCount(accounts.length),
                       style: AppTextStyles.eyebrow.copyWith(
                         color: palette.textLow,
                       ),
@@ -135,11 +136,11 @@ class AccountsScreen extends ConsumerWidget {
               ),
             ],
             error: (error, stackTrace) => [
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: EmptyState(
                   icon: Icons.error_outline_rounded,
-                  title: 'Error loading accounts',
+                  title: context.l10n.errorLoadingAccounts,
                 ),
               ),
             ],
@@ -161,6 +162,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
   final _limitController = TextEditingController();
+  final _intlLimitController = TextEditingController();
   final _aprController = TextEditingController();
   final _statementDayController = TextEditingController(text: '25');
   final _dueDayController = TextEditingController(text: '10');
@@ -184,6 +186,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
     _nameController.dispose();
     _balanceController.dispose();
     _limitController.dispose();
+    _intlLimitController.dispose();
     _aprController.dispose();
     _statementDayController.dispose();
     _dueDayController.dispose();
@@ -193,13 +196,13 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
   @override
   Widget build(BuildContext context) {
     return BottomSheetScaffold(
-      title: 'Add Account',
+      title: context.l10n.addAccount,
       children: [
         TextField(
           controller: _nameController,
           decoration: InputDecoration(
-            labelText: 'Account Name',
-            hintText: 'e.g. Main Bank',
+            labelText: context.l10n.accountName,
+            hintText: context.l10n.accountNameHint,
             errorText: _nameError,
           ),
           onChanged: (_) => setState(() => _nameError = null),
@@ -209,11 +212,11 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
           controller: _balanceController,
           decoration: InputDecoration(
             labelText: _type == 'credit'
-                ? 'Amount you owe now'
-                : 'Current balance',
+                ? context.l10n.amountOweNow
+                : context.l10n.currentBalance,
             helperText: _type == 'credit'
-                ? 'Enter debt as a positive number; 0 for a paid-off card'
-                : 'Leave empty for 0',
+                ? context.l10n.debtPositiveHint
+                : context.l10n.leaveEmptyZero,
             helperMaxLines: 2,
             hintText: '0',
             prefixText: '${CurrencyFormatter.symbolFor(_currency)} ',
@@ -228,7 +231,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
           initialValue: _type,
-          decoration: const InputDecoration(labelText: 'Account Type'),
+          decoration: InputDecoration(labelText: context.l10n.accountType),
           items: AppConstants.accountTypeOptions
               .map(
                 (opt) => DropdownMenuItem(
@@ -255,7 +258,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
           initialValue: _currency,
-          decoration: const InputDecoration(labelText: 'Currency'),
+          decoration: InputDecoration(labelText: context.l10n.currency),
           items: AppConstants.currencies
               .map((c) => DropdownMenuItem(value: c, child: Text(c)))
               .toList(),
@@ -267,7 +270,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         ),
         if (_type == 'credit') ...[
           const SizedBox(height: Sp.md),
-          Text('Card terms', style: AppTextStyles.overline),
+          Text(context.l10n.cardTerms, style: AppTextStyles.overline),
           const SizedBox(height: Sp.sm),
           Row(
             children: [
@@ -278,7 +281,9 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
                     decimal: true,
                   ),
                   inputFormatters: [AmountInputFormatter()],
-                  decoration: const InputDecoration(labelText: 'Credit limit'),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.creditLimit,
+                  ),
                 ),
               ),
               const SizedBox(width: Sp.md),
@@ -289,12 +294,21 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
                     decimal: true,
                   ),
                   inputFormatters: [AmountInputFormatter()],
-                  decoration: const InputDecoration(
-                    labelText: 'Interest % / year',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.interestPerYear,
                   ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: Sp.md),
+          TextField(
+            controller: _intlLimitController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [AmountInputFormatter()],
+            decoration: InputDecoration(
+              labelText: context.l10n.intlLimitOptional,
+            ),
           ),
           const SizedBox(height: Sp.md),
           Row(
@@ -304,7 +318,9 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
                   controller: _statementDayController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [AmountInputFormatter()],
-                  decoration: const InputDecoration(labelText: 'Statement day'),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.statementDay,
+                  ),
                 ),
               ),
               const SizedBox(width: Sp.md),
@@ -313,7 +329,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
                   controller: _dueDayController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [AmountInputFormatter()],
-                  decoration: const InputDecoration(labelText: 'Due day'),
+                  decoration: InputDecoration(labelText: context.l10n.dueDay),
                 ),
               ),
             ],
@@ -327,14 +343,10 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
               ),
             ),
           const SizedBox(height: Sp.xs),
-          Text(
-            'Fees (foreign transactions, cash advance, late payment) can be '
-            'added from the card page.',
-            style: AppTextStyles.caption,
-          ),
+          Text(context.l10n.cardFeesLater, style: AppTextStyles.caption),
         ],
         const SizedBox(height: Sp.md),
-        Text('Icon', style: AppTextStyles.overline),
+        Text(context.l10n.icon, style: AppTextStyles.overline),
         const SizedBox(height: Sp.sm),
         Wrap(
           spacing: Sp.sm,
@@ -365,7 +377,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
           }).toList(),
         ),
         const SizedBox(height: Sp.md),
-        Text('Color', style: AppTextStyles.overline),
+        Text(context.l10n.color, style: AppTextStyles.overline),
         const SizedBox(height: Sp.sm),
         Wrap(
           spacing: Sp.sm,
@@ -415,7 +427,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Add Account', style: TextStyle(fontSize: 16)),
+              : Text(context.l10n.addAccount, style: TextStyle(fontSize: 16)),
         ),
       ],
     );
@@ -425,7 +437,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
     setState(() => _nameError = null);
 
     if (_nameController.text.trim().isEmpty) {
-      setState(() => _nameError = 'Please enter an account name');
+      setState(() => _nameError = context.l10n.enterAccountName);
       return;
     }
 
@@ -435,7 +447,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         balance = AmountParser.decimal(_balanceController.text);
         if (balance.value.scale > CurrencyFormatter.decimalsFor(_currency)) {
           throw ArgumentError(
-            'Use at most ${CurrencyFormatter.decimalsFor(_currency)} decimals',
+            context.l10n.maxDecimals(CurrencyFormatter.decimalsFor(_currency)),
           );
         }
       } catch (e) {
@@ -451,7 +463,11 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
       try {
         terms = CardTerms(
           creditLimit: AmountParser.decimal(_limitController.text),
+          intlLimit: _intlLimitController.text.trim().isEmpty
+              ? null
+              : AmountParser.decimal(_intlLimitController.text),
         );
+        terms.validate();
         apr = _aprController.text.trim().isEmpty
             ? Amount.zero
             : AmountParser.decimal(_aprController.text);

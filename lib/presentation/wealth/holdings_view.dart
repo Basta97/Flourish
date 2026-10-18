@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import '../../core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,17 +36,15 @@ class HoldingsView extends ConsumerWidget {
         FilledButton.icon(
           onPressed: () => addHolding(context, ref),
           icon: const Icon(Icons.add),
-          label: const Text('Add holding'),
+          label: Text(context.l10n.addHolding),
         ),
         const SizedBox(height: 16),
         ...holdings.when(
           data: (items) => items.isEmpty
               ? [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(Sp.sm),
-                    child: WealthHint(
-                      'Add gold, investments, property, crypto, or another asset. Existing holdings do not change your cash balance.',
-                    ),
+                    child: WealthHint(context.l10n.addHoldingHelp),
                   ),
                 ]
               : [
@@ -64,9 +63,9 @@ class HoldingsView extends ConsumerWidget {
                             tint: tint,
                             title: h.name,
                             subtitle:
-                                '${h.kind.name} · ${h.quantity} ${h.unit}${h.custody.isEmpty ? '' : ' · ${h.custody}'}\n${v?.source ?? 'Missing price'}${v?.effectiveAt == null ? '' : ' · ${v!.effectiveAt!.toIso8601String().substring(0, 10)}'}',
+                                '${assetKindLabel(context.l10n, h.kind)} · ${h.quantity} ${h.unit}${h.custody.isEmpty ? '' : ' · ${h.custody}'}\n${v?.source ?? context.l10n.missingPrice}${v?.effectiveAt == null ? '' : ' · ${v!.effectiveAt!.toIso8601String().substring(0, 10)}'}',
                             value: v?.converted == null
-                                ? 'Needs price'
+                                ? context.l10n.needsPrice
                                 : CurrencyFormatter.format(
                                     v!.converted!.toDouble(),
                                     currency: currency,
@@ -75,7 +74,11 @@ class HoldingsView extends ConsumerWidget {
                                 ? FlourishPalette.of(context).warning
                                 : null,
                             secondary: gain == null
-                                ? 'Cost ${h.costBasis?.fixed() ?? 'unknown'} ${h.currency}'
+                                ? context.l10n.costUnknown(
+                                    h.costBasis?.fixed() ??
+                                        context.l10n.unknown,
+                                    h.currency,
+                                  )
                                 : '${gain >= Amount.zero ? '+' : ''}${gain.fixed()} $currency',
                             onTap: () => showHolding(context, ref, h, v),
                           );
@@ -97,68 +100,72 @@ Future<void> addHolding(BuildContext context, WidgetRef ref) async {
   final currency = ref.read(defaultCurrencyProvider);
   await financeForm(
     context,
-    title: 'Add holding',
+    title: context.l10n.addHolding,
     fields: [
-      const FinanceField('name', 'Asset name'),
+      FinanceField('name', context.l10n.assetName),
       FinanceField(
         'kind',
-        'Asset class',
+        context.l10n.assetClass,
         initial: 'gold',
-        options: {for (final k in AssetKind.values) k.name: k.name},
+        options: {
+          for (final k in AssetKind.values)
+            k.name: assetKindLabel(context.l10n, k),
+        },
       ),
-      const FinanceField(
+      FinanceField(
         'quantity',
-        'Quantity / weight in grams',
+        context.l10n.quantityGrams,
         initial: '1',
         numeric: true,
       ),
       FinanceField(
         'currency',
-        'Acquisition currency',
+        context.l10n.acquisitionCurrency,
         initial: currency,
         options: currencies,
       ),
-      const FinanceField(
+      FinanceField(
         'cost',
-        'Total cost of your share (blank if unknown)',
+        context.l10n.totalCostShare,
         required: false,
         numeric: true,
       ),
-      const FinanceField('symbol', 'Ticker / crypto symbol', required: false),
-      const FinanceField(
-        'exchange',
-        'Exchange (EGX, NASDAQ, etc.)',
-        required: false,
-      ),
-      const FinanceField('custody', 'Where it is held', required: false),
-      const FinanceField(
+      FinanceField('symbol', context.l10n.tickerSymbol, required: false),
+      FinanceField('exchange', context.l10n.exchangeHint, required: false),
+      FinanceField('custody', context.l10n.whereHeld, required: false),
+      FinanceField(
         'ownership',
-        'Ownership fraction (1 = 100%)',
+        context.l10n.ownershipFraction,
         initial: '1',
         numeric: true,
       ),
-      const FinanceField(
+      FinanceField(
         'karat',
-        'Gold karat',
+        context.l10n.goldKarat,
         initial: '24',
         options: {'24': '24K', '22': '22K', '21': '21K', '18': '18K'},
       ),
-      const FinanceField(
+      FinanceField(
         'valuation',
-        'Price source',
+        context.l10n.priceSource,
         initial: 'manual',
         options: {
-          'manual': 'Dated manual prices',
-          'automatic': 'Free market feed when supported',
+          'manual': context.l10n.datedManualPrices,
+          'automatic': context.l10n.freeMarketFeed,
         },
       ),
-      const FinanceField(
+      FinanceField(
         'price',
-        'Current unit / gram resale price (optional)',
+        context.l10n.currentResalePrice,
         required: false,
         numeric: true,
       ),
-      FinanceField('date', 'Opening date', initial: today(), date: true),
+      FinanceField(
+        'date',
+        context.l10n.openingDate,
+        initial: today(),
+        date: true,
+      ),
     ],
     save: (j) async {
       final id = ref.read(financialLedgerProvider).newId();
@@ -181,7 +188,7 @@ Future<void> addHolding(BuildContext context, WidgetRef ref) async {
       );
       final price = j['price']!.isEmpty ? null : number(j, 'price');
       if (price != null && price <= Amount.zero) {
-        throw ArgumentError('Price must be positive');
+        throw ArgumentError(context.l10n.priceMustBePositive);
       }
       await ref.read(databaseProvider).transaction(() async {
         await ref.read(financialLedgerProvider).openHolding(h);
@@ -213,21 +220,26 @@ Future<void> setHoldingPrice(
 ) async {
   await financeForm(
     context,
-    title: 'Value ${h.name}',
+    title: context.l10n.valueNamed(h.name),
     fields: [
-      const FinanceField(
-        'price',
-        'Resale price per unit / gram',
-        numeric: true,
-      ),
+      FinanceField('price', context.l10n.resalePricePerUnit, numeric: true),
       FinanceField(
         'currency',
-        'Quote currency',
+        context.l10n.quoteCurrency,
         initial: h.currency,
         options: currencies,
       ),
-      FinanceField('date', 'Quote date', initial: today(), date: true),
-      const FinanceField('source', 'Source', initial: 'Manual resale quote'),
+      FinanceField(
+        'date',
+        context.l10n.quoteDate,
+        initial: today(),
+        date: true,
+      ),
+      FinanceField(
+        'source',
+        context.l10n.source,
+        initial: 'Manual resale quote',
+      ),
     ],
     save: (j) => ref
         .read(marketDataProvider)
@@ -283,7 +295,11 @@ Future<void> showHolding(
             Text(h.name, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: Sp.xs),
             Text(
-              '${h.quantity} ${h.unit} · ownership ${h.ownership * Amount('100')}%',
+              context.l10n.ownershipLine(
+                '${h.quantity}',
+                h.unit,
+                '${h.ownership * Amount('100')}',
+              ),
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textSecondary(context),
               ),
@@ -299,14 +315,14 @@ Future<void> showHolding(
               child: Column(
                 children: [
                   Text(
-                    'UNREALIZED GAIN',
+                    context.l10n.unrealizedGainCaps,
                     style: AppTextStyles.eyebrow.copyWith(
                       color: AppColors.textSecondary(context),
                     ),
                   ),
                   const SizedBox(height: Sp.xs),
                   Text(
-                    v?.gain?.fixed() ?? 'Unknown — cost or price unavailable',
+                    v?.gain?.fixed() ?? context.l10n.gainUnknown,
                     textAlign: TextAlign.center,
                     style: AppTextStyles.number.copyWith(
                       color: v?.gain == null
@@ -345,14 +361,14 @@ Future<void> showHolding(
                                 .where((c) => c.kind == ContractKind.loan);
                         await financeForm(
                           context,
-                          title: 'Link property and mortgage',
+                          title: context.l10n.linkPropertyMortgage,
                           fields: [
                             FinanceField(
                               'loan',
-                              'Existing obligation (counted once in net worth)',
+                              context.l10n.existingObligation,
                               initial: h.linkedContractId ?? 'none',
                               options: {
-                                'none': 'No linked mortgage',
+                                'none': context.l10n.noLinkedMortgage,
                                 for (final c in loans) c.id: c.name,
                               },
                             ),
@@ -372,10 +388,8 @@ Future<void> showHolding(
                           AssetKind.custom,
                         ].contains(h.kind)) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'This asset uses dated manual appraisals.',
-                              ),
+                            SnackBar(
+                              content: Text(context.l10n.manualAppraisals),
                             ),
                           );
                           return;
@@ -399,31 +413,28 @@ Future<void> showHolding(
                       if (action == 'Adjust') {
                         await financeForm(
                           context,
-                          title: 'Adjust holding with an audit record',
+                          title: context.l10n.adjustHoldingAudit,
                           fields: [
                             FinanceField(
                               'quantity',
-                              'Correct quantity',
+                              context.l10n.correctQuantity,
                               initial: '${h.quantity}',
                               numeric: true,
                             ),
                             FinanceField(
                               'cost',
-                              'Total acquisition cost (blank if unknown)',
+                              context.l10n.totalAcquisitionCost,
                               initial: h.costBasis?.toString() ?? '',
                               required: false,
                               numeric: true,
                             ),
                             FinanceField(
                               'custody',
-                              'Custody / location',
+                              context.l10n.custodyLocation,
                               initial: h.custody,
                               required: false,
                             ),
-                            const FinanceField(
-                              'reason',
-                              'Reason for adjustment',
-                            ),
+                            FinanceField('reason', context.l10n.adjustReason),
                           ],
                           save: (j) => ref
                               .read(financialLedgerProvider)
@@ -450,11 +461,11 @@ Future<void> showHolding(
                       if (action == 'Split') {
                         await financeForm(
                           context,
-                          title: 'Stock split / quantity adjustment',
+                          title: context.l10n.stockSplit,
                           fields: [
-                            const FinanceField(
+                            FinanceField(
                               'ratio',
-                              'New units per old unit',
+                              context.l10n.newUnitsPerOld,
                               numeric: true,
                             ),
                           ],
@@ -468,19 +479,20 @@ Future<void> showHolding(
                           ref.read(accountsProvider).valueOrNull ?? [];
                       if (accounts.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Create a cash account first'),
+                          SnackBar(
+                            content: Text(context.l10n.createCashAccountFirst),
                           ),
                         );
                         return;
                       }
                       await financeForm(
                         context,
-                        title: '$action ${h.name}',
+                        title:
+                            '${_actionLabel(context.l10n, action)} ${h.name}',
                         fields: [
                           FinanceField(
                             'account',
-                            'Cash account',
+                            context.l10n.cashAccount,
                             initial: '${accounts.first.id}',
                             options: {
                               for (final a in accounts)
@@ -488,46 +500,46 @@ Future<void> showHolding(
                             },
                           ),
                           if (action == 'Income')
-                            const FinanceField(
+                            FinanceField(
                               'kind',
-                              'Income type',
+                              context.l10n.incomeType,
                               initial: 'dividend',
                               options: {
-                                'dividend': 'Dividend',
-                                'interest': 'Interest',
-                                'rent': 'Rent',
+                                'dividend': context.l10n.dividend,
+                                'interest': context.l10n.interest,
+                                'rent': context.l10n.rent,
                               },
                             ),
                           if (action != 'Income')
-                            const FinanceField(
+                            FinanceField(
                               'quantity',
-                              'Quantity',
+                              context.l10n.quantity,
                               numeric: true,
                             ),
                           FinanceField(
                             'amount',
                             action == 'Income'
-                                ? 'Actual income in account currency'
-                                : 'Price per unit in ${h.currency}',
+                                ? context.l10n.actualIncomeInAccount
+                                : context.l10n.pricePerUnitIn(h.currency),
                             numeric: true,
                           ),
                           if (action != 'Income') ...[
-                            const FinanceField(
+                            FinanceField(
                               'cash',
-                              'Actual gross cash in account currency (optional)',
+                              context.l10n.actualGrossCash,
                               numeric: true,
                               required: false,
                             ),
-                            const FinanceField(
+                            FinanceField(
                               'fee',
-                              'Fee in account currency',
+                              context.l10n.feeInAccount,
                               initial: '0',
                               numeric: true,
                             ),
                           ],
                           FinanceField(
                             'date',
-                            'Transaction date',
+                            context.l10n.transactionDate,
                             initial: today(),
                             date: true,
                           ),
@@ -561,7 +573,7 @@ Future<void> showHolding(
                         },
                       );
                     },
-                    child: Text(action),
+                    child: Text(_actionLabel(context.l10n, action)),
                   ),
               ],
             ),
@@ -571,6 +583,28 @@ Future<void> showHolding(
     ),
   );
 }
+
+String assetKindLabel(AppLocalizations l, AssetKind kind) => switch (kind) {
+  AssetKind.gold => l.assetGold,
+  AssetKind.stock => l.assetStock,
+  AssetKind.fund => l.assetFund,
+  AssetKind.crypto => l.assetCrypto,
+  AssetKind.property => l.assetProperty,
+  AssetKind.custom => l.assetCustom,
+};
+
+String _actionLabel(AppLocalizations l, String action) => switch (action) {
+  'Buy' => l.buy,
+  'Sell' => l.sell,
+  'Set price' => l.setPrice,
+  'Use feed' => l.useFeed,
+  'Link mortgage' => l.linkMortgage,
+  'Adjust' => l.adjust,
+  'Income' => l.income,
+  'Split' => l.split,
+  'Activity' => l.activity,
+  _ => action,
+};
 
 Future<void> showActivity(
   BuildContext context,
@@ -584,7 +618,7 @@ Future<void> showActivity(
   await showDialog(
     context: context,
     builder: (_) => AlertDialog(
-      title: Text('${h.name} activity'),
+      title: Text(context.l10n.activityOf(h.name)),
       content: SizedBox(
         width: 480,
         height: 400,
@@ -594,7 +628,7 @@ Future<void> showActivity(
               ListTile(
                 title: Text('${e['kind']} · ${e['quantity'] ?? ''}'),
                 subtitle: Text(
-                  '${e['date']}\n${e['amount'] ?? 'Unknown cost'} ${e['currency'] ?? ''}${e['realizedGain'] == null ? '' : ' · Gain ${e['realizedGain']}'}',
+                  '${e['date']}\n${e['amount'] ?? context.l10n.unknownCost} ${e['currency'] ?? ''}${e['realizedGain'] == null ? '' : ' · ${context.l10n.gainLabel('${e['realizedGain']}')}'}',
                 ),
               ),
           ],
@@ -603,7 +637,7 @@ Future<void> showActivity(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
       ],
     ),

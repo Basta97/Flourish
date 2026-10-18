@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/ai/ai_config.dart';
@@ -12,24 +13,20 @@ Future<bool> confirmScreenshotAi(
   final agreed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Read screenshots with AI?'),
+      title: Text(context.l10n.screenshotAiTitle),
       content: Text(
-        "Android's on-device text reader cannot read Arabic. With this on, "
-        'a screenshot you choose to read with AI is sent as an image to '
-        '${provider.label}. An image cannot be masked: names, card or '
-        'account numbers and balances visible in it are sent too.'
-        '${provider.free ? '\n\nFree tiers may keep what you send.' : ''}'
-        '\n\nOn-device reading stays the default; nothing is sent until you '
-        'tap "Read with AI". You can turn this off in AI settings.',
+        '${ctx.l10n.screenshotAiBody(provider.label)}'
+        '${provider.free ? '\n\n${ctx.l10n.freeTiersKeep}' : ''}'
+        '\n\n${ctx.l10n.screenshotAiFooter}',
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Not now'),
+          child: Text(context.l10n.notNow),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Turn on'),
+          child: Text(context.l10n.turnOn),
         ),
       ],
     ),

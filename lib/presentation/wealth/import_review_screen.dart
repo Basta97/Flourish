@@ -1,6 +1,7 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 import '../../core/finance/import/file_import_service.dart';
 import '../../core/finance/import/import_sources.dart';
@@ -68,7 +69,9 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
       }
       for (final (i, r) in plan.rows.indexed) {
         final kept = _includes['$i'];
-        if (kept != null && r.status != ImportRowStatus.invalid) r.include = kept;
+        if (kept != null && r.status != ImportRowStatus.invalid) {
+          r.include = kept;
+        }
       }
       if (mounted) setState(() => _plan = plan);
     } catch (e) {
@@ -97,17 +100,18 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
       refresh();
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
+      final l = context.l10n;
       Navigator.of(context).pop(true);
       messenger.showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 8),
           content: Text(
-            'Imported ${outcome.imported} transaction${outcome.imported == 1 ? '' : 's'}'
-            '${outcome.skipped > 0 ? ' · ${outcome.skipped} skipped' : ''}. '
-            'Reconcile opening balances if needed.',
+            '${l.importedSummary(outcome.imported)}'
+            '${outcome.skipped > 0 ? ' · ${l.skippedCount(outcome.skipped)}' : ''}. '
+            '${l.reconcileOpening}',
           ),
           action: SnackBarAction(
-            label: 'Undo',
+            label: l.undo,
             onPressed: () async {
               await service.undo(outcome.batchId);
               refresh();
@@ -119,7 +123,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
       if (mounted) {
         setState(() => _busy = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: ${describeError(e)}')),
+          SnackBar(content: Text(context.l10n.importFailed(describeError(e)))),
         );
       }
     }
@@ -130,7 +134,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
     final plan = _plan;
     final count = plan?.included.length ?? 0;
     return Scaffold(
-      appBar: AppBar(title: const Text('Review import')),
+      appBar: AppBar(title: Text(context.l10n.reviewImport)),
       bottomNavigationBar: plan == null
           ? null
           : SafeArea(
@@ -143,9 +147,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
               child: FilledButton.icon(
                 onPressed: _busy || count == 0 ? null : _apply,
                 icon: const Icon(Icons.download_done_rounded),
-                label: Text(
-                  count == 1 ? 'Import 1 transaction' : 'Import $count transactions',
-                ),
+                label: Text(context.l10n.importCount(count)),
               ),
             ),
       body: LiquidPageBackground(
@@ -197,24 +199,26 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
     final preset = ImportSources.byId(plan.sourceId);
     final unverified = preset is CsvPreset && !preset.verified;
     final lines = <String>[
-      '${plan.count(ImportRowStatus.ready)} new',
+      context.l10n.newCount(plan.count(ImportRowStatus.ready)),
       if (plan.count(ImportRowStatus.duplicate) > 0)
-        '${plan.count(ImportRowStatus.duplicate)} already imported',
+        context.l10n.alreadyImportedCount(
+          plan.count(ImportRowStatus.duplicate),
+        ),
       if (plan.count(ImportRowStatus.possibleDuplicate) > 0)
-        '${plan.count(ImportRowStatus.possibleDuplicate)} possible duplicates',
+        context.l10n.possibleDuplicatesCount(
+          plan.count(ImportRowStatus.possibleDuplicate),
+        ),
       if (plan.count(ImportRowStatus.invalid) + plan.errors.length > 0)
-        '${plan.count(ImportRowStatus.invalid) + plan.errors.length} unreadable',
+        context.l10n.unreadableCount(
+          plan.count(ImportRowStatus.invalid) + plan.errors.length,
+        ),
     ];
     return _section(context, plan.sourceName, [
       Text(lines.join(' · '), style: AppTextStyles.body),
       if (unverified)
         Padding(
           padding: const EdgeInsets.only(top: Sp.xs),
-          child: Text(
-            'This layout was built from documentation, not a real export. '
-            'Check a few rows below before importing.',
-            style: _low(context),
-          ),
+          child: Text(context.l10n.unverifiedLayout, style: _low(context)),
         ),
       for (final issue in [...plan.errors, ...plan.warnings].take(8))
         Padding(
@@ -223,15 +227,16 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
         ),
       if (plan.errors.length + plan.warnings.length > 8)
         Text(
-          '…and ${plan.errors.length + plan.warnings.length - 8} more',
+          context.l10n.andMore(plan.errors.length + plan.warnings.length - 8),
           style: _low(context),
         ),
     ]);
   }
 
   Widget _accounts(BuildContext context, ImportPlan plan) {
-    final existing = ref.watch(accountsProvider).valueOrNull ?? const <Account>[];
-    return _section(context, 'Accounts', [
+    final existing =
+        ref.watch(accountsProvider).valueOrNull ?? const <Account>[];
+    return _section(context, context.l10n.navAccounts, [
       for (final a in plan.accounts)
         Padding(
           padding: const EdgeInsets.only(top: Sp.sm),
@@ -240,12 +245,15 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
             initialValue: a.accountId ?? -1,
             isExpanded: true,
             decoration: InputDecoration(
-              labelText: '“${a.name}” in the file · ${_rowsLabel(a.rows)}',
+              labelText: context.l10n.accountInFile(
+                a.name,
+                context.l10n.rowCount(a.rows),
+              ),
             ),
             items: [
               DropdownMenuItem(
                 value: -1,
-                child: Text('Create new account (${a.currency})'),
+                child: Text(context.l10n.createNewAccount(a.currency)),
               ),
               for (final x in existing.where((x) => x.currency == a.currency))
                 DropdownMenuItem(value: x.id, child: Text(x.name)),
@@ -268,11 +276,8 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
     final all = SystemCategories.pickable(
       ref.watch(categoriesProvider).valueOrNull ?? const <Category>[],
     );
-    return _section(context, 'Categories not in Flourish', [
-      Text(
-        'Choose where each one goes. New categories keep the parent from the file.',
-        style: _low(context),
-      ),
+    return _section(context, context.l10n.categoriesNotInApp, [
+      Text(context.l10n.chooseCategoryDest, style: _low(context)),
       for (final c in plan.unresolved)
         Padding(
           padding: const EdgeInsets.only(top: Sp.sm),
@@ -285,11 +290,15 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
             },
             isExpanded: true,
             decoration: InputDecoration(
-              labelText: '${c.label} · ${c.type} · ${_rowsLabel(c.rows)}',
+              labelText:
+                  '${c.label} · ${c.type} · ${context.l10n.rowCount(c.rows)}',
             ),
             items: [
-              DropdownMenuItem(value: 'new', child: Text('Create “${c.name}”')),
-              const DropdownMenuItem(value: 'other', child: Text('Other')),
+              DropdownMenuItem(
+                value: 'new',
+                child: Text(context.l10n.createNamed(c.name)),
+              ),
+              DropdownMenuItem(value: 'other', child: Text(context.l10n.other)),
               for (final x in all.where((x) => x.type == c.type))
                 DropdownMenuItem(value: '${x.id}', child: Text(x.name)),
             ],
@@ -308,13 +317,15 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
 
   Widget _totals(BuildContext context, ImportPlan plan) {
     final totals = plan.totalsByAccount();
-    return _section(context, 'Change per account', [
-      if (totals.isEmpty) Text('Nothing selected', style: _low(context)),
+    return _section(context, context.l10n.changePerAccount, [
+      if (totals.isEmpty)
+        Text(context.l10n.nothingSelected, style: _low(context)),
       for (final e in totals.entries)
         Row(
           children: [
             Expanded(child: Text(e.key, style: AppTextStyles.body)),
             Text(
+              textDirection: TextDirection.ltr,
               '${e.value > Amount.zero ? '+' : ''}'
               '${CurrencyFormatter.format(e.value.toDouble(), currency: e.key.substring(e.key.lastIndexOf('(') + 1, e.key.length - 1))}',
               style: AppTextStyles.number,
@@ -327,7 +338,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
   Widget _rows(BuildContext context, ImportPlan plan) {
     final shown = plan.rows.take(300).toList();
     final date = DateFormat.yMMMd();
-    return _section(context, 'Transactions', [
+    return _section(context, context.l10n.transactions, [
       for (final (i, r) in shown.indexed)
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
@@ -339,15 +350,26 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
                   r.include = v ?? false;
                   _includes['$i'] = r.include;
                 }),
+          controlAffinity: ListTileControlAffinity.leading,
           title: Text(
+            (r.row.payee ?? r.row.note ?? r.category?.name ?? r.row.type)
+                .replaceAll(RegExp(r'\s*\n\s*'), ' · '),
             maxLines: 1,
-            [
-              (r.row.payee ?? r.row.note ?? r.category?.name ?? r.row.type)
-                  .replaceAll(RegExp(r'\s*\n\s*'), ' · '),
-              '${r.row.type == 'income' ? '+' : r.row.type == 'expense' ? '−' : '⇄ '}'
-                  '${CurrencyFormatter.format(r.row.amount.toDouble(), currency: r.currency)}',
-            ].join(' · '),
             overflow: TextOverflow.ellipsis,
+          ),
+          secondary: Text(
+            '${r.row.type == 'income'
+                ? '+'
+                : r.row.type == 'expense'
+                ? '−'
+                : '⇄ '}'
+            '${CurrencyFormatter.format(r.row.amount.toDouble(), currency: r.currency)}',
+            textDirection: TextDirection.ltr,
+            style: AppTextStyles.numberSmall.copyWith(
+              color: r.row.type == 'income'
+                  ? AppColors.income
+                  : AppColors.textPrimary(context),
+            ),
           ),
           subtitle: Text(
             [
@@ -357,9 +379,11 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
                   : r.account,
               ?r.category?.label,
               switch (r.status) {
-                ImportRowStatus.duplicate => 'Already imported',
-                ImportRowStatus.possibleDuplicate => 'Possible duplicate',
-                ImportRowStatus.invalid => r.problem ?? 'Cannot import',
+                ImportRowStatus.duplicate => context.l10n.alreadyImported,
+                ImportRowStatus.possibleDuplicate =>
+                  context.l10n.possibleDuplicate,
+                ImportRowStatus.invalid =>
+                  r.problem ?? context.l10n.cannotImport,
                 ImportRowStatus.ready => null,
               },
             ].nonNulls.join(' · '),
@@ -368,11 +392,9 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
         ),
       if (plan.rows.length > shown.length)
         Text(
-          '${plan.rows.length - shown.length} more rows follow the same choices',
+          context.l10n.moreRowsFollow(plan.rows.length - shown.length),
           style: _low(context),
         ),
     ]);
   }
 }
-
-String _rowsLabel(int n) => n == 1 ? '1 row' : '$n rows';

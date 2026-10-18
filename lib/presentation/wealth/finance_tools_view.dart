@@ -1,3 +1,4 @@
+import 'package:flourish/shared/category_label.dart';
 import 'package:csv/csv.dart' as csv;
 import '../../core/finance/payment_methods.dart';
 import 'dart:async';
@@ -31,177 +32,205 @@ import '../../data/database/database.dart';
 import 'finance_form.dart';
 import 'holdings_view.dart';
 import 'finance_runtime.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../l10n/l10n.dart';
+import '../../shared/widgets/settings_group.dart';
 
 class FinanceToolsView extends ConsumerWidget {
   const FinanceToolsView({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) => ListView(
-    padding: const EdgeInsets.fromLTRB(12, 12, 12, 120),
-    children: [
-      ListTile(
-        leading: const Icon(Icons.currency_exchange),
-        title: const Text('Exchange rates'),
-        subtitle: const Text('Sources, dates, and manual overrides'),
-        onTap: () => exchangeRates(context, ref),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final lockOn = PreferencesService.getBool('app_lock_enabled');
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        Sp.screenH,
+        Sp.md,
+        Sp.screenH,
+        Sp.bottomNavClear,
       ),
-      ListTile(
-        leading: const Icon(Icons.account_balance),
-        title: const Text('Manage accounts'),
-        subtitle: const Text('Edit, group, archive, and reconcile balances'),
-        onTap: () => manageAccounts(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.bookmark_outline),
-        title: const Text('Saved transaction templates'),
-        onTap: () => templates(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.account_tree_outlined),
-        title: const Text('Subcategories'),
-        onTap: () => subcategory(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.receipt_long),
-        title: const Text('Receipt attachments'),
-        onTap: () => receipts(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.calendar_month),
-        title: const Text('Reporting month starts on'),
-        subtitle: Text(
-          'Day ${PreferencesService.getInt('month_start_day', defaultValue: 1)}',
-        ),
-        onTap: () => financeForm(
-          context,
-          title: 'Reporting month',
-          fields: [
-            const FinanceField(
-              'day',
-              'Start day (1–28)',
-              initial: '1',
-              numeric: true,
+      children: [
+        SettingsGroup(
+          title: l.toolsMoney,
+          children: [
+            SettingsTile(
+              icon: Icons.currency_exchange,
+              title: l.exchangeRates,
+              subtitle: l.exchangeRatesSubtitle,
+              onTap: () => exchangeRates(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.account_balance,
+              tint: const Color(0xFF5B9DF5),
+              title: l.manageAccounts,
+              subtitle: l.manageAccountsSubtitle,
+              onTap: () => manageAccounts(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.bookmark_outline,
+              tint: const Color(0xFFF5B547),
+              title: l.savedTemplates,
+              subtitle: l.savedTemplatesSubtitle,
+              onTap: () => templates(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.account_tree_outlined,
+              tint: const Color(0xFF3CC8C0),
+              title: l.subcategories,
+              subtitle: l.subcategoriesSubtitle,
+              onTap: () => subcategory(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.receipt_long,
+              tint: const Color(0xFF8B7CF6),
+              title: l.receiptAttachments,
+              subtitle: l.receiptAttachmentsSubtitle,
+              onTap: () => receipts(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.calendar_month,
+              tint: const Color(0xFFEF8A47),
+              title: l.reportingMonthStarts,
+              subtitle: l.dayNumber(
+                PreferencesService.getInt('month_start_day', defaultValue: 1),
+              ),
+              onTap: () => financeForm(
+                context,
+                title: l.reportingMonth,
+                fields: [
+                  FinanceField(
+                    'day',
+                    l.startDayRange,
+                    initial: '1',
+                    numeric: true,
+                  ),
+                ],
+                save: (j) async {
+                  final day = int.parse(j['day']!);
+                  if (day < 1 || day > 28) {
+                    throw ArgumentError(l.chooseDayRange);
+                  }
+                  await PreferencesService.setInt('month_start_day', day);
+                  ref.read(databaseProvider).notifyFinanceChanged();
+                },
+              ),
             ),
           ],
-          save: (j) async {
-            final day = int.parse(j['day']!);
-            if (day < 1 || day > 28) {
-              throw ArgumentError('Choose a day from 1 to 28');
-            }
-            await PreferencesService.setInt('month_start_day', day);
-            ref.read(databaseProvider).notifyFinanceChanged();
-          },
         ),
-      ),
-      ListTile(
-        leading: const Icon(Icons.notifications_outlined),
-        title: const Text('Payment reminders'),
-        subtitle: const Text(
-          'Local notifications for expected payments and maturities',
+        SettingsGroup(
+          title: l.toolsImportExport,
+          children: [
+            SettingsTile(
+              icon: Icons.table_chart_outlined,
+              title: l.importFromApps,
+              subtitle: l.importFromAppsSubtitle,
+              onTap: () => importSpreadsheet(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.file_download_outlined,
+              tint: const Color(0xFF5B9DF5),
+              title: l.exportCsv,
+              subtitle: l.exportCsvSubtitle,
+              onTap: () => exportCsv(context, ref),
+            ),
+          ],
         ),
-        onTap: () async {
-          try {
-            await ref.read(remindersProvider).enable();
-            await ref
-                .read(remindersProvider)
-                .schedule(ref.read(financeStoreProvider));
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Payment reminders enabled')),
-              );
-            }
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(
+        SettingsGroup(
+          title: l.toolsSecurity,
+          children: [
+            SettingsTile(
+              icon: Icons.notifications_outlined,
+              tint: const Color(0xFFF5B547),
+              title: l.paymentReminders,
+              subtitle: l.paymentRemindersSubtitle,
+              onTap: () async {
+                try {
+                  await ref.read(remindersProvider).enable();
+                  await ref
+                      .read(remindersProvider)
+                      .schedule(ref.read(financeStoreProvider));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l.paymentRemindersEnabled)),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('$e')));
+                  }
+                }
+              },
+            ),
+            SettingsTile(
+              icon: Icons.lock_outline,
+              tint: const Color(0xFF8B7CF6),
+              title: l.deviceLock,
+              subtitle: lockOn ? l.deviceLockOn : l.deviceLockOff,
+              onTap: () async {
+                try {
+                  final auth = LocalAuthentication();
+                  if (!await auth.isDeviceSupported()) {
+                    throw StateError(l.setUpPasscodeFirst);
+                  }
+                  if (await auth.authenticate(
+                    localizedReason: l.changeAppLockReason,
+                  )) {
+                    await PreferencesService.setBool(
+                      'app_lock_enabled',
+                      !PreferencesService.getBool('app_lock_enabled'),
+                    );
+                    ref.read(databaseProvider).notifyFinanceChanged();
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('$e')));
+                  }
+                }
+              },
+            ),
+            SettingsTile(
+              icon: Icons.vpn_key_outlined,
+              tint: const Color(0xFF3CC8C0),
+              title: l.stockApiKey,
+              subtitle: l.stockApiKeySubtitle,
+              onTap: () => financeForm(
                 context,
-              ).showSnackBar(SnackBar(content: Text('$e')));
-            }
-          }
-        },
-      ),
-      ListTile(
-        leading: const Icon(Icons.lock_outline),
-        title: const Text('Device authentication lock'),
-        subtitle: Text(
-          PreferencesService.getBool('app_lock_enabled')
-              ? 'Enabled · tap to disable'
-              : 'Disabled · tap to enable',
+                title: l.alphaVantageKey,
+                fields: [FinanceField('key', l.personalApiKey, secret: true)],
+                save: (j) => ref
+                    .read(secureStorageProvider)
+                    .write(key: 'alpha_vantage_key', value: j['key']),
+              ),
+            ),
+            SettingsTile(
+              icon: Icons.backup_outlined,
+              title: l.exportBackup,
+              subtitle: l.exportBackupSubtitle,
+              onTap: () => exportEncrypted(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.restore,
+              tint: const Color(0xFF5B9DF5),
+              title: l.restoreBackup,
+              subtitle: l.restoreBackupSubtitle,
+              onTap: () => restoreEncrypted(context, ref),
+            ),
+            SettingsTile(
+              icon: Icons.history,
+              tint: const Color(0xFFF5B547),
+              title: l.backupHistory,
+              subtitle: l.backupHistorySubtitle,
+              onTap: () => backupHistory(context, ref),
+            ),
+          ],
         ),
-        onTap: () async {
-          try {
-            final auth = LocalAuthentication();
-            if (!await auth.isDeviceSupported()) {
-              throw StateError('Set up your device passcode first');
-            }
-            if (await auth.authenticate(
-              localizedReason: 'Change Flourish app lock',
-            )) {
-              await PreferencesService.setBool(
-                'app_lock_enabled',
-                !PreferencesService.getBool('app_lock_enabled'),
-              );
-              ref.read(databaseProvider).notifyFinanceChanged();
-            }
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('$e')));
-            }
-          }
-        },
-      ),
-      ListTile(
-        leading: const Icon(Icons.vpn_key_outlined),
-        title: const Text('Stock quote API key'),
-        subtitle: const Text(
-          'Optional Alpha Vantage key · stored securely on this device',
-        ),
-        onTap: () => financeForm(
-          context,
-          title: 'Alpha Vantage API key',
-          fields: [const FinanceField('key', 'Personal API key', secret: true)],
-          save: (j) => ref
-              .read(secureStorageProvider)
-              .write(key: 'alpha_vantage_key', value: j['key']),
-        ),
-      ),
-      ListTile(
-        leading: const Icon(Icons.backup_outlined),
-        title: const Text('Export encrypted backup'),
-        subtitle: const Text(
-          'Includes holdings, contracts, activity, settings, and receipts',
-        ),
-        onTap: () => exportEncrypted(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.restore),
-        title: const Text('Restore encrypted backup'),
-        onTap: () => restoreEncrypted(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.history),
-        title: const Text('Automatic backup history'),
-        subtitle: const Text(
-          'Seven local daily backups · remain on this device',
-        ),
-        onTap: () => backupHistory(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.table_chart_outlined),
-        title: const Text('Import from other apps'),
-        subtitle: const Text(
-          'Money Manager, Wallet, Monefy, Spendee, YNAB, bank CSV, OFX, QIF, '
-          'Excel or PDF statements · review before anything is added',
-        ),
-        onTap: () => importSpreadsheet(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.file_download_outlined),
-        title: const Text('Export transactions as CSV'),
-        onTap: () => exportCsv(context, ref),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 Future<void> manageAccounts(BuildContext context, WidgetRef ref) async {
@@ -210,7 +239,7 @@ Future<void> manageAccounts(BuildContext context, WidgetRef ref) async {
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Accounts'),
+      title: Text(ctx.l10n.accountsTitle),
       content: SizedBox(
         width: 440,
         height: 400,
@@ -231,7 +260,7 @@ Future<void> manageAccounts(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
       ],
     ),
@@ -249,55 +278,59 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
   if (!context.mounted) return;
   await financeForm(
     context,
-    title: 'Manage ${a.name}',
+    title: context.l10n.manageNamed(a.name),
     fields: [
-      FinanceField('name', 'Account name', initial: a.name),
+      FinanceField('name', context.l10n.accountName, initial: a.name),
       if (!currencyLocked)
         FinanceField(
           'currency',
-          'Currency',
+          context.l10n.currency,
           initial: a.currency,
           options: currencies,
         ),
       FinanceField(
         'institution',
-        'Institution',
+        context.l10n.institution,
         initial: stored?['institution'] ?? '',
         required: false,
       ),
       FinanceField(
         'group',
-        'Group',
+        context.l10n.group,
         initial: stored?['group'] ?? '',
         required: false,
       ),
       FinanceField(
         'archived',
-        'Archived',
+        context.l10n.archived,
         initial: stored?['archived'] == true ? 'yes' : 'no',
-        options: const {'no': 'Active', 'yes': 'Archived'},
+        options: {'no': context.l10n.active, 'yes': context.l10n.archived},
       ),
       FinanceField(
         'included',
-        'Include in wealth totals',
+        context.l10n.includeInWealth,
         initial: stored?['included'] == false ? 'no' : 'yes',
-        options: const {'yes': 'Include', 'no': 'Exclude'},
+        options: {'yes': context.l10n.include, 'no': context.l10n.exclude},
       ),
       FinanceField(
         'balance',
         a.type == 'credit'
-            ? 'Amount owed per statement (optional)'
-            : 'Reconciled balance (optional)',
+            ? context.l10n.owedPerStatement
+            : context.l10n.reconciledBalance,
         required: false,
         numeric: true,
       ),
-      const FinanceField('reason', 'Reconciliation reason', required: false),
+      FinanceField(
+        'reason',
+        context.l10n.reconciliationReason,
+        required: false,
+      ),
     ],
     save: (j) async {
       final store = ref.read(financeStoreProvider);
       await db.transaction(() async {
         final current = await db.getAccountById(a.id);
-        if (current == null) throw StateError('Account no longer exists');
+        if (current == null) throw StateError(currentL10n.accountGone);
         await db.updateAccount(current.copyWith(name: j['name']));
         if (j['currency'] case final currency?
             when currency != current.currency) {
@@ -331,7 +364,7 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Reconciliation history'),
+      title: Text(context.l10n.reconciliationHistory),
       content: SizedBox(
         width: 440,
         height: 300,
@@ -348,7 +381,7 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
       ],
     ),
@@ -371,7 +404,7 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Exchange rates'),
+      title: Text(context.l10n.exchangeRates),
       content: SizedBox(
         width: 480,
         height: 400,
@@ -381,11 +414,11 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
               ListTile(
                 title: Text('${r.key} · ${r.value}'),
                 subtitle: Text(
-                  '${r.source}${r.manual ? ' · manual override' : ''}\n${r.effectiveAt.toIso8601String().substring(0, 10)}',
+                  '${r.source}${r.manual ? ' · ${context.l10n.manualOverride}' : ''}\n${r.effectiveAt.toIso8601String().substring(0, 10)}',
                 ),
                 trailing: r.manual
                     ? IconButton(
-                        tooltip: 'Resume automatic rate',
+                        tooltip: context.l10n.resumeAutomaticRate,
                         icon: const Icon(Icons.clear),
                         onPressed: () async {
                           for (final j in await store.list('fx')) {
@@ -407,18 +440,18 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
         FilledButton(
           onPressed: () {
             Navigator.pop(ctx);
             financeForm(
               context,
-              title: 'Manual exchange rate',
+              title: context.l10n.manualExchangeRate,
               fields: [
                 FinanceField(
                   'base',
-                  'From',
+                  context.l10n.from,
                   initial: 'USD' == ref.read(defaultCurrencyProvider)
                       ? 'EUR'
                       : 'USD',
@@ -426,25 +459,25 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
                 ),
                 FinanceField(
                   'quote',
-                  'To',
+                  context.l10n.to,
                   initial: 'EGP',
                   options: currencies,
                 ),
-                const FinanceField(
+                FinanceField(
                   'rate',
-                  'One source unit equals',
+                  context.l10n.oneSourceUnitEquals,
                   numeric: true,
                 ),
                 FinanceField(
                   'date',
-                  'Effective date',
+                  context.l10n.effectiveDate,
                   initial: today(),
                   date: true,
                 ),
               ],
               save: (j) async {
                 if (j['base'] == j['quote']) {
-                  throw ArgumentError('Choose different currencies');
+                  throw ArgumentError(currentL10n.chooseDifferentCurrencies);
                 }
                 await ref
                     .read(marketDataProvider)
@@ -463,7 +496,7 @@ Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
               },
             );
           },
-          child: const Text('Add override'),
+          child: Text(context.l10n.addOverride),
         ),
       ],
     ),
@@ -477,7 +510,7 @@ Future<void> templates(BuildContext context, WidgetRef ref) async {
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Transaction templates'),
+      title: Text(context.l10n.transactionTemplates),
       content: SizedBox(
         width: 440,
         height: 350,
@@ -505,14 +538,14 @@ Future<void> templates(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
         FilledButton(
           onPressed: () {
             Navigator.pop(ctx);
             _templateForm(context, ref, null);
           },
-          child: const Text('New template'),
+          child: Text(context.l10n.newTemplate),
         ),
       ],
     ),
@@ -524,18 +557,27 @@ Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
       categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
   await financeForm(
     context,
-    title: j == null ? 'Save template' : 'Review template transaction',
+    title: j == null
+        ? context.l10n.saveTemplate
+        : context.l10n.reviewTemplateTx,
     fields: [
-      FinanceField('name', 'Template name', initial: j?['name'] ?? ''),
+      FinanceField(
+        'name',
+        context.l10n.templateName,
+        initial: j?['name'] ?? '',
+      ),
       FinanceField(
         'type',
-        'Type',
+        context.l10n.type,
         initial: j?['type'] ?? 'expense',
-        options: const {'expense': 'Expense', 'income': 'Income'},
+        options: {
+          'expense': context.l10n.expense,
+          'income': context.l10n.income,
+        },
       ),
       FinanceField(
         'account',
-        'Account',
+        context.l10n.account,
         initial: j?['account'] ?? '',
         options: {
           for (final a in accounts) '${a.id}': '${a.name} (${a.currency})',
@@ -543,21 +585,28 @@ Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
       ),
       FinanceField(
         'category',
-        'Category',
+        context.l10n.category,
         initial: j?['category'] ?? '',
         options: {
-          for (final c in categories) '${c.id}': '${c.name} (${c.type})',
+          for (final c in categories) '${c.id}': '${c.displayName} (${c.type})',
         },
       ),
       FinanceField(
         'amount',
-        'Amount in account currency',
+        context.l10n.amountInAccountCurrency,
         initial: j?['amount'] ?? '',
         numeric: true,
       ),
-      FinanceField('note', 'Note', initial: j?['note'] ?? '', required: false),
+      FinanceField(
+        'note',
+        context.l10n.note,
+        initial: j?['note'] ?? '',
+        required: false,
+      ),
     ],
-    submit: j == null ? 'Save template' : 'Record transaction',
+    submit: j == null
+        ? context.l10n.saveTemplate
+        : context.l10n.recordTransaction,
     save: (data) async {
       if (j == null) {
         ref.read(financialLedgerProvider).positive(number(data, 'amount'));
@@ -585,21 +634,21 @@ Future<void> subcategory(BuildContext context, WidgetRef ref) async {
   final categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
   await financeForm(
     context,
-    title: 'Assign subcategory',
+    title: context.l10n.assignSubcategory,
     fields: [
       FinanceField(
         'child',
-        'Child category',
+        context.l10n.childCategory,
         options: {
-          for (final c in categories) '${c.id}': '${c.name} (${c.type})',
+          for (final c in categories) '${c.id}': '${c.displayName} (${c.type})',
         },
       ),
       FinanceField(
         'parent',
-        'Parent category',
+        context.l10n.parentCategory,
         options: {
-          'none': 'No parent',
-          for (final c in categories) '${c.id}': '${c.name} (${c.type})',
+          'none': context.l10n.noParent,
+          for (final c in categories) '${c.id}': '${c.displayName} (${c.type})',
         },
       ),
     ],
@@ -613,14 +662,14 @@ Future<void> subcategory(BuildContext context, WidgetRef ref) async {
       if (child == parent ||
           categories.firstWhere((c) => c.id == child).type !=
               categories.firstWhere((c) => c.id == parent).type) {
-        throw ArgumentError('Choose different categories of the same type');
+        throw ArgumentError(currentL10n.chooseDifferentCategories);
       }
       final relationships = await store.list('categoryParents');
       var cursor = parent;
       final seen = {child};
       while (true) {
         if (!seen.add(cursor)) {
-          throw ArgumentError('Category hierarchy cannot contain a cycle');
+          throw ArgumentError(currentL10n.categoryCycle);
         }
         final next =
             relationships
@@ -644,7 +693,7 @@ Future<void> receipts(BuildContext context, WidgetRef ref) async {
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Receipts'),
+      title: Text(context.l10n.receipts),
       content: SizedBox(
         width: 440,
         height: 350,
@@ -652,7 +701,9 @@ Future<void> receipts(BuildContext context, WidgetRef ref) async {
           children: [
             for (final r in rows)
               ListTile(
-                title: Text('Transaction ${r['transactionId']}'),
+                title: Text(
+                  context.l10n.transactionNumber('${r['transactionId']}'),
+                ),
                 subtitle: Text(r['date']),
                 onTap: () => showDialog(
                   context: ctx,
@@ -669,7 +720,7 @@ Future<void> receipts(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
         FilledButton(
           onPressed: () async {
@@ -684,11 +735,11 @@ Future<void> receipts(BuildContext context, WidgetRef ref) async {
             if (!context.mounted) return;
             await financeForm(
               context,
-              title: 'Attach receipt',
+              title: context.l10n.attachReceipt,
               fields: [
                 FinanceField(
                   'transaction',
-                  'Transaction',
+                  context.l10n.transaction,
                   options: {
                     for (final t in transactions)
                       '${t.id}':
@@ -714,7 +765,7 @@ Future<void> receipts(BuildContext context, WidgetRef ref) async {
               },
             );
           },
-          child: const Text('Attach receipt'),
+          child: Text(context.l10n.attachReceipt),
         ),
       ],
     ),
@@ -724,15 +775,11 @@ Future<void> receipts(BuildContext context, WidgetRef ref) async {
 Future<void> exportEncrypted(BuildContext context, WidgetRef ref) =>
     financeForm(
       context,
-      title: 'Encrypted backup',
+      title: context.l10n.encryptedBackup,
       fields: [
-        const FinanceField(
-          'password',
-          'Password (10+ characters)',
-          secret: true,
-        ),
+        FinanceField('password', context.l10n.passwordMin10, secret: true),
       ],
-      submit: 'Export',
+      submit: context.l10n.export,
       save: (j) async {
         final text = await BackupService(
           ref.read(databaseProvider),
@@ -757,15 +804,15 @@ Future<void> restoreEncrypted(BuildContext context, WidgetRef ref) async {
   if (picked?.files.single.path == null || !context.mounted) return;
   await financeForm(
     context,
-    title: 'Replace current finances from backup',
+    title: context.l10n.replaceFromBackup,
     fields: [
-      const FinanceField('password', 'Backup password', secret: true),
-      const FinanceField('confirm', 'Type RESTORE to replace all current data'),
+      FinanceField('password', context.l10n.backupPassword, secret: true),
+      FinanceField('confirm', context.l10n.typeRestoreReplaceAll),
     ],
-    submit: 'Restore',
+    submit: context.l10n.restore,
     save: (j) async {
       if (j['confirm'] != 'RESTORE') {
-        throw ArgumentError('Type RESTORE to confirm replacement');
+        throw ArgumentError(currentL10n.typeRestoreConfirm);
       }
       final service = BackupService(ref.read(databaseProvider)),
           text = await File(picked!.files.single.path!).readAsString();
@@ -798,7 +845,7 @@ Future<void> backupHistory(BuildContext context, WidgetRef ref) async {
   await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Local backup history'),
+      title: Text(context.l10n.localBackupHistory),
       content: SizedBox(
         width: 440,
         height: 350,
@@ -811,16 +858,13 @@ Future<void> backupHistory(BuildContext context, WidgetRef ref) async {
                   Navigator.pop(ctx);
                   financeForm(
                     context,
-                    title: 'Restore this local backup',
+                    title: context.l10n.restoreLocalBackup,
                     fields: [
-                      const FinanceField(
-                        'confirm',
-                        'Type RESTORE to replace current data',
-                      ),
+                      FinanceField('confirm', context.l10n.typeRestoreReplace),
                     ],
                     save: (j) async {
                       if (j['confirm'] != 'RESTORE') {
-                        throw ArgumentError('Type RESTORE to confirm');
+                        throw ArgumentError(currentL10n.typeRestoreConfirm);
                       }
                       final data =
                           jsonDecode(await File(file.path).readAsString())
@@ -839,7 +883,7 @@ Future<void> backupHistory(BuildContext context, WidgetRef ref) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
       ],
     ),
@@ -859,6 +903,7 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
   String quote(Object? value) =>
       '"${(value ?? '').toString().replaceAll('"', '""')}"';
   final lines = <List<Object?>>[
+    // Headers stay English in every language so the file imports back.
     [
       'Date',
       'Income/Expense',
@@ -924,9 +969,7 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
     final name = path.basename(filePath);
     final lower = name.toLowerCase();
     if (!RegExp(r'\.(csv|txt|tsv|xlsx|ofx|qfx|qif|pdf)$').hasMatch(lower)) {
-      throw const FormatException(
-        'Choose a CSV, Excel (.xlsx), OFX/QFX, QIF or PDF statement',
-      );
+      throw FormatException(currentL10n.chooseImportFile);
     }
     final legacy = SpreadsheetImportService(ref.read(financialLedgerProvider));
     final options = ImportOptions(
@@ -947,11 +990,11 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
       if (sheets.length > 1) {
         final chosen = await financeForm(
           context,
-          title: 'Choose worksheet',
+          title: context.l10n.chooseWorksheet,
           fields: [
             FinanceField(
               'sheet',
-              'Worksheet',
+              context.l10n.worksheet,
               initial: selected,
               options: {for (final n in sheets.keys) n: n},
             ),
@@ -983,7 +1026,7 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
       return;
     }
     if (RegExp(r'\.(ofx|qfx|qif)$').hasMatch(lower)) {
-      throw const FormatException('This file could not be read');
+      throw FormatException(currentL10n.fileUnreadable);
     }
     matrix ??= csv.csv
         .decode(content)
@@ -993,9 +1036,9 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
     await _manualImport(context, ref, matrix, legacy);
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Import: ${describeError(e)}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.importError(describeError(e)))),
+      );
     }
   }
 }
@@ -1015,30 +1058,21 @@ Future<void> _importPdf(
       password: () => _askPdfPassword(context),
     );
   } on PdfPasswordException {
-    throw const FormatException(
-      'This PDF is password protected. Enter its password to import it.',
-    );
+    throw FormatException(currentL10n.pdfPasswordProtected);
   }
   if (!context.mounted) return;
   if (!PdfStatementParser.hasTextLayer(pages)) {
-    throw const FormatException(
-      'This PDF has no text, it looks like a scan. Import needs a text PDF: '
-      "download the statement from your bank's website or app, or export "
-      'CSV, Excel or OFX instead.',
-    );
+    throw FormatException(currentL10n.pdfNoText);
   }
   final local = PdfStatementParser.parse(pages, options: options);
   if (local.rows.isNotEmpty) {
-    await _openImportReview(context, local, 'PDF statement');
+    await _openImportReview(context, local, context.l10n.pdfStatement);
     return;
   }
 
   final client = await ref.read(aiClientProvider.future);
   if (client == null) {
-    throw const FormatException(
-      'No transaction table found in this PDF. Set up AI in Settings to read '
-      'unusual layouts, or export CSV, Excel or OFX from your bank.',
-    );
+    throw FormatException(currentL10n.pdfNoTable);
   }
   if (!context.mounted) return;
   final reader = AiStatementReader(
@@ -1050,32 +1084,28 @@ Future<void> _importPdf(
   final ask = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Read this statement with AI?'),
+      title: Text(context.l10n.readStatementAi),
       content: Text(
-        'No table Flourish recognises was found. The text of '
-        '${pages.length} page${pages.length == 1 ? '' : 's'} '
-        '($requests request${requests == 1 ? '' : 's'}) goes to '
-        '${provider.label}, with account and card numbers, IBANs, phones, '
-        'emails and customer name lines removed. Amounts, dates and '
-        'descriptions are sent. Rows whose amount is not on the page are '
-        'left out, and you review everything before it is added.'
-        '${provider.free ? '\n\nFree tiers may keep what you send.' : ''}',
+        '${ctx.l10n.pdfAiBody(pages.length, requests, provider.label)}'
+        '${provider.free ? '\n\n${ctx.l10n.freeTiersKeep}' : ''}',
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Use AI'),
+          child: Text(context.l10n.useAi),
         ),
       ],
     ),
   );
   if (ask != true || !context.mounted) return;
 
-  final progress = ValueNotifier<String>('Reading page 1 of ${pages.length}…');
+  final progress = ValueNotifier<String>(
+    context.l10n.readingPage(1, pages.length),
+  );
   final navigator = Navigator.of(context, rootNavigator: true);
   unawaited(
     showDialog<void>(
@@ -1106,9 +1136,10 @@ Future<void> _importPdf(
     parsed = await reader.read(
       pages,
       options: options,
-      onProgress: (done, total) => progress.value =
-          'Reading part ${done < total ? done + 1 : total} '
-          'of $total…',
+      onProgress: (done, total) => progress.value = currentL10n.readingPart(
+        done < total ? done + 1 : total,
+        total,
+      ),
     );
   } finally {
     navigator.pop();
@@ -1118,12 +1149,24 @@ Future<void> _importPdf(
   if (parsed.rows.isEmpty) {
     throw FormatException(
       parsed.warnings.isEmpty
-          ? 'The AI found no transactions in this PDF'
+          ? context.l10n.aiNoTransactionsPdf
           : parsed.warnings.first.message,
     );
   }
-  await _openImportReview(context, parsed, 'PDF statement (AI)');
+  await _openImportReview(context, parsed, context.l10n.pdfStatementAi);
 }
+
+String _columnLabel(AppLocalizations l, String key) => switch (key) {
+  'date' => l.date,
+  'type' => l.type,
+  'account' => l.account,
+  'category' => l.category,
+  'amount' => l.amount,
+  'currency' => l.currency,
+  'note' => l.note,
+  'destination' => l.toAccount,
+  _ => key,
+};
 
 Future<String?> _askPdfPassword(BuildContext context) async {
   if (!context.mounted) return null;
@@ -1132,25 +1175,25 @@ Future<String?> _askPdfPassword(BuildContext context) async {
   return showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('PDF password'),
+      title: Text(context.l10n.pdfPassword),
       content: TextField(
         controller: controller,
         autofocus: true,
         obscureText: true,
-        decoration: const InputDecoration(
-          labelText: 'Password',
-          helperText: 'Banks often use your ID or account number',
+        decoration: InputDecoration(
+          labelText: context.l10n.password,
+          helperText: context.l10n.pdfPasswordHint,
         ),
         onSubmitted: (v) => Navigator.pop(ctx, v),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, controller.text),
-          child: const Text('Open'),
+          child: Text(context.l10n.open),
         ),
       ],
     ),
@@ -1165,7 +1208,7 @@ Future<void> _openImportReview(
   if (parsed.rows.isEmpty) {
     throw FormatException(
       parsed.errors.isEmpty
-          ? 'No transactions found in this file'
+          ? currentL10n.noTransactionsInFile
           : parsed.errors.first.toString(),
     );
   }
@@ -1173,7 +1216,8 @@ Future<void> _openImportReview(
   // Above the tab shell, so the floating tab bar does not cover the button.
   await Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<bool>(
-      builder: (_) => ImportReviewScreen(parsed: parsed, sourceName: sourceName),
+      builder: (_) =>
+          ImportReviewScreen(parsed: parsed, sourceName: sourceName),
     ),
   );
 }
@@ -1186,18 +1230,23 @@ Future<void> _manualImport(
   List<List<String>> matrix,
   SpreadsheetImportService legacy,
 ) async {
-  if (matrix.isEmpty) throw const FormatException('The file is empty');
+  if (matrix.isEmpty) throw FormatException(currentL10n.fileEmpty);
   var header = 0;
   final headerChosen = await financeForm(
     context,
-    title: 'Which row has the column names?',
-    fields: const [
-      FinanceField('header', 'Header row number', initial: '1', numeric: true),
+    title: context.l10n.whichHeaderRow,
+    fields: [
+      FinanceField(
+        'header',
+        context.l10n.headerRowNumber,
+        initial: '1',
+        numeric: true,
+      ),
     ],
     save: (j) async {
       header = int.parse(j['header']!) - 1;
       if (header < 0 || header >= matrix.length) {
-        throw ArgumentError('Invalid header row');
+        throw ArgumentError(currentL10n.invalidHeaderRow);
       }
     },
   );
@@ -1206,7 +1255,7 @@ Future<void> _manualImport(
   final body = matrix.skip(header + 1).toList();
   final columns = {
     for (var i = 0; i < names.length; i++)
-      '$i': names[i].isEmpty ? 'Column ${i + 1}' : names[i],
+      '$i': names[i].isEmpty ? context.l10n.columnNumber(i + 1) : names[i],
   };
   final aliases = {
     'date': ['date'],
@@ -1225,7 +1274,7 @@ Future<void> _manualImport(
     final ask = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Map the columns with AI?'),
+        title: Text(context.l10n.mapColumnsAiTitle),
         content: const Text(
           'Sends the column names and 5 rows, with account numbers, phones '
           'and emails masked. You can change every choice afterwards.',
@@ -1233,11 +1282,11 @@ Future<void> _manualImport(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Map myself'),
+            child: Text(context.l10n.mapMyself),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Use AI'),
+            child: Text(context.l10n.useAi),
           ),
         ],
       ),
@@ -1251,7 +1300,11 @@ Future<void> _manualImport(
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('AI mapping unavailable: ${describeError(e)}')),
+            SnackBar(
+              content: Text(
+                context.l10n.aiMappingUnavailable(describeError(e)),
+              ),
+            ),
           );
         }
       }
@@ -1272,37 +1325,40 @@ Future<void> _manualImport(
   ImportParseResult? parsed;
   await financeForm(
     context,
-    title: ai == null ? 'Map columns' : 'Map columns (suggested by AI)',
+    title: ai == null ? context.l10n.mapColumns : context.l10n.mapColumnsAi,
     fields: [
       for (final key in aliases.keys)
         FinanceField(
           key,
-          key,
+          _columnLabel(context.l10n, key),
           initial: initialFor(key),
-          options: {'-1': 'Not mapped', ...columns},
+          options: {'-1': context.l10n.notMapped, ...columns},
         ),
       FinanceField(
         'sign',
-        'Amount convention',
+        context.l10n.amountConvention,
         initial: ai?.signedAmounts == true ? 'signed' : 'typed',
-        options: const {
-          'typed': 'Positive amounts with a Type column',
-          'signed': 'Signed bank amounts: negative = expense',
+        options: {
+          'typed': context.l10n.typedAmounts,
+          'signed': context.l10n.signedAmounts,
         },
       ),
       FinanceField(
         'decimal',
-        'Decimal separator',
+        context.l10n.decimalSeparator,
         initial: ai?.decimalSeparator ?? '.',
-        options: const {'.': 'Period (1,234.56)', ',': 'Comma (1.234,56)'},
+        options: {
+          '.': context.l10n.decimalPeriod,
+          ',': context.l10n.decimalComma,
+        },
       ),
       FinanceField(
         'pattern',
-        'Date format for non-ISO dates',
+        context.l10n.dateFormatNonIso,
         initial: ai?.dateFormat ?? 'dd/MM/yyyy',
       ),
     ],
-    submit: 'Review',
+    submit: context.l10n.review,
     save: (j) async {
       final mapping = {for (final key in aliases.keys) key: int.parse(j[key]!)};
       if ([
@@ -1311,7 +1367,7 @@ Future<void> _manualImport(
         'account',
         'amount',
       ].any((k) => mapping[k] == -1)) {
-        throw ArgumentError('Map date, type, account, and amount');
+        throw ArgumentError(currentL10n.mapRequiredColumns);
       }
       final preview = await legacy.preview(
         body,
@@ -1326,5 +1382,5 @@ Future<void> _manualImport(
   );
   final result = parsed;
   if (result == null || !context.mounted) return;
-  await _openImportReview(context, result, 'Spreadsheet');
+  await _openImportReview(context, result, context.l10n.spreadsheet);
 }

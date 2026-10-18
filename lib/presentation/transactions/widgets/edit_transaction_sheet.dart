@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import '../../wealth/finance_form.dart';
 import '../../wealth/holdings_view.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
@@ -71,9 +72,16 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         }
         _refund = details?['kind'] == 'refund';
         if (original != null) {
-          _originalNote =
-              'Paid ${original['currency']} ${original['amount']}'
-              '${details?['fxFeePercent'] != null ? '; the ${details!['fxFeePercent']}% foreign transaction fee follows this amount' : ''}.';
+          _originalNote = details?['fxFeePercent'] != null
+              ? context.l10n.paidOriginalWithFee(
+                  '${original['currency']}',
+                  '${original['amount']}',
+                  '${details!['fxFeePercent']}',
+                )
+              : context.l10n.paidOriginal(
+                  '${original['currency']}',
+                  '${original['amount']}',
+                );
         }
       });
     });
@@ -111,17 +119,17 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     setState(() {
       if (converted == null) {
         _amountController.clear();
-        _currencyNote =
-            'No ${from.currency}→${to.currency} rate for this date. '
-            'Enter the amount in ${to.currency}.';
+        _currencyNote = context.l10n.noRateForDate(from.currency, to.currency);
       } else {
         final rounded = converted.rounded(
           CurrencyFormatter.decimalsFor(to.currency),
         );
         _amountController.text = '$rounded';
-        _currencyNote =
-            'Converted ${from.currency} ${current!} to ${to.currency} at the '
-            'rate for this date. Check it matches what was charged.';
+        _currencyNote = context.l10n.convertedAtRate(
+          from.currency,
+          '${current!}',
+          to.currency,
+        );
       }
     });
   }
@@ -147,10 +155,10 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     final palette = FlourishPalette.of(context);
     if (widget.transaction.linkedTransactionId != null) {
       return BottomSheetScaffold(
-        title: 'Transfer',
+        title: context.l10n.transfer,
         children: [
           Text(
-            'Changes apply to both linked accounts and the transfer fee.',
+            context.l10n.transferEditNote,
             style: AppTextStyles.body.copyWith(color: palette.textLow),
           ),
           const SizedBox(height: Sp.xl),
@@ -162,13 +170,13 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
                 borderRadius: BorderRadius.circular(Rad.full),
               ),
             ),
-            child: const Text('Edit transfer'),
+            child: Text(context.l10n.editTransfer),
           ),
           const SizedBox(height: Sp.sm),
           TextButton(
             onPressed: _confirmDelete,
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete transfer'),
+            child: Text(context.l10n.deleteTransfer),
           ),
         ],
       );
@@ -177,23 +185,23 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     final tint = modeColor(context, _type);
     final accounts = accountsAsync.valueOrNull ?? const <Account>[];
     return BottomSheetScaffold(
-      title: 'Edit Transaction',
+      title: context.l10n.editTransaction,
       headerTrailing: TextButton.icon(
         onPressed: _confirmDelete,
         icon: const Icon(Icons.delete_outline_rounded, size: 18),
-        label: const Text('Delete'),
+        label: Text(context.l10n.delete),
         style: TextButton.styleFrom(foregroundColor: AppColors.danger),
       ),
       children: [
         if (_refund)
           Text(
-            'Refund · reduces spending in its category',
+            context.l10n.refundReduces,
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyMedium.copyWith(color: palette.income),
           )
         else
           SegmentedPill(
-            labels: const ['Expense', 'Income'],
+            labels: [context.l10n.expense, context.l10n.income],
             selectedIndex: _type == 'income' ? 1 : 0,
             activeColor: tint,
             height: 44,
@@ -212,7 +220,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         ),
         const SizedBox(height: Sp.lg),
         if (accounts.isNotEmpty) ...[
-          const FormLabel('Account'),
+          FormLabel(context.l10n.account),
           AccountChips(
             accounts: accounts,
             selectedId: accounts.any((a) => a.id == _accountId)
@@ -225,7 +233,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
             if (accounts.where((a) => a.id == _accountId).firstOrNull
                 case final account?) ...[
               const SizedBox(height: Sp.lg),
-              const FormLabel('Paid with'),
+              FormLabel(context.l10n.paidWith),
               PaidWithChips(
                 account: account,
                 instruments:
@@ -255,7 +263,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
           ],
           const SizedBox(height: Sp.lg),
         ],
-        const FormLabel('Category'),
+        FormLabel(context.l10n.category),
         categoriesAsync.when(
           data: (cats) {
             final filtered = cats
@@ -286,8 +294,8 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
           TextField(
             controller: _merchantController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              hintText: 'Merchant or payee (optional)',
+            decoration: InputDecoration(
+              hintText: context.l10n.merchantOptional,
               prefixIcon: Icon(Icons.storefront_outlined, size: 20),
             ),
           ),
@@ -295,8 +303,8 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         const SizedBox(height: Sp.lg),
         TextField(
           controller: _noteController,
-          decoration: const InputDecoration(
-            hintText: 'Add a note',
+          decoration: InputDecoration(
+            hintText: context.l10n.addNote,
             prefixIcon: Icon(Icons.notes_rounded, size: 20),
           ),
           minLines: 1,
@@ -306,7 +314,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         DatePills(value: _date, onChanged: (d) => setState(() => _date = d)),
         const SizedBox(height: Sp.xl),
         SubmitButton(
-          label: 'Save Changes',
+          label: context.l10n.saveChanges,
           color: tint,
           state: _submitState,
           onPressed: _submit,
@@ -336,11 +344,11 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     if (!mounted) return;
     final saved = await financeForm(
       context,
-      title: 'Edit linked transfer',
+      title: context.l10n.editLinkedTransfer,
       fields: [
         FinanceField(
           'from',
-          'From account',
+          context.l10n.fromAccount,
           initial: '${out.accountId}',
           options: {
             for (final a in accounts) '${a.id}': '${a.name} (${a.currency})',
@@ -348,7 +356,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         ),
         FinanceField(
           'to',
-          'To account',
+          context.l10n.toAccount,
           initial: '${incoming.accountId}',
           options: {
             for (final a in accounts) '${a.id}': '${a.name} (${a.currency})',
@@ -356,31 +364,36 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
         ),
         FinanceField(
           'amount',
-          'Source amount',
+          context.l10n.sourceAmount,
           initial: '${details?['sourceAmount'] ?? Amount.fromNum(out.amount)}',
           numeric: true,
         ),
         FinanceField(
           'received',
-          'Destination amount',
+          context.l10n.destinationAmount,
           initial:
               '${details?['destinationAmount'] ?? Amount.fromNum(incoming.amount)}',
           numeric: true,
         ),
         FinanceField(
           'fee',
-          'Source-currency fee',
+          context.l10n.sourceCurrencyFee,
           initial: '${feeDetails?['amount'] ?? 0}',
           required: false,
           numeric: true,
         ),
         FinanceField(
           'date',
-          'Date',
+          context.l10n.date,
           initial: out.transactionDate.toIso8601String().substring(0, 10),
           date: true,
         ),
-        FinanceField('note', 'Note', initial: out.note ?? '', required: false),
+        FinanceField(
+          'note',
+          context.l10n.note,
+          initial: out.note ?? '',
+          required: false,
+        ),
       ],
       save: (j) => ref
           .read(financialLedgerProvider)
@@ -402,14 +415,12 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Transaction'),
-        content: const Text(
-          'Are you sure? The account balance will be adjusted.',
-        ),
+        title: Text(context.l10n.deleteTransactionTitle2),
+        content: Text(context.l10n.deleteTransactionConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -432,8 +443,8 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
                 }
               }
             },
-            child: const Text(
-              'Delete',
+            child: Text(
+              context.l10n.delete,
               style: TextStyle(color: AppColors.danger),
             ),
           ),

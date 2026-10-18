@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -32,18 +33,17 @@ class CreditCardPanel extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Card details', style: AppTextStyles.title),
+            Text(context.l10n.cardDetails, style: AppTextStyles.title),
             const SizedBox(height: Sp.xs),
             Text(
-              'Add the limit, statement and due days and fees to see '
-              'available credit, the minimum payment and interest.',
+              context.l10n.cardDetailsHelp,
               style: AppTextStyles.body.copyWith(color: palette.textLow),
             ),
             const SizedBox(height: Sp.md),
             FilledButton.icon(
               onPressed: () => editCardTerms(context, ref, account),
               icon: const Icon(Icons.tune_rounded, size: 18),
-              label: const Text('Set up card terms'),
+              label: Text(context.l10n.setUpCardTerms),
             ),
           ],
         ),
@@ -65,16 +65,21 @@ class CreditCardPanel extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('Credit', style: AppTextStyles.title)),
+              Expanded(
+                child: Text(context.l10n.credit, style: AppTextStyles.title),
+              ),
               IconButton(
-                tooltip: 'Edit card terms',
+                tooltip: context.l10n.editCardTerms,
                 icon: const Icon(Icons.tune_rounded, size: 20),
                 onPressed: () => editCardTerms(context, ref, account),
               ),
             ],
           ),
-          _Row('Available', fmt(status.available), strong: true),
-          _Row('Limit', status.limit == null ? '—' : fmt(status.limit!)),
+          _Row(context.l10n.available, fmt(status.available), strong: true),
+          _Row(
+            context.l10n.limit,
+            status.limit == null ? '—' : fmt(status.limit!),
+          ),
           const SizedBox(height: Sp.sm),
           ClipRRect(
             borderRadius: BorderRadius.circular(Rad.full),
@@ -87,34 +92,61 @@ class CreditCardPanel extends ConsumerWidget {
           ),
           const SizedBox(height: Sp.xs),
           Text(
-            '${(utilization * 100).toStringAsFixed(0)}% of the limit used'
-            '${utilization > 0.3 ? ' · keeping it under 30% helps your credit' : ''}',
+            '${context.l10n.limitUsed((utilization * 100).toStringAsFixed(0))}'
+            '${utilization > 0.3 ? ' · ${context.l10n.under30Tip}' : ''}',
             style: AppTextStyles.caption.copyWith(color: palette.textLow),
           ),
           if (status.overLimitBy > Amount.zero)
             Padding(
               padding: const EdgeInsets.only(top: Sp.xs),
               child: Text(
-                'Over the limit by ${fmt(status.overLimitBy)}',
+                context.l10n.overLimitBy(fmt(status.overLimitBy)),
                 style: AppTextStyles.caption.copyWith(color: AppColors.danger),
               ),
             ),
+          if (status.intlLimit != null) ...[
+            const SizedBox(height: Sp.sm),
+            _Row(context.l10n.availableAbroad, fmt(status.intlAvailable!)),
+            _Row(context.l10n.intlLimit, fmt(status.intlLimit!)),
+            if (status.intlOverLimitBy > Amount.zero)
+              Text(
+                context.l10n.overIntlLimitBy(fmt(status.intlOverLimitBy)),
+                style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+              ),
+          ],
+          for (final (reported, said) in [
+            (status.bankAvailable, context.l10n.bankSaidAvailable),
+            (status.bankIntlAvailable, context.l10n.bankSaidIntlAvailable),
+          ])
+            if (reported != null)
+              Padding(
+                padding: const EdgeInsets.only(top: Sp.xs),
+                child: Text(
+                  said(
+                    DateFormat.MMMd().format(reported.at),
+                    fmt(reported.value),
+                  ),
+                  style: AppTextStyles.caption.copyWith(color: palette.textLow),
+                ),
+              ),
           const Divider(height: Sp.xl),
-          _Row('Last statement', fmt(status.statementBalance)),
-          _Row('Still to pay', fmt(status.statementRemaining)),
+          _Row(context.l10n.lastStatement, fmt(status.statementBalance)),
+          _Row(context.l10n.stillToPay, fmt(status.statementRemaining)),
           _Row(
-            'Minimum due${dueText.isEmpty ? '' : ' by $dueText'}',
+            dueText.isEmpty
+                ? context.l10n.minimumDue
+                : context.l10n.minimumDueBy(dueText),
             fmt(status.minimumDue),
             strong: status.minimumDue > Amount.zero,
           ),
           if (status.interestEstimate > Amount.zero)
             _Row(
-              'Interest if unpaid (est.)',
+              context.l10n.interestIfUnpaid,
               fmt(status.interestEstimate),
               tone: palette.warning,
             ),
           if (status.cashAdvanceBalance > Amount.zero)
-            _Row('Cash advances', fmt(status.cashAdvanceBalance)),
+            _Row(context.l10n.cashAdvances, fmt(status.cashAdvanceBalance)),
           const SizedBox(height: Sp.md),
           Wrap(
             spacing: Sp.sm,
@@ -123,12 +155,12 @@ class CreditCardPanel extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => payCard(context, ref, account, status),
                 icon: const Icon(Icons.payments_outlined, size: 18),
-                label: const Text('Pay card'),
+                label: Text(context.l10n.payCard),
               ),
               OutlinedButton.icon(
                 onPressed: () => recordCardCharge(context, ref, account),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Interest or fee'),
+                label: Text(context.l10n.interestOrFee),
               ),
             ],
           ),
@@ -180,71 +212,78 @@ Future<void> editCardTerms(
   String v(Amount? a, String fallback) => a == null ? fallback : '$a';
   await financeForm(
     context,
-    title: '${account.name} terms',
+    title: context.l10n.termsOf(account.name),
     fields: [
       FinanceField(
         'limit',
-        'Credit limit (${account.currency})',
+        context.l10n.creditLimitIn(account.currency),
         initial: v(t?.creditLimit, ''),
         numeric: true,
       ),
       FinanceField(
+        'intl',
+        context.l10n.intlLimitIn(account.currency),
+        initial: v(t?.intlLimit, ''),
+        numeric: true,
+        required: false,
+      ),
+      FinanceField(
         'apr',
-        'Purchase interest, % a year',
+        context.l10n.purchaseInterest,
         initial: v(contract?.annualRate, ''),
         numeric: true,
       ),
       FinanceField(
         'statement',
-        'Statement closing day (1–31)',
+        context.l10n.statementClosingDay,
         initial: '${contract?.statementDay ?? 25}',
         numeric: true,
       ),
       FinanceField(
         'due',
-        'Payment due day (1–31)',
+        context.l10n.paymentDueDay,
         initial: '${contract?.paymentDay ?? 10}',
         numeric: true,
       ),
       FinanceField(
         'minPct',
-        'Minimum payment, % of statement',
+        context.l10n.minimumPaymentPercent,
         initial: v(t?.minPaymentPercent, '5'),
         numeric: true,
       ),
       FinanceField(
         'minFloor',
-        'Minimum payment at least (${account.currency})',
+        context.l10n.minimumPaymentAtLeast(account.currency),
         initial: v(t?.minPaymentFloor, '0'),
         numeric: true,
       ),
       FinanceField(
         'fx',
-        'Foreign transaction fee, %',
+        context.l10n.foreignFeePercent,
         initial: v(t?.fxFeePercent, '0'),
         numeric: true,
       ),
       FinanceField(
         'cashPct',
-        'Cash advance fee, %',
+        context.l10n.cashAdvanceFee,
         initial: v(t?.cashAdvanceFeePercent, '0'),
         numeric: true,
       ),
       FinanceField(
         'cashMin',
-        'Cash advance fee at least (${account.currency})',
+        context.l10n.cashAdvanceFeeMin(account.currency),
         initial: v(t?.cashAdvanceFeeMin, '0'),
         numeric: true,
       ),
       FinanceField(
         'cashApr',
-        'Cash advance interest, % a year',
+        context.l10n.cashAdvanceInterest,
         initial: v(t?.cashAdvanceApr, '0'),
         numeric: true,
       ),
       FinanceField(
         'late',
-        'Late payment fee (${account.currency})',
+        context.l10n.latePaymentFeeIn(account.currency),
         initial: v(t?.lateFee, '0'),
         numeric: true,
       ),
@@ -253,6 +292,7 @@ Future<void> editCardTerms(
       account.id,
       terms: CardTerms(
         creditLimit: number(j, 'limit'),
+        intlLimit: j['intl']!.trim().isEmpty ? null : number(j, 'intl'),
         minPaymentPercent: number(j, 'minPct'),
         minPaymentFloor: number(j, 'minFloor'),
         fxFeePercent: number(j, 'fx'),
@@ -281,11 +321,7 @@ Future<void> payCard(
       .toList();
   if (accounts.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Add a ${card.currency} bank or cash account to pay from',
-        ),
-      ),
+      SnackBar(content: Text(context.l10n.addAccountToPayFrom(card.currency))),
     );
     return;
   }
@@ -296,23 +332,23 @@ Future<void> payCard(
       : Amount.zero;
   await financeForm(
     context,
-    title: 'Pay ${card.name}',
+    title: context.l10n.payNamed(card.name),
     fields: [
       FinanceField(
         'from',
-        'Pay from',
+        context.l10n.payFrom,
         initial: '${accounts.first.id}',
         options: {for (final a in accounts) '${a.id}': a.name},
       ),
       FinanceField(
         'amount',
-        'Amount (minimum ${status.minimumDue})',
+        context.l10n.amountMinimum('${status.minimumDue}'),
         initial: suggested > Amount.zero ? '$suggested' : '',
         numeric: true,
       ),
-      FinanceField('date', 'Date', initial: today(), date: true),
+      FinanceField('date', context.l10n.date, initial: today(), date: true),
     ],
-    submit: 'Pay',
+    submit: context.l10n.pay,
     save: (j) => ref
         .read(financialLedgerProvider)
         .transfer(
@@ -320,7 +356,7 @@ Future<void> payCard(
           toAccountId: card.id,
           amount: number(j, 'amount'),
           date: DateTime.parse(j['date']!),
-          note: 'Card payment: ${card.name}',
+          note: currentL10n.cardPaymentNote(card.name),
         ),
   );
 }
@@ -332,21 +368,26 @@ Future<void> recordCardCharge(
   Account card,
 ) => financeForm(
   context,
-  title: 'Charge on ${card.name}',
+  title: context.l10n.chargeOn(card.name),
   fields: [
-    const FinanceField(
+    FinanceField(
       'kind',
-      'Charge',
+      context.l10n.charge,
       initial: 'interest',
       options: {
-        'interest': 'Interest',
-        'late': 'Late payment fee',
-        'annual': 'Annual fee',
-        'other': 'Other bank fee',
+        'interest': context.l10n.interest,
+        'late': context.l10n.latePaymentFee,
+        'annual': context.l10n.annualFee,
+        'other': context.l10n.otherBankFee,
       },
     ),
-    FinanceField('amount', 'Amount (${card.currency})', numeric: true),
-    FinanceField('date', 'Statement date', initial: today(), date: true),
+    FinanceField('amount', context.l10n.amountIn(card.currency), numeric: true),
+    FinanceField(
+      'date',
+      context.l10n.statementDate,
+      initial: today(),
+      date: true,
+    ),
   ],
   save: (j) => ref
       .read(financialLedgerProvider)
@@ -356,10 +397,10 @@ Future<void> recordCardCharge(
         type: 'expense',
         kind: j['kind'] == 'interest' ? 'contractInterest' : 'fee',
         note: switch (j['kind']) {
-          'interest' => 'Card interest',
-          'late' => 'Late payment fee',
-          'annual' => 'Annual card fee',
-          _ => 'Card fee',
+          'interest' => currentL10n.cardInterest,
+          'late' => currentL10n.latePaymentFee,
+          'annual' => currentL10n.annualCardFee,
+          _ => currentL10n.cardFee,
         },
         date: DateTime.parse(j['date']!),
         extra: {'feeType': j['kind']},

@@ -59,12 +59,12 @@ class StatPill extends StatelessWidget {
             height: 22,
             child: value == null
                 ? Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: ShimmerLoading.block(width: 64, height: 16),
                   )
                 : FittedBox(
                     fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: AnimatedCounter(
                       value: value!,
                       exactText: exactText,

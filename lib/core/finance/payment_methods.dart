@@ -1,3 +1,5 @@
+import 'package:flourish/l10n/l10n.dart';
+
 /// How an entry was paid. Instruments (cards, wallets) carry one of these as
 /// their kind; cash has no instrument.
 class PaymentMethods {
@@ -37,15 +39,15 @@ class PaymentMethods {
   ];
 
   static String label(String method) => switch (method) {
-    'cash' => 'Cash',
-    'debit_card' => 'Debit card',
-    'credit_card' => 'Credit card',
-    'prepaid_card' => 'Prepaid card',
-    'mobile_wallet' => 'Mobile wallet',
-    'instapay' => 'InstaPay',
-    'bank_transfer' => 'Bank transfer',
-    'bnpl' => 'Installments (BNPL)',
-    _ => 'Other',
+    'cash' => currentL10n.methodCash,
+    'debit_card' => currentL10n.methodDebitCard,
+    'credit_card' => currentL10n.methodCreditCard,
+    'prepaid_card' => currentL10n.methodPrepaidCard,
+    'mobile_wallet' => currentL10n.methodMobileWallet,
+    'instapay' => currentL10n.methodInstaPay,
+    'bank_transfer' => currentL10n.methodBankTransfer,
+    'bnpl' => currentL10n.methodBnpl,
+    _ => currentL10n.other,
   };
 
   static String networkLabel(String? network) => switch (network) {
@@ -55,7 +57,7 @@ class PaymentMethods {
     'amex' => 'Amex',
     'unionpay' => 'UnionPay',
     null => '',
-    _ => 'Card',
+    _ => currentL10n.methodCard,
   };
 
   /// Whether [method] can pay out of an account of [accountType]. A credit

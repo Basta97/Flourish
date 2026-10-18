@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/finance/transaction_classifier.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/core/utils/error_text.dart';
@@ -48,7 +50,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(title: const Text('Budgets')),
+          SliverAppBar.large(title: Text(context.l10n.budgets)),
           ...budgetsAsync.when(
             data: (budgets) {
               if (budgets.isEmpty) {
@@ -57,16 +59,15 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                     hasScrollBody: false,
                     child: EmptyState(
                       icon: Icons.track_changes_rounded,
-                      title: 'No budgets set',
-                      subtitle:
-                          'Create a budget to track your spending limits.',
+                      title: context.l10n.noBudgets,
+                      subtitle: context.l10n.noBudgetsSubtitle,
                       action: FilledButton.icon(
                         onPressed: () => showSpringBottomSheet(
                           context: context,
                           builder: (_) => const AddBudgetSheet(),
                         ),
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Create a budget'),
+                        label: Text(context.l10n.createABudget),
                       ),
                     ),
                   ),
@@ -82,7 +83,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   ),
                   sliver: SliverToBoxAdapter(
                     child: Text(
-                      '${budgets.length} ACTIVE ${budgets.length == 1 ? 'BUDGET' : 'BUDGETS'}',
+                      context.l10n.activeBudgets(budgets.length),
                       style: AppTextStyles.eyebrow.copyWith(
                         color: palette.textLow,
                       ),
@@ -129,11 +130,11 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               ),
             ],
             error: (error, stackTrace) => [
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: EmptyState(
                   icon: Icons.error_outline_rounded,
-                  title: 'Error loading budgets',
+                  title: context.l10n.errorLoadingBudgets,
                 ),
               ),
             ],
@@ -148,12 +149,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Budget'),
-        content: const Text('Are you sure you want to delete this budget?'),
+        title: Text(context.l10n.deleteBudget),
+        content: Text(context.l10n.deleteBudgetConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -161,8 +162,8 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               await dao.deleteBudget(id);
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text(
-              'Delete',
+            child: Text(
+              context.l10n.delete,
               style: TextStyle(color: AppColors.danger),
             ),
           ),
@@ -245,7 +246,7 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
     final fmt = DateFormat(budget.period == 'yearly' ? 'MMM y' : 'MMM d');
 
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(Sp.lg, Sp.lg, Sp.sm, Sp.md),
+      padding: const EdgeInsetsDirectional.fromSTEB(Sp.lg, Sp.lg, Sp.sm, Sp.md),
       child: FutureBuilder<(Amount, Amount, String, int)>(
         future: _future,
         builder: (context, snapshot) {
@@ -263,7 +264,9 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                 size: 64,
                 semanticsLabel: data == null
                     ? null
-                    : '${(ratio * 100).toStringAsFixed(0)}% of budget used',
+                    : context.l10n.budgetUsedPercent(
+                        (ratio * 100).toStringAsFixed(0),
+                      ),
                 child: cat == null
                     ? null
                     : Icon(
@@ -281,7 +284,7 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                       children: [
                         Expanded(
                           child: Text(
-                            cat?.name ?? '…',
+                            cat?.displayName ?? '…',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.subtitle.copyWith(
@@ -290,19 +293,22 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                           ),
                         ),
                         PopupMenuButton<String>(
-                          tooltip: 'Budget options',
+                          tooltip: context.l10n.budgetOptions,
                           icon: Icon(
                             Icons.more_horiz_rounded,
                             color: palette.textLow,
                           ),
                           onSelected: (v) =>
                               v == 'edit' ? _edit(context) : widget.onDelete(),
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text(context.l10n.edit),
+                            ),
                             PopupMenuItem(
                               value: 'delete',
                               child: Text(
-                                'Delete',
+                                context.l10n.delete,
                                 style: TextStyle(color: AppColors.danger),
                               ),
                             ),
@@ -317,7 +323,7 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                       )
                     else if (data.$4 < 0)
                       Text(
-                        'Budget ${data.$2.fixed()} · confirm its original currency using Edit.',
+                        context.l10n.budgetConfirmCurrency(data.$2.fixed()),
                         style: AppTextStyles.caption.copyWith(
                           color: palette.warning,
                         ),
@@ -335,13 +341,16 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                         style: AppTextStyles.caption.copyWith(color: tint),
                         child: Text(
                           data.$1 > data.$2
-                              ? 'Over by ${(data.$1 - data.$2).fixed()}'
-                              : '${(data.$2 - data.$1).fixed()} remaining · ${(ratio * 100).toStringAsFixed(0)}% used',
+                              ? context.l10n.overBy((data.$1 - data.$2).fixed())
+                              : context.l10n.remainingUsed(
+                                  (data.$2 - data.$1).fixed(),
+                                  (ratio * 100).toStringAsFixed(0),
+                                ),
                         ),
                       ),
                       if (data.$4 > 0)
                         Text(
-                          '${data.$4} records need exchange rates; spending is incomplete.',
+                          context.l10n.recordsNeedRates(data.$4),
                           style: AppTextStyles.caption.copyWith(
                             color: palette.warning,
                           ),
@@ -352,7 +361,7 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                       children: [
                         _StepButton(
                           icon: Icons.chevron_left_rounded,
-                          tooltip: 'Previous budget period',
+                          tooltip: context.l10n.previousBudgetPeriod,
                           onTap: () => _shift(-1),
                         ),
                         Expanded(
@@ -368,7 +377,7 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                         ),
                         _StepButton(
                           icon: Icons.chevron_right_rounded,
-                          tooltip: 'Next budget period',
+                          tooltip: context.l10n.nextBudgetPeriod,
                           onTap: () => _shift(1),
                         ),
                         const SizedBox(width: Sp.sm),
@@ -391,11 +400,11 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
     if (!context.mounted) return;
     await financeForm(
       context,
-      title: 'Edit budget',
+      title: context.l10n.editBudget,
       fields: [
         FinanceField(
           'currency',
-          'Original budget currency',
+          context.l10n.originalBudgetCurrency,
           initial:
               metadata?['currency'] as String? ??
               ref.read<String>(defaultCurrencyProvider),
@@ -403,24 +412,24 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
         ),
         FinanceField(
           'amount',
-          'Budget amount',
+          context.l10n.budgetAmount,
           initial: '${budget.amount}',
           numeric: true,
         ),
         FinanceField(
           'date',
-          'Start date',
+          context.l10n.startDate,
           initial: budget.startDate.toIso8601String().substring(0, 10),
           date: true,
         ),
         FinanceField(
           'period',
-          'Period',
+          context.l10n.period,
           initial: budget.period,
-          options: const {
-            'weekly': 'Weekly',
-            'monthly': 'Monthly',
-            'yearly': 'Yearly',
+          options: {
+            'weekly': context.l10n.weekly,
+            'monthly': context.l10n.monthly,
+            'yearly': context.l10n.yearly,
           },
         ),
       ],
@@ -610,7 +619,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
     final currency = ref.watch(defaultCurrencyProvider);
 
     return BottomSheetScaffold(
-      title: 'Create Budget',
+      title: context.l10n.createBudget,
       children: [
         categoriesAsync.when(
           data: (cats) {
@@ -618,7 +627,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
             return DropdownButtonFormField<int>(
               initialValue: _categoryId,
               decoration: InputDecoration(
-                labelText: 'Category',
+                labelText: context.l10n.category,
                 errorText: _categoryError,
               ),
               items: expenseCats
@@ -634,7 +643,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                             iconSize: 14,
                           ),
                           const SizedBox(width: Sp.sm),
-                          Text(c.name),
+                          Text(c.displayName),
                         ],
                       ),
                     ),
@@ -657,7 +666,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
         TextField(
           controller: _amountController,
           decoration: InputDecoration(
-            labelText: 'Budget Amount',
+            labelText: context.l10n.budgetAmountTitle,
             prefixText: '${CurrencyFormatter.symbolFor(currency)} ',
             errorText: _amountError,
           ),
@@ -667,11 +676,14 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
           initialValue: _period,
-          decoration: const InputDecoration(labelText: 'Period'),
-          items: const [
-            DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-            DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-            DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+          decoration: InputDecoration(labelText: context.l10n.period),
+          items: [
+            DropdownMenuItem(value: 'weekly', child: Text(context.l10n.weekly)),
+            DropdownMenuItem(
+              value: 'monthly',
+              child: Text(context.l10n.monthly),
+            ),
+            DropdownMenuItem(value: 'yearly', child: Text(context.l10n.yearly)),
           ],
           onChanged: (v) {
             if (v != null) {
@@ -697,7 +709,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Create Budget', style: TextStyle(fontSize: 16)),
+              : Text(context.l10n.createBudget, style: TextStyle(fontSize: 16)),
         ),
       ],
     );
@@ -711,7 +723,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
 
     bool hasError = false;
     if (_categoryId == null) {
-      setState(() => _categoryError = 'Please select a category');
+      setState(() => _categoryError = context.l10n.selectCategoryError);
       hasError = true;
     }
     final parsed = AmountParser.parse(
@@ -726,6 +738,12 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
     final amount = parsed.value!.toDouble();
 
     final firstWeekday = MaterialLocalizations.of(context).firstDayOfWeekIndex;
+    final l = context.l10n;
+    final periodName = switch (_period) {
+      'weekly' => l.weekly,
+      'yearly' => l.yearly,
+      _ => l.monthly,
+    }.toLowerCase();
     setState(() => _isSubmitting = true);
     try {
       final db = ref.read(budgetDaoProvider);
@@ -735,9 +753,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
         if (existing.any(
           (b) => b.categoryId == _categoryId && b.period == _period,
         )) {
-          throw StateError(
-            'This category already has a $_period budget. Edit it instead.',
-          );
+          throw StateError(l.budgetExists(periodName));
         }
         final budgetId = await db.insertBudget(
           BudgetsCompanion.insert(

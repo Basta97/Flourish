@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -106,36 +107,31 @@ class _NotificationImportScreenState
       ref.read(aiClientProvider).valueOrNull != null;
 
   Future<void> _recognize(String path) async {
+    final l = context.l10n;
     setState(() => _busy = true);
     try {
       final text = await SharedImportService.recognizeImage(path);
       if (!mounted) return;
       if (text.trim().isEmpty) {
-        _snack(
-          _aiReadable
-              ? 'No readable text found. For Arabic, try "Read with AI".'
-              : 'No readable text found. Type or paste the alert instead.',
-        );
+        _snack(_aiReadable ? l.noTextTryAi : l.noTextTypeInstead);
         return;
       }
       setState(() => _text.text = text);
     } catch (e) {
-      if (mounted) _snack('Text recognition failed: ${describeError(e)}');
+      if (mounted) _snack(l.textRecognitionFailed(describeError(e)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _readWithAi() async {
+    final l = context.l10n;
     final path = _imagePath;
     final client = await ref.read(aiClientProvider.future);
     if (path == null || client == null || !mounted) return;
     var settings = ref.read(aiSettingsProvider);
     if (settings.preset.readsImages == false) {
-      _snack(
-        '${settings.preset.label} cannot read images. Choose a model that '
-        'can, such as Gemini, in AI settings.',
-      );
+      _snack(l.providerNoImagesSettings(settings.preset.label));
       return;
     }
     if (!settings.screenshotOcr) {
@@ -156,7 +152,7 @@ class _NotificationImportScreenState
           );
       if (!mounted) return;
       if (text.isEmpty) {
-        _snack('The AI found no readable text in this image.');
+        _snack(l.aiNoText);
         return;
       }
       setState(() => _text.text = text);
@@ -164,13 +160,12 @@ class _NotificationImportScreenState
       if (mounted) {
         _snack(
           e.statusCode == 400 || e.statusCode == 404
-              ? 'This model could not read the image (${e.message}). Choose a '
-                    'model that reads images in AI settings.'
-              : 'AI reading failed: ${e.message}',
+              ? l.modelCannotReadImage(e.message)
+              : l.aiReadingFailed(e.message),
         );
       }
     } catch (e) {
-      if (mounted) _snack('AI reading failed: ${describeError(e)}');
+      if (mounted) _snack(l.aiReadingFailed(describeError(e)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -178,6 +173,7 @@ class _NotificationImportScreenState
 
   /// Splits the text into messages, detects each one, and opens the inbox.
   Future<void> _analyze() async {
+    final l = context.l10n;
     final messages = MessageSplitter.split(_text.text);
     if (messages.isEmpty) return;
     setState(() => _busy = true);
@@ -205,7 +201,7 @@ class _NotificationImportScreenState
         try {
           await service.assistPending();
         } catch (e) {
-          aiNote = 'AI unavailable, showing on-device results';
+          aiNote = l.aiUnavailableOnDevice;
         }
       }
       if (_attachReceipt && _imagePath != null && added.length == 1) {
@@ -222,18 +218,14 @@ class _NotificationImportScreenState
       final skipped = messages.length - added.length;
       _snack(
         [
-          if (added.isEmpty)
-            'No new payments found'
-          else
-            '${added.length} payment${added.length == 1 ? '' : 's'} ready to review',
-          if (skipped > 0)
-            '$skipped skipped (codes, offers, notices or already added)',
+          if (added.isEmpty) l.noNewPayments else l.paymentsReady(added.length),
+          if (skipped > 0) l.skippedNotices(skipped),
           ?aiNote,
         ].join(' · '),
       );
       if (added.isNotEmpty) context.pushReplacement('/inbox');
     } catch (e) {
-      if (mounted) _snack('Could not analyse: ${describeError(e)}');
+      if (mounted) _snack(l.couldNotAnalyse(describeError(e)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -249,7 +241,7 @@ class _NotificationImportScreenState
       color: AppColors.textSecondary(context),
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Smart Import')),
+      appBar: AppBar(title: Text(context.l10n.smartImport)),
       body: LiquidPageBackground(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -286,16 +278,12 @@ class _NotificationImportScreenState
                   const SizedBox(height: Sp.lg),
                   Text(
                     _imagePath != null
-                        ? 'Review shared payment screenshot'
-                        : 'Paste bank, wallet or Apple Pay alerts',
+                        ? context.l10n.reviewSharedScreenshot
+                        : context.l10n.pasteAlertsTitle,
                     style: AppTextStyles.title,
                   ),
                   const SizedBox(height: Sp.sm),
-                  Text(
-                    'Paste one alert or many at once. Each one is read on '
-                    'your phone and added to Payments to review.',
-                    style: secondary,
-                  ),
+                  Text(context.l10n.pasteAlertsBody, style: secondary),
                   if (_imagePath != null) ...[
                     const SizedBox(height: Sp.lg),
                     ClipRRect(
@@ -311,7 +299,7 @@ class _NotificationImportScreenState
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Keep this image as a receipt'),
+                      title: Text(context.l10n.keepAsReceipt),
                       value: _attachReceipt,
                       onChanged: (v) => setState(() => _attachReceipt = v),
                     ),
@@ -321,7 +309,7 @@ class _NotificationImportScreenState
                         child: TextButton.icon(
                           onPressed: _busy ? null : _readWithAi,
                           icon: const Icon(Icons.translate_rounded),
-                          label: const Text('Read with AI (Arabic)'),
+                          label: Text(context.l10n.readWithAiArabic),
                         ),
                       ),
                   ],
@@ -332,10 +320,9 @@ class _NotificationImportScreenState
                     maxLines: 10,
                     decoration: InputDecoration(
                       labelText: draft?.source == null
-                          ? 'Alert text'
-                          : 'Alert text (from ${draft!.source})',
-                      hintText:
-                          'Example: Apple Pay: Card 1234 spent 24.90 USD at Starbucks',
+                          ? context.l10n.alertText
+                          : context.l10n.alertTextFrom(draft!.source),
+                      hintText: context.l10n.alertExample,
                     ),
                   ),
                   const SizedBox(height: Sp.md),
@@ -346,7 +333,7 @@ class _NotificationImportScreenState
                           onPressed: _busy ? null : _paste,
                           style: _compactButton,
                           icon: const Icon(Icons.content_paste_go),
-                          label: const Text('Paste'),
+                          label: Text(context.l10n.paste),
                         ),
                       ),
                       const SizedBox(width: Sp.md),
@@ -355,7 +342,7 @@ class _NotificationImportScreenState
                           onPressed: _busy ? null : _pickPhoto,
                           style: _compactButton,
                           icon: const Icon(Icons.photo_library_outlined),
-                          label: const Text('Photo'),
+                          label: Text(context.l10n.photo),
                         ),
                       ),
                       const SizedBox(width: Sp.md),
@@ -372,7 +359,7 @@ class _NotificationImportScreenState
                                   ),
                                 )
                               : const Icon(Icons.auto_awesome),
-                          label: const Text('Analyze'),
+                          label: Text(context.l10n.analyze),
                         ),
                       ),
                     ],
@@ -380,30 +367,38 @@ class _NotificationImportScreenState
                 ],
               ),
             ),
-            const SizedBox(height: Sp.lg),
-            Row(
-              children: [
-                Icon(
-                  aiReady ? Icons.psychology_alt_outlined : Icons.memory_rounded,
-                  size: 18,
-                  color: AppColors.textSecondary(context),
-                ),
-                const SizedBox(width: Sp.sm),
-                Expanded(
-                  child: Text(
+            const SizedBox(height: Sp.md),
+            // Lines up with the card's content above.
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: Sp.xl),
+              child: Row(
+                children: [
+                  Icon(
                     aiReady
-                        ? 'Unclear alerts get a second reading from AI.'
-                        : 'Read on your phone. Add an AI provider for tricky alerts.',
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textSecondary(context),
+                        ? Icons.psychology_alt_outlined
+                        : Icons.memory_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  const SizedBox(width: Sp.sm),
+                  Expanded(
+                    child: Text(
+                      aiReady
+                          ? context.l10n.aiSecondReading
+                          : context.l10n.readOnPhone,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary(context),
+                      ),
                     ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () => context.push('/settings/ai'),
-                  child: Text(aiReady ? 'AI settings' : 'Set up'),
-                ),
-              ],
+                  TextButton(
+                    onPressed: () => context.push('/settings/ai'),
+                    child: Text(
+                      aiReady ? context.l10n.aiSettings : context.l10n.setUp,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

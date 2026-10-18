@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flourish/shared/widgets/shimmer_loading.dart';
@@ -69,7 +70,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           controller: _controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: 'Search transactions...',
+            hintText: context.l10n.searchTransactionsHint,
             border: InputBorder.none,
             hintStyle: AppTextStyles.body.copyWith(
               color: AppColors.textSecondary(context),
@@ -97,7 +98,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Row(
                 children: [
                   _FilterChip(
-                    label: 'All',
+                    label: context.l10n.all,
                     selected: _typeFilter == 'all',
                     onTap: () {
                       setState(() => _typeFilter = 'all');
@@ -106,7 +107,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                   const SizedBox(width: Sp.sm),
                   _FilterChip(
-                    label: 'Income',
+                    label: context.l10n.income,
                     selected: _typeFilter == 'income',
                     color: AppColors.income,
                     onTap: () {
@@ -116,7 +117,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                   const SizedBox(width: Sp.sm),
                   _FilterChip(
-                    label: 'Expense',
+                    label: context.l10n.expense,
                     selected: _typeFilter == 'expense',
                     color: AppColors.expense,
                     onTap: () {
@@ -132,15 +133,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: _isSearching
                   ? const ShimmerList()
                   : _results == null
-                  ? const EmptyState(
+                  ? EmptyState(
                       icon: Icons.search,
-                      title: 'Search transactions',
-                      subtitle: 'Type to search by note or type',
+                      title: context.l10n.searchTransactions,
+                      subtitle: context.l10n.searchSubtitle,
                     )
                   : _results!.isEmpty
-                  ? const EmptyState(
+                  ? EmptyState(
                       icon: Icons.search_off,
-                      title: 'No results found',
+                      title: context.l10n.noResults,
                     )
                   : categoriesAsync.when(
                       data: (categories) => accountsAsync.when(

@@ -1,19 +1,15 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
 
 class ErrorState extends StatelessWidget {
-  final String title;
+  final String? title;
   final String? subtitle;
   final VoidCallback? onRetry;
 
-  const ErrorState({
-    super.key,
-    this.title = 'Something went wrong',
-    this.subtitle,
-    this.onRetry,
-  });
+  const ErrorState({super.key, this.title, this.subtitle, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +26,7 @@ class ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: Sp.md),
             Text(
-              title,
+              title ?? context.l10n.somethingWentWrong,
               style: AppTextStyles.subtitle.copyWith(
                 color: AppColors.textPrimary(context),
               ),
@@ -51,7 +47,7 @@ class ErrorState extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try Again'),
+                label: Text(context.l10n.tryAgain),
               ),
             ],
           ],

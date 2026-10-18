@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/core/finance/payment_methods.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
@@ -33,7 +35,7 @@ class FormLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: Sp.sm, left: 2),
+      padding: const EdgeInsetsDirectional.only(bottom: Sp.sm, start: 2),
       child: Row(
         children: [
           Expanded(
@@ -258,7 +260,7 @@ class CategoryGrid extends StatelessWidget {
         return Pressable(
           haptic: false,
           scale: 0.92,
-          semanticLabel: c.name,
+          semanticLabel: c.displayName,
           onTap: () {
             if (selected) return;
             Haptics.select();
@@ -294,7 +296,7 @@ class CategoryGrid extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  c.name,
+                  c.displayName,
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -335,13 +337,13 @@ class DatePills extends StatelessWidget {
     return Row(
       children: [
         _Pill(
-          label: 'Today',
+          label: context.l10n.today,
           selected: isToday,
           onTap: () => onChanged(_withTime(today, value)),
         ),
         const SizedBox(width: Sp.sm),
         _Pill(
-          label: 'Yesterday',
+          label: context.l10n.yesterday,
           selected: isYesterday,
           onTap: () => onChanged(_withTime(yesterday, value)),
         ),
@@ -349,7 +351,9 @@ class DatePills extends StatelessWidget {
         Expanded(
           child: _Pill(
             icon: Icons.calendar_today_rounded,
-            label: other ? DateFormat('EEE, MMM d, y').format(value) : 'Pick',
+            label: other
+                ? DateFormat('EEE, MMM d, y').format(value)
+                : context.l10n.pick,
             selected: other,
             onTap: () async {
               final picked = await showDatePicker(
@@ -509,20 +513,16 @@ Future<bool> confirmFutureDate(BuildContext context, DateTime date) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Date is in the future'),
-      content: Text(
-        'This entry is dated ${DateFormat.yMMMd().format(date)} but changes '
-        'the account balance now. For a payment that has not happened yet, '
-        'a recurring payment or reminder may fit better.',
-      ),
+      title: Text(context.l10n.futureDateTitle),
+      content: Text(ctx.l10n.futureDateBody(DateFormat.yMMMd().format(date))),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Change date'),
+          child: Text(context.l10n.changeDate),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Save anyway'),
+          child: Text(context.l10n.saveAnyway),
         ),
       ],
     ),

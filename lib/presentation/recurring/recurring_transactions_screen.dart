@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
 import 'package:flutter/material.dart';
@@ -39,17 +41,17 @@ class RecurringTransactionsScreen extends ConsumerWidget {
           builder: (_) => const _AddRecurringSheet(),
         ),
         icon: const Icon(Icons.add),
-        label: const Text('Recurring payment'),
+        label: Text(context.l10n.recurringPayment),
       ),
-      appBar: AppBar(title: const Text('Recurring Transactions')),
+      appBar: AppBar(title: Text(context.l10n.recurringTransactions)),
       body: LiquidPageBackground(
         child: recurringAsync.when(
           data: (items) {
             if (items.isEmpty) {
-              return const EmptyState(
+              return EmptyState(
                 icon: Icons.repeat,
-                title: 'No recurring transactions',
-                subtitle: 'Set up automatic transactions',
+                title: context.l10n.noRecurring,
+                subtitle: context.l10n.setUpAutomatic,
               );
             }
             return ListView.builder(
@@ -63,7 +65,7 @@ class RecurringTransactionsScreen extends ConsumerWidget {
           },
           loading: () => const ShimmerList(),
           error: (error, stackTrace) =>
-              const EmptyState(icon: Icons.error, title: 'Error loading'),
+              EmptyState(icon: Icons.error, title: context.l10n.errorLoading),
         ),
       ),
     );
@@ -102,7 +104,12 @@ class _RecurringCard extends ConsumerWidget {
         opacity: recurring.isActive ? 1 : 0.55,
         duration: Motion.of(context, Motion.base),
         child: AppCard(
-          padding: const EdgeInsets.fromLTRB(Sp.lg, Sp.md, Sp.xs, Sp.md),
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            Sp.lg,
+            Sp.md,
+            Sp.xs,
+            Sp.md,
+          ),
           child: Row(
             children: [
               CategoryIconWidget(
@@ -119,7 +126,7 @@ class _RecurringCard extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            cat?.name ?? _frequencyLabel(recurring.frequency),
+                            cat?.displayName ?? _frequencyLabel(recurring.frequency),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.bodyMedium.copyWith(
@@ -129,13 +136,16 @@ class _RecurringCard extends ConsumerWidget {
                         ),
                         if (!recurring.isActive) ...[
                           const SizedBox(width: 6),
-                          _Tag('PAUSED', palette.warning),
+                          _Tag(context.l10n.pausedCaps, palette.warning),
                         ],
                       ],
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${_frequencyLabel(recurring.frequency)} · next ${DateFormatter.format(recurring.nextDate)}',
+                      context.l10n.frequencyNext(
+                        _frequencyLabel(recurring.frequency),
+                        DateFormatter.format(recurring.nextDate),
+                      ),
                       style: AppTextStyles.caption.copyWith(
                         color: palette.textLow,
                         fontWeight: FontWeight.w500,
@@ -155,7 +165,7 @@ class _RecurringCard extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 3),
                         child: Text(
-                          'Not posted: $warning',
+                          context.l10n.notPosted(warning),
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.danger,
                             fontWeight: FontWeight.w600,
@@ -167,10 +177,11 @@ class _RecurringCard extends ConsumerWidget {
               ),
               Text(
                 '${isIncome ? '+' : '−'}${CurrencyFormatter.format(recurring.amount, currency: currency)}',
+                textDirection: TextDirection.ltr,
                 style: AppTextStyles.numberSmall.copyWith(color: tone),
               ),
               PopupMenuButton<String>(
-                tooltip: 'Recurring options',
+                tooltip: context.l10n.recurringOptions,
                 icon: Icon(Icons.more_vert_rounded, color: palette.textLow),
                 onSelected: (action) async {
                   Haptics.select();
@@ -187,15 +198,19 @@ class _RecurringCard extends ConsumerWidget {
                   }
                 },
                 itemBuilder: (ctx) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'edit', child: Text(context.l10n.edit)),
                   PopupMenuItem(
                     value: 'toggle',
-                    child: Text(recurring.isActive ? 'Pause' : 'Resume'),
+                    child: Text(
+                      recurring.isActive
+                          ? context.l10n.pause
+                          : context.l10n.resume,
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Text(
-                      'Delete',
+                      context.l10n.delete,
                       style: TextStyle(color: AppColors.danger),
                     ),
                   ),
@@ -211,13 +226,13 @@ class _RecurringCard extends ConsumerWidget {
   String _frequencyLabel(String freq) {
     switch (freq) {
       case 'daily':
-        return 'Daily';
+        return currentL10n.daily;
       case 'weekly':
-        return 'Weekly';
+        return currentL10n.weekly;
       case 'monthly':
-        return 'Monthly';
+        return currentL10n.monthly;
       case 'yearly':
-        return 'Yearly';
+        return currentL10n.yearly;
       default:
         return freq;
     }
@@ -305,14 +320,14 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
 
     return BottomSheetScaffold(
       title: widget.existing == null
-          ? 'New Recurring Transaction'
-          : 'Edit Recurring Transaction',
+          ? context.l10n.newRecurring
+          : context.l10n.editRecurring,
       children: [
         Row(
           children: [
             Expanded(
               child: _TypeBtn(
-                label: 'Expense',
+                label: context.l10n.expense,
                 selected: _type == 'expense',
                 color: AppColors.expense,
                 onTap: () => setState(() {
@@ -324,7 +339,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             const SizedBox(width: Sp.md),
             Expanded(
               child: _TypeBtn(
-                label: 'Income',
+                label: context.l10n.income,
                 selected: _type == 'income',
                 color: AppColors.income,
                 onTap: () => setState(() {
@@ -336,7 +351,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             const SizedBox(width: Sp.md),
             Expanded(
               child: _TypeBtn(
-                label: 'Transfer',
+                label: context.l10n.transfer,
                 selected: _type == 'transfer',
                 color: AppColors.primary,
                 onTap: () => setState(() {
@@ -352,7 +367,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
         TextField(
           controller: _amountController,
           decoration: InputDecoration(
-            labelText: 'Amount',
+            labelText: context.l10n.amount,
             prefixText: '${CurrencyFormatter.symbolFor(currency)} ',
             hintText: '0.00',
             errorText: _amountError,
@@ -374,7 +389,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             return DropdownButtonFormField<int>(
               key: ValueKey('recurring-account-$_accountId-${accounts.length}'),
               initialValue: _accountId,
-              decoration: const InputDecoration(labelText: 'Account'),
+              decoration: InputDecoration(labelText: context.l10n.account),
               items: accounts
                   .map(
                     (a) => DropdownMenuItem(
@@ -402,9 +417,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
           DropdownButtonFormField<int>(
             key: ValueKey('recurring-to-$_accountId-$_toAccountId'),
             initialValue: _toAccountId,
-            decoration: const InputDecoration(
-              labelText: 'To account (e.g. your credit card or savings)',
-            ),
+            decoration: InputDecoration(labelText: context.l10n.toAccountHint),
             items: [
               for (final a in accountsAsync.valueOrNull ?? const <Account>[])
                 if (a.id != _accountId)
@@ -425,9 +438,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             DropdownButtonFormField<int?>(
               key: ValueKey('recurring-card-$_accountId-$_instrumentId'),
               initialValue: _instrumentId,
-              decoration: const InputDecoration(labelText: 'Charged to'),
+              decoration: InputDecoration(labelText: context.l10n.chargedTo),
               items: [
-                const DropdownMenuItem(value: null, child: Text('Not set')),
+                DropdownMenuItem(value: null, child: Text(context.l10n.notSet)),
                 for (final c in cards)
                   DropdownMenuItem(value: c.id, child: Text(c.label)),
               ],
@@ -454,7 +467,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               return DropdownButtonFormField<int>(
                 key: ValueKey('recurring-category-$_type-$effectiveCat'),
                 initialValue: effectiveCat,
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: InputDecoration(labelText: context.l10n.category),
                 items: filtered
                     .map(
                       (c) => DropdownMenuItem(
@@ -468,7 +481,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                               iconSize: 14,
                             ),
                             const SizedBox(width: Sp.sm),
-                            Text(c.name),
+                            Text(c.displayName),
                           ],
                         ),
                       ),
@@ -487,12 +500,15 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
           initialValue: _frequency,
-          decoration: const InputDecoration(labelText: 'Frequency'),
-          items: const [
-            DropdownMenuItem(value: 'daily', child: Text('Daily')),
-            DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-            DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-            DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+          decoration: InputDecoration(labelText: context.l10n.frequency),
+          items: [
+            DropdownMenuItem(value: 'daily', child: Text(context.l10n.daily)),
+            DropdownMenuItem(value: 'weekly', child: Text(context.l10n.weekly)),
+            DropdownMenuItem(
+              value: 'monthly',
+              child: Text(context.l10n.monthly),
+            ),
+            DropdownMenuItem(value: 'yearly', child: Text(context.l10n.yearly)),
           ],
           onChanged: (v) {
             if (v != null) {
@@ -515,8 +531,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
           child: InputDecorator(
             decoration: InputDecoration(
               labelText: widget.existing == null
-                  ? 'First Occurrence'
-                  : 'Next Occurrence',
+                  ? context.l10n.firstOccurrence
+                  : context.l10n.nextOccurrence,
             ),
             child: Row(
               children: [
@@ -541,24 +557,26 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
           borderRadius: BorderRadius.circular(Rad.md),
           child: InputDecorator(
             decoration: InputDecoration(
-              labelText: 'Ends (optional)',
+              labelText: context.l10n.endsOptional,
               suffixIcon: _endDate == null
                   ? null
                   : IconButton(
-                      tooltip: 'No end date',
+                      tooltip: context.l10n.noEndDate,
                       icon: const Icon(Icons.close_rounded, size: 18),
                       onPressed: () => setState(() => _endDate = null),
                     ),
             ),
             child: Text(
-              _endDate == null ? 'Never' : DateFormatter.formatFull(_endDate!),
+              _endDate == null
+                  ? context.l10n.never
+                  : DateFormatter.formatFull(_endDate!),
             ),
           ),
         ),
         const SizedBox(height: Sp.md),
         TextField(
           controller: _noteController,
-          decoration: const InputDecoration(labelText: 'Note (optional)'),
+          decoration: InputDecoration(labelText: context.l10n.noteOptional),
           maxLines: 1,
         ),
         const SizedBox(height: Sp.xxl),
@@ -580,7 +598,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   ),
                 )
               : Text(
-                  widget.existing == null ? 'Create Recurring' : 'Save',
+                  widget.existing == null
+                      ? context.l10n.createRecurring
+                      : context.l10n.save,
                   style: const TextStyle(fontSize: 16),
                 ),
         ),
@@ -609,7 +629,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     if (_type == 'transfer') {
       if (_toAccountId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Choose the account to transfer to')),
+          SnackBar(content: Text(context.l10n.chooseTransferTarget)),
         );
         return;
       }
@@ -621,7 +641,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     }
     if (_accountId == null || _categoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select account and category')),
+        SnackBar(content: Text(context.l10n.selectAccountCategory)),
       );
       return;
     }
@@ -699,29 +719,23 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   Future<bool?> _askCatchUp(int missed) => showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Start date is in the past'),
+      title: Text(context.l10n.startInPast),
       content: Text(
-        missed > 24
-            ? 'More than 24 payments fall before today. The schedule will '
-                  'start from its next date; add older payments manually if '
-                  'you need them.'
-            : '$missed payment${missed == 1 ? '' : 's'} fall before today. '
-                  'Post ${missed == 1 ? 'it' : 'them'} now, or start from the '
-                  'next date?',
+        missed > 24 ? ctx.l10n.tooManyMissed : ctx.l10n.missedPayments(missed),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Start from next date'),
+          child: Text(context.l10n.startFromNext),
         ),
         if (missed <= 24)
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Post $missed'),
+            child: Text(ctx.l10n.postCount(missed)),
           ),
       ],
     ),

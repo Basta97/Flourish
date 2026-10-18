@@ -23,6 +23,8 @@ import '../../presentation/transactions/widgets/add_transaction_sheet.dart';
 import '../../shared/widgets/spring_bottom_sheet.dart';
 import '../../shared/widgets/pressable.dart';
 import '../motion/motion.dart';
+import '../../l10n/l10n.dart';
+import '../../presentation/transactions/widgets/add_type_menu.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
@@ -33,7 +35,7 @@ final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/dashboard',
   errorBuilder: (context, state) =>
-      NotFoundScreen(subtitle: 'The page "${state.uri}" does not exist.'),
+      NotFoundScreen(subtitle: context.l10n.pageNotFound('${state.uri}')),
   routes: [
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
@@ -60,9 +62,9 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '');
         if (id == null) {
-          return const NotFoundScreen(
-            title: 'Account not found',
-            subtitle: 'That account link is invalid or no longer available.',
+          return NotFoundScreen(
+            title: context.l10n.accountNotFound,
+            subtitle: context.l10n.accountNotFoundSubtitle,
           );
         }
         return AccountDetailScreen(accountId: id);
@@ -227,12 +229,28 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   Future<void> _showAddSheet(BuildContext context) async {
     final route = _currentRoute(context);
     setState(() => _addOpen = true);
-    final WidgetBuilder builder = switch (route) {
+    WidgetBuilder? builder = switch (route) {
       '/accounts' => (_) => const AddAccountSheet(),
       '/budgets' => (_) => const AddBudgetSheet(),
-      _ => (_) => const AddTransactionSheet(),
+      _ => null,
     };
-    await showSpringBottomSheet(context: context, builder: builder);
+    if (builder == null) {
+      // Home and Ledger: pick the kind of entry first.
+      Haptics.tap();
+      final choice = await showAddTypeMenu(context);
+      if (!context.mounted) return;
+      switch (choice) {
+        case null:
+          break;
+        case AddChoice.scan:
+          context.push('/smart-import');
+        case AddChoice.expense || AddChoice.income || AddChoice.transfer:
+          builder = (_) => AddTransactionSheet(initialType: choice.name);
+      }
+    }
+    if (builder != null) {
+      await showSpringBottomSheet(context: context, builder: builder);
+    }
     if (mounted) setState(() => _addOpen = false);
   }
 }
@@ -252,34 +270,31 @@ class _IslandNavBar extends StatelessWidget {
   static const double _centerExtent = 72; // 56 button + 2×8 gutter
   static const double _hPad = 10;
 
-  static const _items =
-      <({IconData icon, IconData selectedIcon, String label})>[
-        (
-          icon: Icons.home_outlined,
-          selectedIcon: Icons.home_rounded,
-          label: 'Home',
-        ),
-        (
-          icon: Icons.receipt_long_outlined,
-          selectedIcon: Icons.receipt_long,
-          label: 'Ledger',
-        ),
-        (
-          icon: Icons.add_rounded,
-          selectedIcon: Icons.add_rounded,
-          label: 'Add',
-        ),
-        (
-          icon: Icons.account_balance_wallet_outlined,
-          selectedIcon: Icons.account_balance_wallet_rounded,
-          label: 'Accounts',
-        ),
-        (
-          icon: Icons.diamond_outlined,
-          selectedIcon: Icons.diamond,
-          label: 'Wealth',
-        ),
-      ];
+  static List<({IconData icon, IconData selectedIcon, String label})> _items(
+    AppLocalizations l,
+  ) => [
+    (
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+      label: l.navHome,
+    ),
+    (
+      icon: Icons.receipt_long_outlined,
+      selectedIcon: Icons.receipt_long,
+      label: l.navLedger,
+    ),
+    (icon: Icons.add_rounded, selectedIcon: Icons.add_rounded, label: l.add),
+    (
+      icon: Icons.account_balance_wallet_outlined,
+      selectedIcon: Icons.account_balance_wallet_rounded,
+      label: l.navAccounts,
+    ),
+    (
+      icon: Icons.diamond_outlined,
+      selectedIcon: Icons.diamond,
+      label: l.navWealth,
+    ),
+  ];
 
   double _offsetOf(int index) {
     var x = _hPad;
@@ -292,6 +307,7 @@ class _IslandNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = FlourishPalette.of(context);
+    final items = _items(context.l10n);
     final reduced = Motion.reduced(context);
     final blobDuration = reduced
         ? Duration.zero
@@ -328,13 +344,13 @@ class _IslandNavBar extends StatelessWidget {
                   ),
                 ),
                 child: Stack(
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   children: [
                     // Sliding selection blob.
-                    AnimatedPositioned(
+                    AnimatedPositionedDirectional(
                       duration: blobDuration,
                       curve: Motion.springSnappy,
-                      left: _offsetOf(selectedIndex) - _hPad,
+                      start: _offsetOf(selectedIndex) - _hPad,
                       top: 12,
                       width: 48,
                       height: 48,
@@ -355,14 +371,14 @@ class _IslandNavBar extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (var index = 0; index < _items.length; index++)
+                        for (var index = 0; index < items.length; index++)
                           index == 2
                               ? _AddButton(
                                   open: addOpen,
                                   onTap: () => onDestinationSelected(2),
                                 )
                               : _NavItem(
-                                  item: _items[index],
+                                  item: items[index],
                                   selected: index == selectedIndex,
                                   onTap: () => onDestinationSelected(index),
                                 ),
@@ -466,9 +482,9 @@ class _AddButton extends StatelessWidget {
             turns: open ? 0.125 : 0,
             duration: Motion.of(context, Motion.slow),
             curve: Motion.springSnappy,
-            child: const Icon(
+            child: Icon(
               Icons.add_rounded,
-              semanticLabel: 'Add',
+              semanticLabel: context.l10n.add,
               color: AppColors.backgroundDark,
               size: 30,
             ),

@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,10 +24,10 @@ class WealthScreen extends ConsumerStatefulWidget {
 
 class _WealthScreenState extends ConsumerState<WealthScreen>
     with SingleTickerProviderStateMixin {
-  static const _tabs = ['Holdings', 'Obligations', 'Reports', 'Tools'];
+  static const _tabCount = 4;
 
   late final TabController _controller = TabController(
-    length: _tabs.length,
+    length: _tabCount,
     vsync: this,
   );
   bool _refreshing = false;
@@ -55,7 +56,7 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
       SnackBar(
         content: Text(
           market.warnings.isEmpty
-              ? 'Prices refreshed'
+              ? context.l10n.pricesRefreshed
               : market.warnings.join('\n'),
         ),
       ),
@@ -66,10 +67,10 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wealth'),
+        title: Text(context.l10n.navWealth),
         actions: [
           IconButton(
-            tooltip: 'Refresh prices',
+            tooltip: context.l10n.refreshPrices,
             onPressed: _refreshPrices,
             icon: AnimatedRotation(
               turns: _refreshing ? 1 : 0,
@@ -79,7 +80,7 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
             ),
           ),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: context.l10n.settings,
             onPressed: () {
               Haptics.tap();
               context.push('/settings');
@@ -106,7 +107,12 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
             child: AnimatedBuilder(
               animation: _controller,
               builder: (context, _) => SegmentedPill(
-                labels: _tabs,
+                labels: [
+                  context.l10n.holdings,
+                  context.l10n.obligations,
+                  context.l10n.reports,
+                  context.l10n.tools,
+                ],
                 selectedIndex: _controller.index,
                 onChanged: (i) => _controller.animateTo(
                   i,

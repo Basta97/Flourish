@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -94,7 +95,7 @@ class NetWorthHero extends ConsumerWidget {
                     height: 120,
                     child: Center(
                       child: Text(
-                        'Could not load net worth.',
+                        context.l10n.couldNotLoadNetWorth,
                         style: AppTextStyles.body.copyWith(color: _textLow),
                       ),
                     ),
@@ -134,7 +135,9 @@ class NetWorthHero extends ConsumerWidget {
           children: [
             Expanded(
               child: Text(
-                w.complete ? 'NET WORTH' : 'KNOWN NET WORTH',
+                w.complete
+                    ? context.l10n.netWorthCaps
+                    : context.l10n.knownNetWorthCaps,
                 style: AppTextStyles.eyebrow.copyWith(color: _textLow),
               ),
             ),
@@ -145,10 +148,10 @@ class NetWorthHero extends ConsumerWidget {
         SizedBox(
           height: compact ? 36 : 46,
           child: Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: AnimatedCounter(
                 value: net,
                 format: fmt,
@@ -171,9 +174,9 @@ class NetWorthHero extends ConsumerWidget {
             SizedBox(
               height: 60,
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Text(
-                  'Your trend line appears after a few days of tracking.',
+                  context.l10n.trendLineLater,
                   style: AppTextStyles.caption.copyWith(color: _textLow),
                 ),
               ),
@@ -184,17 +187,26 @@ class NetWorthHero extends ConsumerWidget {
         const SizedBox(height: Sp.md),
         Row(
           children: [
-            _Breakdown(label: 'Assets', value: fmt(w.assets.toDouble())),
-            _Breakdown(label: 'Debts', value: fmt(w.liabilities.toDouble())),
-            _Breakdown(label: 'Liquid', value: fmt(w.liquid.toDouble())),
+            _Breakdown(
+              label: context.l10n.assets,
+              value: fmt(w.assets.toDouble()),
+            ),
+            _Breakdown(
+              label: context.l10n.debts,
+              value: fmt(w.liabilities.toDouble()),
+            ),
+            _Breakdown(
+              label: context.l10n.liquid,
+              value: fmt(w.liquid.toDouble()),
+            ),
           ],
         ),
         if (!w.complete || w.stale) ...[
           const SizedBox(height: Sp.md),
           _Notice(
             text: !w.complete
-                ? 'Some prices or exchange rates are missing. Totals include known values only.'
-                : 'Some prices are more than 72 hours old. Pull down to refresh.',
+                ? context.l10n.pricesMissing
+                : context.l10n.pricesStale,
           ),
         ],
       ],
@@ -258,7 +270,7 @@ class _Breakdown extends StatelessWidget {
           const SizedBox(height: Sp.xs),
           FittedBox(
             fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: Text(
               value,
               style: AppTextStyles.numberSmall.copyWith(
@@ -316,7 +328,7 @@ class _CurrencyChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
-      tooltip: 'Reporting currency',
+      tooltip: context.l10n.reportingCurrency,
       initialValue: currency,
       position: PopupMenuPosition.under,
       constraints: const BoxConstraints(maxHeight: 360, minWidth: 120),
@@ -331,7 +343,7 @@ class _CurrencyChip extends ConsumerWidget {
           PopupMenuItem(value: c, height: 40, child: Text(c)),
       ],
       child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+        padding: const EdgeInsetsDirectional.fromSTEB(10, 5, 6, 5),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(Rad.full),

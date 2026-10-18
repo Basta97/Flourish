@@ -1,3 +1,4 @@
+import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import '../../core/finance/backup_service.dart';
 import '../../data/finance/finance_store.dart';
@@ -17,13 +18,15 @@ import 'package:flourish/core/theme/app_spacing.dart';
 import 'package:flourish/core/constants/enums.dart';
 import 'package:flourish/core/constants/app_constants.dart';
 import 'package:flourish/presentation/providers/theme_providers.dart';
+import 'package:flourish/presentation/providers/locale_providers.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/core/motion/motion.dart';
-import 'package:flourish/shared/widgets/pressable.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/liquid_page.dart';
+import 'package:flourish/shared/widgets/settings_group.dart';
 import 'package:flourish/core/services/preferences_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -71,22 +74,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final autoIncome = ref.watch(monthlyAutoIncomeProvider);
     final accountsAsync = ref.watch(accountsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
+    final locale = ref.watch(appLocaleProvider);
+    final hideAmounts = ref.watch(hideAmountsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(context.l10n.settings)),
       body: LiquidPageBackground(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(Sp.xl, Sp.sm, Sp.xl, Sp.xxxl),
           children: [
-            _Group(
-              title: 'Appearance',
+            SettingsGroup(
+              title: context.l10n.appearance,
               children: [
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.dark_mode_outlined,
-                  title: 'Theme',
-                  subtitle:
-                      themeMode.name[0].toUpperCase() +
-                      themeMode.name.substring(1),
+                  title: context.l10n.theme,
+                  subtitle: context.l10n.themeName(themeMode.name),
                   trailing: SegmentedButton<AppThemeMode>(
                     segments: const [
                       ButtonSegment(
@@ -115,9 +118,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 ),
-                _SettingTile(
+                SettingsTile(
+                  icon: Icons.translate_rounded,
+                  tint: const Color(0xFF5B9DF5),
+                  title: context.l10n.language,
+                  subtitle: _languageName(context, locale),
+                  onTap: () => _pickLanguage(context, locale),
+                ),
+                SettingsTile(
+                  icon: hideAmounts
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  tint: const Color(0xFF8B7CF6),
+                  title: context.l10n.hideAmounts,
+                  subtitle: context.l10n.hideAmountsSubtitle,
+                  trailing: Switch(
+                    value: hideAmounts,
+                    onChanged: (_) {
+                      Haptics.select();
+                      ref.read(hideAmountsProvider.notifier).toggle();
+                    },
+                  ),
+                ),
+                SettingsTile(
                   icon: Icons.currency_exchange,
-                  title: 'Default Currency',
+                  title: context.l10n.defaultCurrency,
                   subtitle: currency,
                   trailing: DropdownButton<String>(
                     value: currency,
@@ -144,68 +169,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
 
-            _Group(
-              title: 'Manage',
+            SettingsGroup(
+              title: context.l10n.manage,
               children: [
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.track_changes_rounded,
                   tint: const Color(0xFFF5B547),
-                  title: 'Budgets',
-                  subtitle: 'Spending limits by category',
+                  title: context.l10n.budgets,
+                  subtitle: context.l10n.budgetsSubtitle,
                   // /budgets lives inside the tab shell; pushing it from
                   // here would build a second shell, so switch to it.
                   onTap: () => context.go('/budgets'),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.flag_outlined,
                   tint: const Color(0xFF8B7CF6),
-                  title: 'Savings Goals',
-                  subtitle: 'Targets and progress',
+                  title: context.l10n.savingsGoals,
+                  subtitle: context.l10n.savingsGoalsSubtitle,
                   onTap: () => context.push('/goals'),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.repeat_rounded,
                   tint: const Color(0xFF3CC8C0),
-                  title: 'Recurring',
-                  subtitle: 'Bills, salaries and subscriptions',
+                  title: context.l10n.recurring,
+                  subtitle: context.l10n.recurringSubtitle,
                   onTap: () => context.push('/recurring'),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.credit_card_rounded,
                   tint: const Color(0xFFEF4444),
-                  title: 'Cards & wallets',
-                  subtitle: 'Debit and credit cards, wallets, InstaPay',
+                  title: context.l10n.cardsWallets,
+                  subtitle: context.l10n.cardsWalletsSubtitle,
                   onTap: () => context.push('/payment-methods'),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.category_outlined,
-                  title: 'Categories',
-                  subtitle: 'Add, edit, or delete transaction categories',
+                  title: context.l10n.categories,
+                  subtitle: context.l10n.categoriesSubtitle,
                   onTap: () => context.push('/categories/manage'),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.mark_email_unread_outlined,
                   tint: const Color(0xFF5B9DF5),
-                  title: 'Payment detection',
-                  subtitle: 'Find payments in bank and wallet alerts',
+                  title: context.l10n.paymentDetection,
+                  subtitle: context.l10n.paymentDetectionSubtitle,
                   onTap: () => context.push('/settings/detection'),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.auto_awesome_outlined,
-                  title: 'Smart Import',
-                  subtitle: 'Paste bank alerts to create transactions',
+                  title: context.l10n.smartImport,
+                  subtitle: context.l10n.smartImportSubtitle,
                   onTap: () => context.push('/smart-import'),
                 ),
               ],
             ),
 
-            _Group(
-              title: 'Monthly Auto Income',
+            SettingsGroup(
+              title: context.l10n.monthlyAutoIncome,
               children: [
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.schedule,
-                  title: 'Auto Monthly Income',
-                  subtitle: autoIncome ? 'Enabled' : 'Disabled',
+                  title: context.l10n.autoMonthlyIncome,
+                  subtitle: autoIncome
+                      ? context.l10n.enabled
+                      : context.l10n.disabled,
                   trailing: Switch(
                     value: autoIncome,
                     onChanged: (v) {
@@ -228,8 +255,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         TextField(
                           controller: _incomeAmountController,
-                          decoration: const InputDecoration(
-                            labelText: 'Monthly Income Amount',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.monthlyIncomeAmount,
                             hintText: 'e.g. 5000',
                           ),
                           keyboardType: const TextInputType.numberWithOptions(
@@ -256,8 +283,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(height: Sp.md),
                         TextField(
                           controller: _incomeDayController,
-                          decoration: const InputDecoration(
-                            labelText: 'Day of Month',
+                          decoration: InputDecoration(
+                            labelText: context.l10n.dayOfMonth,
                             hintText: '1-31',
                           ),
                           keyboardType: TextInputType.number,
@@ -273,7 +300,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           },
                         ),
                         const SizedBox(height: Sp.md),
-                        Text('Income Account', style: AppTextStyles.overline),
+                        Text(
+                          context.l10n.incomeAccount,
+                          style: AppTextStyles.overline,
+                        ),
                         const SizedBox(height: Sp.xs),
                         accountsAsync.when(
                           data: (accounts) {
@@ -289,8 +319,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       : null);
                             return DropdownButtonFormField<int>(
                               initialValue: validId,
-                              decoration: const InputDecoration(
-                                hintText: 'Select account',
+                              decoration: InputDecoration(
+                                hintText: context.l10n.selectAccount,
                               ),
                               items: accounts
                                   .map(
@@ -322,7 +352,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               const SizedBox(height: 60),
                         ),
                         const SizedBox(height: Sp.md),
-                        Text('Income Category', style: AppTextStyles.overline),
+                        Text(
+                          context.l10n.incomeCategory,
+                          style: AppTextStyles.overline,
+                        ),
                         const SizedBox(height: Sp.xs),
                         categoriesAsync.when(
                           data: (cats) {
@@ -341,8 +374,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       : null);
                             return DropdownButtonFormField<int>(
                               initialValue: validId,
-                              decoration: const InputDecoration(
-                                hintText: 'Select category',
+                              decoration: InputDecoration(
+                                hintText: context.l10n.selectCategory,
                               ),
                               items: incomeCats
                                   .map(
@@ -357,7 +390,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             iconSize: 14,
                                           ),
                                           const SizedBox(width: Sp.sm),
-                                          Text(c.name),
+                                          Text(c.displayName),
                                         ],
                                       ),
                                     ),
@@ -390,25 +423,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
 
-            _Group(
-              title: 'Data',
+            SettingsGroup(
+              title: context.l10n.data,
               children: [
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.file_download_outlined,
-                  title: 'Export Data',
-                  subtitle: 'Save your data as JSON',
+                  title: context.l10n.exportData,
+                  subtitle: context.l10n.exportDataSubtitle,
                   onTap: () => _exportData(ref),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.file_upload_outlined,
-                  title: 'Import Data',
-                  subtitle: 'Restore from a JSON backup',
+                  title: context.l10n.importData,
+                  subtitle: context.l10n.importDataSubtitle,
                   onTap: () => _importData(ref),
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.delete_outline,
-                  title: 'Reset All Data',
-                  subtitle: 'Delete all accounts, transactions, and budgets',
+                  title: context.l10n.resetAllData,
+                  subtitle: context.l10n.resetAllDataSubtitle,
                   titleColor: AppColors.danger,
                   tint: AppColors.danger,
                   onTap: () => _confirmReset(context, ref),
@@ -416,17 +449,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
 
-            _Group(
-              title: 'About',
+            SettingsGroup(
+              title: context.l10n.about,
               children: [
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.info_outline,
-                  title: 'Version',
+                  title: context.l10n.version,
                   subtitle: '1.0.0',
                 ),
-                _SettingTile(
+                SettingsTile(
                   icon: Icons.code,
-                  title: 'Built with',
+                  title: context.l10n.builtWith,
                   subtitle: 'Flutter & Drift',
                 ),
               ],
@@ -435,6 +468,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  String _languageName(BuildContext context, Locale? locale) =>
+      switch (locale?.languageCode) {
+        'en' => 'English',
+        'ar' => 'العربية',
+        _ => context.l10n.languageDevice,
+      };
+
+  Future<void> _pickLanguage(BuildContext context, Locale? current) async {
+    final palette = FlourishPalette.of(context);
+    final choice = await showDialog<(Locale?,)>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(ctx.l10n.language),
+        children: [
+          for (final option in const [null, Locale('en'), Locale('ar')])
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: Sp.xxl),
+              title: Text(_languageName(ctx, option)),
+              trailing: option?.languageCode == current?.languageCode
+                  ? Icon(Icons.check_rounded, color: palette.accent)
+                  : null,
+              onTap: () => Navigator.pop(ctx, (option,)),
+            ),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    Haptics.select();
+    await ref.read(appLocaleProvider.notifier).set(choice.$1);
   }
 
   void _exportData(WidgetRef ref) async {
@@ -448,9 +512,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.exportFailed('$e'))),
+        );
       }
     }
   }
@@ -474,9 +538,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           data['transactions'] is List;
       if (!hasData) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid or empty backup file.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(context.l10n.invalidBackup)));
         }
         return;
       }
@@ -485,18 +549,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Import Backup'),
-          content: const Text(
-            'This will erase all current data and replace it with the backup. This cannot be undone.',
-          ),
+          title: Text(context.l10n.importBackup),
+          content: Text(context.l10n.importBackupWarning),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Import'),
+              child: Text(context.l10n.importAction),
             ),
           ],
         ),
@@ -510,9 +572,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await service.restore(data);
         invalidateFinance(ref);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Complete backup restored.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(context.l10n.backupRestored)));
         }
         return;
       }
@@ -697,15 +759,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       invalidateFinance(ref);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Imported $imported records successfully.')),
+          SnackBar(content: Text(context.l10n.importedRecords(imported))),
         );
       }
     } catch (e, st) {
       debugPrint('Import error: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.importFailed('$e'))),
+        );
       }
     }
   }
@@ -714,14 +776,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset All Data'),
-        content: const Text(
-          'This will delete all your accounts, transactions, budgets, and settings. This cannot be undone.',
-        ),
+        title: Text(context.l10n.resetAllData),
+        content: Text(context.l10n.resetAllDataWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -743,12 +803,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All data has been reset')),
+                  SnackBar(content: Text(context.l10n.allDataReset)),
                 );
               }
             },
-            child: const Text(
-              'Reset',
+            child: Text(
+              context.l10n.reset,
               style: TextStyle(color: AppColors.danger),
             ),
           ),
@@ -761,128 +821,5 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (value == null) return const Value.absent();
     final parsed = DateTime.tryParse(value.toString());
     return parsed == null ? const Value.absent() : Value(parsed);
-  }
-}
-
-/// iOS-style inset group: a small caps label above one rounded card whose
-/// rows are separated by hairlines.
-class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = FlourishPalette.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Sp.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: Sp.lg, bottom: Sp.sm),
-            child: Text(
-              title.toUpperCase(),
-              style: AppTextStyles.eyebrow.copyWith(color: palette.textLow),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(Rad.lg),
-              border: Border.all(color: palette.stroke),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(Rad.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < children.length; i++) ...[
-                    if (i > 0 && children[i] is _SettingTile)
-                      Divider(height: 1, indent: 62, color: palette.stroke),
-                    children[i],
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color? titleColor;
-  final Color? tint;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  const _SettingTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.titleColor,
-    this.tint,
-    this.onTap,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = FlourishPalette.of(context);
-    final color = tint ?? palette.accent;
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Sp.lg, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(icon, size: 18, color: color),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: titleColor ?? palette.textHigh,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.caption.copyWith(
-                    color: palette.textLow,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ?trailing,
-          if (onTap != null && trailing == null)
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: palette.textLow.withValues(alpha: 0.6),
-            ),
-        ],
-      ),
-    );
-    return onTap == null
-        ? row
-        : Pressable(onTap: onTap, scale: 0.985, child: row);
   }
 }

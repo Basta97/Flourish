@@ -1,12 +1,14 @@
 import 'package:intl/intl.dart';
 
+import '../../l10n/l10n.dart';
+
 class DateFormatter {
   static String format(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays == 0) return currentL10n.today;
+    if (diff.inDays == 1) return currentL10n.yesterday;
     if (diff.inDays < 7) return DateFormat('EEEE').format(date);
     if (date.year == now.year) return DateFormat('MMM d').format(date);
     return DateFormat('MMM d, y').format(date);

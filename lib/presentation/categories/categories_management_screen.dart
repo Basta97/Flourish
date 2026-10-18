@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/core/finance/system_categories.dart';
 import 'package:flutter/material.dart';
@@ -26,15 +28,15 @@ class CategoriesManagementScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoriesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Categories')),
+      appBar: AppBar(title: Text(context.l10n.manageCategories)),
       body: LiquidPageBackground(
         child: categoriesAsync.when(
           data: (all) {
             final categories = SystemCategories.pickable(all);
             if (categories.isEmpty) {
-              return const EmptyState(
+              return EmptyState(
                 icon: Icons.category,
-                title: 'No categories',
+                title: context.l10n.noCategories,
               );
             }
             final income = categories.where((c) => c.type == 'income').toList();
@@ -54,7 +56,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: Sp.sm),
                       child: Text(
-                        'Income',
+                        context.l10n.income,
                         style: AppTextStyles.overline.copyWith(
                           color: AppColors.income,
                         ),
@@ -82,7 +84,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: Sp.sm),
                       child: Text(
-                        'Expense',
+                        context.l10n.expense,
                         style: AppTextStyles.overline.copyWith(
                           color: AppColors.expense,
                         ),
@@ -103,16 +105,16 @@ class CategoriesManagementScreen extends ConsumerWidget {
             );
           },
           loading: () => const ShimmerList(),
-          error: (error, stackTrace) => const EmptyState(
+          error: (error, stackTrace) => EmptyState(
             icon: Icons.error,
-            title: 'Error loading categories',
+            title: context.l10n.errorLoadingCategories,
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddCategorySheet(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Category'),
+        label: Text(context.l10n.category),
       ),
     );
   }
@@ -143,7 +145,7 @@ class _CategoryTile extends ConsumerWidget {
             color: Color(category.color),
             size: 42,
           ),
-          title: Text(category.name, style: AppTextStyles.bodyMedium),
+          title: Text(category.displayName, style: AppTextStyles.bodyMedium),
           subtitle: Text(
             category.type.toUpperCase(),
             style: AppTextStyles.caption.copyWith(
@@ -152,7 +154,7 @@ class _CategoryTile extends ConsumerWidget {
           ),
           trailing: SystemCategories.isSystem(category)
               ? Tooltip(
-                  message: 'Used for automatic entries; cannot be deleted',
+                  message: context.l10n.systemCategoryLocked,
                   child: Icon(
                     Icons.lock_outline_rounded,
                     size: 18,
@@ -180,18 +182,22 @@ class _CategoryTile extends ConsumerWidget {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Delete Category'),
+          title: Text(context.l10n.deleteCategory),
           content: Text(
             count > 0
-                ? '"${cat.name}" has $count transactions. They will move to '
-                      '"${cat.type == 'income' ? 'Other income' : 'Other'}", '
-                      'and budgets for this category will be removed.'
-                : 'Delete "${cat.name}"? Budgets for it will be removed.',
+                ? ctx.l10n.deleteCategoryWithTx(
+                    cat.displayName,
+                    count,
+                    cat.type == 'income'
+                        ? ctx.l10n.otherIncome
+                        : ctx.l10n.other,
+                  )
+                : ctx.l10n.deleteCategoryEmpty(cat.displayName),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
@@ -206,8 +212,8 @@ class _CategoryTile extends ConsumerWidget {
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text(
-                'Delete',
+              child: Text(
+                context.l10n.delete,
                 style: TextStyle(color: AppColors.danger),
               ),
             ),
@@ -266,12 +272,14 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
   @override
   Widget build(BuildContext context) {
     return BottomSheetScaffold(
-      title: widget.existing != null ? 'Edit Category' : 'Add Category',
+      title: widget.existing != null
+          ? context.l10n.editCategory
+          : context.l10n.addCategory,
       children: [
         TextField(
           controller: _nameController,
           decoration: InputDecoration(
-            labelText: 'Category Name',
+            labelText: context.l10n.categoryName,
             errorText: _nameError,
           ),
           onChanged: (_) => setState(() => _nameError = null),
@@ -279,10 +287,13 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
           initialValue: _type,
-          decoration: const InputDecoration(labelText: 'Type'),
-          items: const [
-            DropdownMenuItem(value: 'income', child: Text('Income')),
-            DropdownMenuItem(value: 'expense', child: Text('Expense')),
+          decoration: InputDecoration(labelText: context.l10n.type),
+          items: [
+            DropdownMenuItem(value: 'income', child: Text(context.l10n.income)),
+            DropdownMenuItem(
+              value: 'expense',
+              child: Text(context.l10n.expense),
+            ),
           ],
           onChanged: (v) {
             if (v != null) {
@@ -291,7 +302,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
           },
         ),
         const SizedBox(height: Sp.md),
-        Text('Icon', style: AppTextStyles.overline),
+        Text(context.l10n.icon, style: AppTextStyles.overline),
         const SizedBox(height: Sp.sm),
         Wrap(
           spacing: Sp.sm,
@@ -322,7 +333,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
           }).toList(),
         ),
         const SizedBox(height: Sp.md),
-        Text('Color', style: AppTextStyles.overline),
+        Text(context.l10n.color, style: AppTextStyles.overline),
         const SizedBox(height: Sp.sm),
         Wrap(
           spacing: Sp.sm,
@@ -356,7 +367,9 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
             ),
           ),
           child: Text(
-            widget.existing != null ? 'Save Changes' : 'Add Category',
+            widget.existing != null
+                ? context.l10n.saveChanges
+                : context.l10n.addCategory,
             style: const TextStyle(fontSize: 16),
           ),
         ),
@@ -366,7 +379,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
 
   void _submit() async {
     if (_nameController.text.trim().isEmpty) {
-      setState(() => _nameError = 'Please enter a name');
+      setState(() => _nameError = context.l10n.enterName);
       return;
     }
     final db = ref.read(databaseProvider);

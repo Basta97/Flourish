@@ -1,8 +1,10 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:flourish/core/motion/motion.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
@@ -110,7 +112,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
         ref.watch(transactionDetailsProvider(t.id)).valueOrNull?['original']
             as Map?;
     final meta = [
-      if (merchant.isNotEmpty && widget.category != null) widget.category!.name,
+      if (merchant.isNotEmpty && widget.category != null) widget.category!.displayName,
       ?paidWith,
       if ((widget.accountName ?? '').trim().isNotEmpty) widget.accountName!,
       if ((t.note ?? '').trim().isNotEmpty) t.note!.trim(),
@@ -141,12 +143,12 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                   Text(
                     merchant.isNotEmpty
                         ? merchant
-                        : widget.category?.name ??
+                        : widget.category?.displayName ??
                               (isTransfer
-                                  ? 'Transfer'
+                                  ? context.l10n.transfer
                                   : isIncome
-                                  ? 'Income'
-                                  : 'Expense'),
+                                  ? context.l10n.income
+                                  : context.l10n.expense),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: palette.textHigh,
                     ),
@@ -178,9 +180,10 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                 children: [
                   FittedBox(
                     fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
+                    alignment: AlignmentDirectional.centerEnd,
                     child: Text(
                       '${isIncome ? '+' : '−'}${_amount(t.amount)}',
+                      textDirection: TextDirection.ltr,
                       style: AppTextStyles.numberSmall.copyWith(
                         fontSize: 14,
                         color: tone,
@@ -242,7 +245,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                   backgroundColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
                   child: _SwipeAction(
-                    label: 'Edit',
+                    label: context.l10n.edit,
                     icon: Icons.edit_outlined,
                     tint: palette.accent,
                   ),
@@ -255,8 +258,8 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                   ),
                   backgroundColor: Colors.transparent,
                   foregroundColor: Colors.transparent,
-                  child: const _SwipeAction(
-                    label: 'Delete',
+                  child: _SwipeAction(
+                    label: context.l10n.delete,
                     icon: Icons.delete_outline_rounded,
                     tint: AppColors.danger,
                   ),
@@ -288,10 +291,10 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
     showSpringBottomSheet(
       context: context,
       builder: (sheetContext) => BottomSheetScaffold(
-        title: 'Delete transaction?',
+        title: context.l10n.deleteTransactionTitle,
         children: [
           Text(
-            'This removes the transaction and rebalances the linked account automatically.',
+            context.l10n.deleteTransactionBody,
             style: AppTextStyles.body.copyWith(color: palette.textLow),
           ),
           const SizedBox(height: Sp.xl),
@@ -300,7 +303,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(sheetContext),
-                  child: const Text('Keep'),
+                  child: Text(context.l10n.keep),
                 ),
               ),
               const SizedBox(width: Sp.md),
@@ -314,7 +317,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                     backgroundColor: AppColors.danger,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Delete'),
+                  child: Text(context.l10n.delete),
                 ),
               ),
             ],
@@ -326,6 +329,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
 
   Future<void> _delete() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final ledger = ref.read(financialLedgerProvider);
     final id = widget.transaction.id;
 
@@ -337,11 +341,11 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
       ref.invalidate(accountsProvider);
       messenger.showSnackBar(
         SnackBar(
-          content: const Text('Transaction deleted'),
+          content: Text(l.transactionDeleted),
           action: deleted == null
               ? null
               : SnackBarAction(
-                  label: 'Undo',
+                  label: l.undo,
                   onPressed: () async {
                     try {
                       await ledger.restore(deleted);

@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,25 +34,24 @@ class GoalsScreen extends ConsumerWidget {
           builder: (_) => const _AddGoalSheet(),
         ),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Goal'),
+        label: Text(context.l10n.goal),
       ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(title: const Text('Savings Goals')),
+          SliverAppBar.large(title: Text(context.l10n.savingsGoals)),
           ...goalsAsync.when(
             data: (goals) {
               if (goals.isEmpty) {
                 return [
-                  const SliverFillRemaining(
+                  SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyState(
                       icon: Icons.flag_outlined,
-                      title: 'No goals yet',
-                      subtitle:
-                          'Set a savings goal to start tracking progress.',
+                      title: context.l10n.noGoalsYet,
+                      subtitle: context.l10n.noGoalsSubtitle,
                     ),
                   ),
                 ];
@@ -91,11 +91,11 @@ class GoalsScreen extends ConsumerWidget {
               ),
             ],
             error: (error, stackTrace) => [
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: EmptyState(
                   icon: Icons.error_outline_rounded,
-                  title: 'Error loading goals',
+                  title: context.l10n.errorLoadingGoals,
                 ),
               ),
             ],
@@ -171,8 +171,10 @@ class _GoalCardState extends ConsumerState<_GoalCard>
             size: 76,
             stroke: 7,
             semanticsLabel: reached
-                ? 'Goal reached'
-                : '${(progress * 100).toStringAsFixed(0)}% saved',
+                ? context.l10n.goalReached
+                : context.l10n.percentSaved(
+                    (progress * 100).toStringAsFixed(0),
+                  ),
             child: reached
                 ? Icon(Icons.check_rounded, color: tone, size: 30)
                 : Text(
@@ -221,7 +223,7 @@ class _GoalCardState extends ConsumerState<_GoalCard>
                       ),
                       TextSpan(
                         text:
-                            '  of ${CurrencyFormatter.formatCompact(goal.targetAmount, currency: currency)}',
+                            '  ${context.l10n.ofTarget(CurrencyFormatter.formatCompact(goal.targetAmount, currency: currency))}',
                         style: AppTextStyles.caption.copyWith(
                           color: palette.textLow,
                         ),
@@ -234,10 +236,10 @@ class _GoalCardState extends ConsumerState<_GoalCard>
                   children: [
                     _Chip(
                       text: reached
-                          ? 'Goal reached'
+                          ? context.l10n.goalReached
                           : daysLeft < 0
-                          ? 'Past deadline'
-                          : '$daysLeft days left',
+                          ? context.l10n.pastDeadline
+                          : context.l10n.daysLeft(daysLeft),
                       color: reached
                           ? palette.accent
                           : daysLeft < 7
@@ -251,7 +253,7 @@ class _GoalCardState extends ConsumerState<_GoalCard>
                         child: FilledButton.tonalIcon(
                           onPressed: () => _showContributeSheet(context),
                           icon: const Icon(Icons.add_rounded, size: 16),
-                          label: const Text('Add'),
+                          label: Text(context.l10n.add),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
                               horizontal: Sp.md,
@@ -262,7 +264,7 @@ class _GoalCardState extends ConsumerState<_GoalCard>
                         ),
                       ),
                     IconButton(
-                      tooltip: 'Delete goal',
+                      tooltip: context.l10n.deleteGoal,
                       visualDensity: VisualDensity.compact,
                       icon: Icon(
                         Icons.delete_outline_rounded,
@@ -315,20 +317,20 @@ class _GoalCardState extends ConsumerState<_GoalCard>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete goal?'),
-        content: Text('"${goal.name}" and its progress will be removed.'),
+        title: Text(context.l10n.deleteGoalTitle),
+        content: Text(ctx.l10n.deleteGoalBody(goal.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(databaseProvider).deleteGoal(goal.id);
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text(
-              'Delete',
+            child: Text(
+              context.l10n.delete,
               style: TextStyle(color: AppColors.danger),
             ),
           ),
@@ -344,13 +346,13 @@ class _GoalCardState extends ConsumerState<_GoalCard>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => BottomSheetScaffold(
-          title: 'Add to "${goal.name}"',
+          title: ctx.l10n.addToGoal(goal.name),
           children: [
             TextField(
               controller: controller,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Amount',
+                labelText: context.l10n.amount,
                 hintText: '0.00',
                 errorText: error,
                 errorMaxLines: 3,
@@ -405,7 +407,7 @@ class _GoalCardState extends ConsumerState<_GoalCard>
                   borderRadius: BorderRadius.circular(Rad.full),
                 ),
               ),
-              child: const Text('Contribute'),
+              child: Text(context.l10n.contribute),
             ),
           ],
         ),
@@ -465,13 +467,13 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     return BottomSheetScaffold(
-      title: 'New Savings Goal',
+      title: context.l10n.newSavingsGoal,
       children: [
         TextField(
           controller: _nameController,
           decoration: InputDecoration(
-            labelText: 'Goal Name',
-            hintText: 'e.g. New Laptop',
+            labelText: context.l10n.goalName,
+            hintText: context.l10n.goalNameHint,
             errorText: _nameError,
           ),
           onChanged: (_) => setState(() => _nameError = null),
@@ -480,7 +482,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
         TextField(
           controller: _amountController,
           decoration: InputDecoration(
-            labelText: 'Target Amount',
+            labelText: context.l10n.targetAmount,
             hintText: '0.00',
             errorText: _amountError,
           ),
@@ -500,7 +502,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
           },
           borderRadius: BorderRadius.circular(Rad.md),
           child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'Deadline'),
+            decoration: InputDecoration(labelText: context.l10n.deadline),
             child: Text(
               '${_deadline.year}-${_deadline.month.toString().padLeft(2, '0')}-${_deadline.day.toString().padLeft(2, '0')}',
             ),
@@ -516,7 +518,9 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
             }
             return DropdownButtonFormField<int>(
               initialValue: _accountId >= 0 ? _accountId : null,
-              decoration: const InputDecoration(labelText: 'Linked Account'),
+              decoration: InputDecoration(
+                labelText: context.l10n.linkedAccount,
+              ),
               items: accounts
                   .map(
                     (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
@@ -533,7 +537,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
           error: (error, stackTrace) => const SizedBox(height: 60),
         ),
         const SizedBox(height: Sp.md),
-        Text('Icon', style: AppTextStyles.overline),
+        Text(context.l10n.icon, style: AppTextStyles.overline),
         const SizedBox(height: Sp.sm),
         Wrap(
           spacing: Sp.sm,
@@ -572,7 +576,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
               borderRadius: BorderRadius.circular(Rad.md),
             ),
           ),
-          child: const Text('Create Goal', style: TextStyle(fontSize: 16)),
+          child: Text(context.l10n.createGoal, style: TextStyle(fontSize: 16)),
         ),
       ],
     );
@@ -585,7 +589,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
     });
     bool hasError = false;
     if (_nameController.text.trim().isEmpty) {
-      setState(() => _nameError = 'Please enter a name');
+      setState(() => _nameError = context.l10n.enterName);
       hasError = true;
     }
     final account = ref
@@ -594,9 +598,9 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
         ?.where((a) => a.id == _accountId && a.type != 'credit')
         .firstOrNull;
     if (account == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a cash or bank account first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.addCashOrBankFirst)));
       return;
     }
     final parsed = AmountParser.parse(

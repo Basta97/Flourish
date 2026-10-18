@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,12 +38,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    ref
-        .read(secureStorageProvider)
-        .read(key: AiSettings.apiKeyStorageKey)
-        .then((k) {
-          if (mounted) setState(() => _hasKey = (k ?? '').isNotEmpty);
-        });
+    ref.read(secureStorageProvider).read(key: AiSettings.apiKeyStorageKey).then(
+      (k) {
+        if (mounted) setState(() => _hasKey = (k ?? '').isNotEmpty);
+      },
+    );
   }
 
   @override
@@ -71,13 +71,18 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     if (!mounted) return;
     setState(() => _hasKey = key.isNotEmpty);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(key.isEmpty ? 'API key removed' : 'API key saved')),
+      SnackBar(
+        content: Text(
+          key.isEmpty ? context.l10n.apiKeyRemoved : context.l10n.apiKeySaved,
+        ),
+      ),
     );
   }
 
   /// Lists the models the saved key can use, so a renamed or retired model
   /// is one tap to fix.
   Future<void> _chooseModel() async {
+    final l = context.l10n;
     setState(() {
       _testing = true;
       _testResult = null;
@@ -86,10 +91,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     try {
       final client = await ref.read(aiClientProvider.future);
       if (client == null) {
-        throw const AiException('Save an API key first');
+        throw AiException(l.saveApiKeyFirst);
       }
       models = await client.listModels();
-      if (models.isEmpty) throw const AiException('No models available for this key');
+      if (models.isEmpty) throw AiException(l.noModelsForKey);
     } on Exception catch (e) {
       _testOk = false;
       _testResult = '$e';
@@ -123,6 +128,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   }
 
   Future<void> _test() async {
+    final l = context.l10n;
     setState(() {
       _testing = true;
       _testResult = null;
@@ -130,16 +136,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     try {
       final client = await ref.read(aiClientProvider.future);
       if (client == null) {
-        throw const AiException('Add a base URL, model and API key first');
+        throw AiException(l.addAiConfigFirst);
       }
       final reply = await client.completeJson(
         system: 'Reply with the JSON object {"ok": true} and nothing else.',
         user: 'ping',
       );
       _testOk = reply.json['ok'] == true;
-      _testResult = _testOk
-          ? 'Connected to ${client.model}'
-          : 'Connected, but the model did not follow the JSON instruction. Try another model.';
+      _testResult = _testOk ? l.connectedTo(client.model) : l.connectedNoJson;
     } on Exception catch (e) {
       _testOk = false;
       _testResult = '$e';
@@ -157,7 +161,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('AI Assistant')),
+      appBar: AppBar(title: Text(context.l10n.aiAssistant)),
       body: LiquidPageBackground(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -167,6 +171,18 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
             Sp.xxxl,
           ),
           children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.only(
+                start: Sp.lg,
+                bottom: Sp.sm,
+              ),
+              child: Text(
+                context.l10n.aiConnection.toUpperCase(),
+                style: AppTextStyles.eyebrow.copyWith(
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+            ),
             AppCard(
               padding: const EdgeInsets.all(Sp.lg),
               child: Column(
@@ -174,22 +190,24 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 children: [
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Use AI when unsure'),
-                    subtitle: const Text(
-                      'Flourish reads alerts on your phone first. Only messages it cannot read confidently are sent to the AI.',
-                    ),
+                    title: Text(context.l10n.useAiWhenUnsure),
+                    subtitle: Text(context.l10n.useAiWhenUnsureSubtitle),
                     value: s.enabled,
                     onChanged: (v) => _update(s.copyWith(enabled: v)),
                   ),
                   const SizedBox(height: Sp.sm),
                   DropdownButtonFormField<String>(
                     initialValue: s.presetId,
-                    decoration: const InputDecoration(labelText: 'Provider'),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.provider,
+                    ),
                     items: [
                       for (final p in AiProviderPreset.all)
                         DropdownMenuItem(
                           value: p.id,
-                          child: Text(p.free ? '${p.label} · free tier' : p.label),
+                          child: Text(
+                            p.free ? context.l10n.freeTier(p.label) : p.label,
+                          ),
                         ),
                     ],
                     onChanged: (id) {
@@ -198,7 +216,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       _baseUrl.text = p.baseUrl;
                       _model.text = p.model;
                       _update(
-                        s.copyWith(presetId: id, baseUrl: p.baseUrl, model: p.model),
+                        s.copyWith(
+                          presetId: id,
+                          baseUrl: p.baseUrl,
+                          model: p.model,
+                        ),
                       );
                     },
                   ),
@@ -209,7 +231,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     controller: _baseUrl,
                     keyboardType: TextInputType.url,
                     autocorrect: false,
-                    decoration: const InputDecoration(labelText: 'Base URL'),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.baseUrl,
+                    ),
                     onChanged: (v) => _update(s.copyWith(baseUrl: v)),
                   ),
                   const SizedBox(height: Sp.md),
@@ -217,9 +241,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     controller: _model,
                     autocorrect: false,
                     decoration: InputDecoration(
-                      labelText: 'Model',
+                      labelText: context.l10n.model,
                       suffixIcon: IconButton(
-                        tooltip: 'Choose model',
+                        tooltip: context.l10n.chooseModel,
                         icon: const Icon(Icons.list_alt_rounded),
                         onPressed: _testing ? null : _chooseModel,
                       ),
@@ -233,10 +257,12 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     autocorrect: false,
                     enableSuggestions: false,
                     decoration: InputDecoration(
-                      labelText: 'API key',
-                      hintText: _hasKey ? '•••••••• (saved)' : 'Paste your key',
+                      labelText: context.l10n.apiKey,
+                      hintText: _hasKey
+                          ? context.l10n.apiKeySavedHint
+                          : context.l10n.pasteYourKey,
                       suffixIcon: IconButton(
-                        tooltip: 'Save key',
+                        tooltip: context.l10n.saveKey,
                         icon: const Icon(Icons.check_rounded),
                         onPressed: _saveKey,
                       ),
@@ -245,7 +271,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   ),
                   const SizedBox(height: Sp.xs),
                   Text(
-                    'Stored in the device keychain. Leave empty and save to remove it.',
+                    context.l10n.keyStorageNote,
                     style: AppTextStyles.caption,
                   ),
                   const SizedBox(height: Sp.lg),
@@ -258,7 +284,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.wifi_tethering_rounded),
-                    label: const Text('Test connection'),
+                    label: Text(context.l10n.testConnection),
                   ),
                   if (_testResult != null) ...[
                     const SizedBox(height: Sp.sm),
@@ -272,14 +298,28 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: Sp.lg),
+            const SizedBox(height: Sp.xxl),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(
+                start: Sp.lg,
+                bottom: Sp.sm,
+              ),
+              child: Text(
+                context.l10n.aiBehaviour.toUpperCase(),
+                style: AppTextStyles.eyebrow.copyWith(
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+            ),
             AppCard(
               padding: const EdgeInsets.all(Sp.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ask the AI below ${(s.threshold * 100).round()}% confidence',
+                    context.l10n.askBelowConfidence(
+                      (s.threshold * 100).round(),
+                    ),
                     style: AppTextStyles.subtitle,
                   ),
                   Slider(
@@ -287,30 +327,29 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     min: 0.5,
                     max: 0.95,
                     divisions: 9,
-                    label: '${(s.threshold * 100).round()}% confidence',
+                    padding: const EdgeInsets.symmetric(vertical: Sp.md),
+                    label: context.l10n.percentConfidence(
+                      (s.threshold * 100).round(),
+                    ),
                     onChanged: (v) => _update(s.copyWith(threshold: v)),
                   ),
-                  Text(
-                    'Higher sends more messages to the AI (better accuracy, more requests).',
-                    style: secondary,
-                  ),
+                  Text(context.l10n.higherSendsMore, style: secondary),
                   const SizedBox(height: Sp.md),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Let AI suggest new categories'),
-                    subtitle: const Text(
-                      'New categories are shown with ✨ and only created when you save.',
-                    ),
+                    title: Text(context.l10n.aiSuggestCategories),
+                    subtitle: Text(context.l10n.aiSuggestCategoriesSubtitle),
                     value: s.allowNewCategories,
-                    onChanged: (v) => _update(s.copyWith(allowNewCategories: v)),
+                    onChanged: (v) =>
+                        _update(s.copyWith(allowNewCategories: v)),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Hide personal data'),
+                    title: Text(context.l10n.hidePersonalData),
                     subtitle: Text(
                       s.preset.free
-                          ? 'Always on for free providers, which may keep prompts.'
-                          : 'Masks account and card numbers, phones and emails before sending.',
+                          ? context.l10n.hidePersonalDataFree
+                          : context.l10n.hidePersonalDataSubtitle,
                     ),
                     value: s.effectiveRedact,
                     onChanged: s.preset.free
@@ -320,13 +359,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   if (defaultTargetPlatform == TargetPlatform.android)
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Read Arabic screenshots with AI'),
+                      title: Text(context.l10n.readArabicScreenshots),
                       subtitle: Text(
                         s.preset.readsImages == false
-                            ? '${s.preset.label} cannot read images; choose a '
-                                  'model that can, such as Gemini.'
-                            : 'Sends the image itself, unmasked, when you tap '
-                                  '"Read with AI" in Smart Import.',
+                            ? context.l10n.providerNoImages(s.preset.label)
+                            : context.l10n.sendsImageUnmasked,
                       ),
                       value: s.screenshotOcr,
                       onChanged: (v) async {
@@ -337,7 +374,19 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: Sp.lg),
+            const SizedBox(height: Sp.xxl),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(
+                start: Sp.lg,
+                bottom: Sp.sm,
+              ),
+              child: Text(
+                context.l10n.aiUsage.toUpperCase(),
+                style: AppTextStyles.eyebrow.copyWith(
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+            ),
             AppCard(
               padding: const EdgeInsets.all(Sp.lg),
               child: Row(
@@ -346,8 +395,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   const SizedBox(width: Sp.md),
                   Expanded(
                     child: Text(
-                      'This month: ${usage['requests'] ?? 0} requests · '
-                      '${(usage['promptTokens'] as int? ?? 0) + (usage['completionTokens'] as int? ?? 0)} tokens',
+                      context.l10n.aiUsageThisMonth(
+                        '${usage['requests'] ?? 0}',
+                        '${(usage['promptTokens'] as int? ?? 0) + (usage['completionTokens'] as int? ?? 0)}',
+                      ),
                       style: secondary,
                     ),
                   ),

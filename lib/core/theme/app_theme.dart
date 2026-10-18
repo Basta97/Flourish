@@ -77,6 +77,8 @@ class AppTheme {
           ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
+        // Titles line up with the 20pt content gutter.
+        titleSpacing: Sp.screenH,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: surface,

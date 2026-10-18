@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +28,6 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   static const _types = ['all', 'income', 'expense', 'transfer'];
-  static const _typeLabels = ['All', 'Income', 'Expense', 'Transfers'];
 
   String type = 'all', view = 'list';
   int? account, category;
@@ -82,10 +83,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         ),
         slivers: [
           SliverAppBar.large(
-            title: const Text('Ledger'),
+            title: Text(context.l10n.navLedger),
             actions: [
               IconButton(
-                tooltip: 'Search',
+                tooltip: context.l10n.search,
                 onPressed: () {
                   Haptics.tap();
                   context.push('/search');
@@ -93,7 +94,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 icon: const Icon(Icons.search_rounded),
               ),
               IconButton(
-                tooltip: view == 'calendar' ? 'List view' : 'Calendar view',
+                tooltip: view == 'calendar'
+                    ? context.l10n.listView
+                    : context.l10n.calendarView,
                 isSelected: view == 'calendar',
                 onPressed: () {
                   Haptics.select();
@@ -121,7 +124,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
                 const SizedBox(height: Sp.md),
                 SegmentedPill(
-                  labels: _typeLabels,
+                  labels: [
+                    context.l10n.all,
+                    context.l10n.income,
+                    context.l10n.expense,
+                    context.l10n.transfers,
+                  ],
                   selectedIndex: _types.indexOf(type),
                   activeColor: switch (type) {
                     'income' => palette.income,
@@ -136,10 +144,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     Expanded(
                       child: _FilterMenu<int>(
                         icon: Icons.account_balance_wallet_outlined,
-                        label: accountMap[account]?.name ?? 'All accounts',
+                        label:
+                            accountMap[account]?.name ??
+                            context.l10n.allAccounts,
                         active: accountMap.containsKey(account),
                         options: {
-                          null: 'All accounts',
+                          null: context.l10n.allAccounts,
                           for (final a in accounts) a.id: a.name,
                         },
                         onSelected: (v) => setState(() => account = v),
@@ -149,11 +159,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     Expanded(
                       child: _FilterMenu<int>(
                         icon: Icons.category_outlined,
-                        label: categoryMap[category]?.name ?? 'All categories',
+                        label:
+                            categoryMap[category]?.name ??
+                            context.l10n.allCategories,
                         active: categoryMap.containsKey(category),
                         options: {
-                          null: 'All categories',
-                          for (final c in categories) c.id: c.name,
+                          null: context.l10n.allCategories,
+                          for (final c in categories) c.id: c.displayName,
                         },
                         onSelected: (v) => setState(() => category = v),
                       ),
@@ -196,12 +208,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
                 if (selectedDay != null)
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: TextButton.icon(
                       onPressed: () => setState(() => selectedDay = null),
                       icon: const Icon(Icons.close_rounded, size: 16),
                       label: Text(
-                        'Showing ${DateFormat('MMM d').format(selectedDay!)} · show whole month',
+                        context.l10n.showingDay(
+                          DateFormat('MMM d').format(selectedDay!),
+                        ),
                       ),
                     ),
                   ),
@@ -226,7 +240,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 hasScrollBody: false,
                 child: EmptyState(
                   icon: Icons.error_outline_rounded,
-                  title: 'Could not load transactions',
+                  title: context.l10n.couldNotLoadTransactions,
                   subtitle: '$e',
                 ),
               ),
@@ -273,8 +287,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           child: EmptyState(
             key: ValueKey('empty-$month-$type-$account-$category'),
             icon: Icons.receipt_long_rounded,
-            title: 'Nothing here yet',
-            subtitle: 'No transactions in this period.',
+            title: context.l10n.nothingHereYet,
+            subtitle: context.l10n.noTransactionsPeriod,
           ),
         ),
       ];
@@ -363,7 +377,7 @@ class _PeriodSwitcher extends StatelessWidget {
       children: [
         _RoundButton(
           icon: Icons.chevron_left_rounded,
-          tooltip: 'Previous month',
+          tooltip: context.l10n.previousMonth,
           onTap: onPrevious,
         ),
         Expanded(
@@ -394,7 +408,7 @@ class _PeriodSwitcher extends StatelessWidget {
                     child: Pressable(
                       onTap: onPickRange,
                       scale: 0.96,
-                      semanticLabel: 'Choose date range',
+                      semanticLabel: context.l10n.chooseDateRange,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -420,7 +434,7 @@ class _PeriodSwitcher extends StatelessWidget {
                   ),
                   if (onClearRange != null)
                     IconButton(
-                      tooltip: 'Clear range',
+                      tooltip: context.l10n.clearRange,
                       visualDensity: VisualDensity.compact,
                       onPressed: onClearRange,
                       icon: const Icon(Icons.close_rounded, size: 18),
@@ -432,7 +446,7 @@ class _PeriodSwitcher extends StatelessWidget {
         ),
         _RoundButton(
           icon: Icons.chevron_right_rounded,
-          tooltip: 'Next month',
+          tooltip: context.l10n.nextMonth,
           onTap: onNext,
         ),
       ],
@@ -569,8 +583,8 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final diff = today.difference(DateTime(day.year, day.month, day.day));
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays == 0) return currentL10n.today;
+    if (diff.inDays == 1) return currentL10n.yesterday;
     return DateFormat(
       day.year == now.year ? 'EEE d MMM' : 'EEE d MMM y',
     ).format(day);
@@ -597,7 +611,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
     return Container(
       color: palette.background,
       padding: const EdgeInsets.symmetric(horizontal: Sp.screenH + Sp.xs),
-      alignment: Alignment.centerLeft,
+      alignment: AlignmentDirectional.centerStart,
       child: Row(
         children: [
           Text(

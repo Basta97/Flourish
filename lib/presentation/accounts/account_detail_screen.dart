@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import '../wealth/finance_tools_view.dart';
 import 'package:flutter/material.dart';
 import 'widgets/credit_card_panel.dart';
@@ -41,9 +42,9 @@ class AccountDetailScreen extends ConsumerWidget {
       body: accountAsync.when(
         data: (account) {
           if (account == null) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.error_outline_rounded,
-              title: 'Account not found',
+              title: context.l10n.accountNotFound,
             );
           }
           return CustomScrollView(
@@ -56,13 +57,13 @@ class AccountDetailScreen extends ConsumerWidget {
                 title: Text(account.name),
                 actions: [
                   IconButton(
-                    tooltip: 'Manage account',
+                    tooltip: context.l10n.manageAccount,
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: () => editAccount(context, ref, account),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline_rounded),
-                    tooltip: 'Delete account',
+                    tooltip: context.l10n.deleteAccount,
                     onPressed: () => _confirmDelete(context, ref, account),
                   ),
                   const SizedBox(width: Sp.xs),
@@ -124,7 +125,7 @@ class AccountDetailScreen extends ConsumerWidget {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
+                padding: const EdgeInsetsDirectional.fromSTEB(
                   Sp.screenH,
                   Sp.xxl,
                   Sp.screenH - Sp.sm,
@@ -135,7 +136,7 @@ class AccountDetailScreen extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          'Transactions',
+                          context.l10n.transactions,
                           style: AppTextStyles.title.copyWith(
                             color: palette.textHigh,
                           ),
@@ -144,7 +145,7 @@ class AccountDetailScreen extends ConsumerWidget {
                       TextButton.icon(
                         onPressed: () => _addTransaction(context, ref, account),
                         icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Add'),
+                        label: Text(context.l10n.add),
                       ),
                     ],
                   ),
@@ -163,11 +164,11 @@ class AccountDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                error: (error, stackTrace) => const SliverFillRemaining(
+                error: (error, stackTrace) => SliverFillRemaining(
                   hasScrollBody: false,
                   child: EmptyState(
                     icon: Icons.error_outline_rounded,
-                    title: 'Error loading transactions',
+                    title: context.l10n.errorLoadingTransactions,
                   ),
                 ),
               ),
@@ -176,16 +177,16 @@ class AccountDetailScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => const EmptyState(
+        error: (error, stackTrace) => EmptyState(
           icon: Icons.error_outline_rounded,
-          title: 'Error loading account',
+          title: context.l10n.errorLoadingAccount,
         ),
       ),
       floatingActionButton: account != null
           ? FloatingActionButton.extended(
               onPressed: () => _addTransaction(context, ref, account),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Transaction'),
+              label: Text(context.l10n.transaction),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(Rad.full),
               ),
@@ -205,15 +206,12 @@ class AccountDetailScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: Text(
-          'Delete "${account.name}"? Accounts with transactions must be '
-          'archived instead, so their history stays in your reports.',
-        ),
+        title: Text(context.l10n.deleteAccountTitle),
+        content: Text(ctx.l10n.deleteAccountBody(account.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -232,8 +230,8 @@ class AccountDetailScreen extends ConsumerWidget {
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) context.pop();
             },
-            child: const Text(
-              'Delete',
+            child: Text(
+              context.l10n.delete,
               style: TextStyle(color: AppColors.danger),
             ),
           ),
@@ -274,7 +272,7 @@ class _MonthFlow extends StatelessWidget {
       children: [
         Expanded(
           child: StatPill(
-            label: 'In this month',
+            label: context.l10n.inThisMonth,
             icon: Icons.south_west_rounded,
             tone: palette.income,
             value: income,
@@ -284,7 +282,7 @@ class _MonthFlow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: StatPill(
-            label: 'Out this month',
+            label: context.l10n.outThisMonth,
             icon: Icons.north_east_rounded,
             tone: palette.expense,
             value: expense,
@@ -307,11 +305,11 @@ class _TransactionList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (transactions.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: EmptyState(
           icon: Icons.receipt_long_rounded,
-          title: 'No transactions',
-          subtitle: 'Add a transaction to get started.',
+          title: context.l10n.noTransactions,
+          subtitle: context.l10n.addTransactionToStart,
         ),
       );
     }

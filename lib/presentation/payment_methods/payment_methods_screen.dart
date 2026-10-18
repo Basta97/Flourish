@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_spacing.dart';
@@ -16,13 +17,13 @@ class PaymentMethodsScreen extends ConsumerWidget {
         .where((a) => a.type != 'cash')
         .toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Cards & wallets')),
+      appBar: AppBar(title: Text(context.l10n.cardsWallets)),
       body: LiquidPageBackground(
         child: accounts.isEmpty
-            ? const EmptyState(
+            ? EmptyState(
                 icon: Icons.credit_card_rounded,
-                title: 'No bank, wallet or card accounts',
-                subtitle: 'Add one from Accounts first',
+                title: context.l10n.noPaymentAccounts,
+                subtitle: context.l10n.addOneFromAccounts,
               )
             : ListView.separated(
                 padding: const EdgeInsets.all(Sp.xl),
@@ -32,8 +33,8 @@ class PaymentMethodsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(
-                        left: Sp.xs,
+                      padding: const EdgeInsetsDirectional.only(
+                        start: Sp.xs,
                         bottom: Sp.sm,
                       ),
                       child: Text(

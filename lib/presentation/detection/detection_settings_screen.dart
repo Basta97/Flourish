@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -138,11 +139,11 @@ class _DetectionSettingsScreenState
                 app,
           ];
           return BottomSheetScaffold(
-            title: 'Bank and wallet apps',
+            title: context.l10n.bankWalletApps,
             children: [
               TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Search apps',
+                decoration: InputDecoration(
+                  hintText: context.l10n.searchApps,
                   prefixIcon: Icon(Icons.search_rounded),
                 ),
                 onChanged: (v) => setSheet(() => query = v),
@@ -152,7 +153,9 @@ class _DetectionSettingsScreenState
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: Sp.md),
                   child: Text(
-                    installed.isEmpty ? 'No apps found.' : 'No matching apps.',
+                    installed.isEmpty
+                        ? context.l10n.noAppsFound
+                        : context.l10n.noMatchingApps,
                     style: AppTextStyles.caption,
                   ),
                 ),
@@ -193,24 +196,16 @@ class _DetectionSettingsScreenState
       await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Read payment alerts?'),
-          content: const Text(
-            'Flourish will read notifications from your messaging app and '
-            'the bank or wallet apps you choose, to find payment alerts '
-            '(amount, merchant, card ending). Other notifications are ignored '
-            'on the spot. One-time codes and declined payments are never '
-            'saved, card numbers are reduced to their last 4 digits, and '
-            'nothing leaves your phone. You review every payment before it is '
-            'added, unless you turn on automatic adding.',
-          ),
+          title: Text(context.l10n.readAlertsTitle),
+          content: Text(ctx.l10n.readAlertsBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Not now'),
+              child: Text(context.l10n.notNow),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Continue'),
+              child: Text(ctx.l10n.continueAction),
             ),
           ],
         ),
@@ -243,7 +238,7 @@ class _DetectionSettingsScreenState
         if (!seen.contains(p) && !defaultMessagingApps.contains(p)) p,
     ]..sort((a, b) => (labels[a] ?? a).compareTo(labels[b] ?? b));
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment detection')),
+      appBar: AppBar(title: Text(context.l10n.paymentDetection)),
       body: LiquidPageBackground(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -259,10 +254,8 @@ class _DetectionSettingsScreenState
                   contentPadding: EdgeInsets.zero,
                   value: enabled,
                   onChanged: _setEnabled,
-                  title: const Text('Detect payments from notifications'),
-                  subtitle: const Text(
-                    'Bank SMS and bank or wallet app alerts go to your inbox',
-                  ),
+                  title: Text(context.l10n.detectFromNotifications),
+                  subtitle: Text(context.l10n.detectFromNotificationsSubtitle),
                 ),
                 if (enabled)
                   ListTile(
@@ -275,46 +268,40 @@ class _DetectionSettingsScreenState
                     ),
                     title: Text(
                       access == true
-                          ? 'Notification access granted'
-                          : 'Notification access needed',
+                          ? context.l10n.accessGranted
+                          : context.l10n.accessNeeded,
                     ),
                     subtitle: access == true
                         ? null
-                        : const Text(
-                            'If the switch is greyed out, open App info › ⋮ › '
-                            'Allow restricted settings first.',
-                          ),
+                        : Text(context.l10n.restrictedSettingsHint),
                     trailing: access == true
                         ? null
                         : TextButton(
                             onPressed: bridge.openAccessSettings,
-                            child: const Text('Grant'),
+                            child: Text(context.l10n.grant),
                           ),
                   ),
                 if (enabled) ...[
                   const SizedBox(height: Sp.sm),
-                  Text('Bank and wallet apps', style: AppTextStyles.bodyMedium),
                   Text(
-                    'Messaging apps are always read. Apps that posted '
-                    'money-like notifications appear here; tick the ones from '
-                    'your bank or wallet, or choose them from your installed '
-                    'apps.',
-                    style: caption,
+                    context.l10n.bankWalletApps,
+                    style: AppTextStyles.bodyMedium,
                   ),
+                  Text(context.l10n.messagingAlwaysRead, style: caption),
                   if (candidates.isEmpty && picked.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: Sp.sm),
-                      child: Text(
-                        'None seen yet. They appear after the next alert.',
-                        style: caption,
-                      ),
+                      child: Text(context.l10n.noneSeenYet, style: caption),
                     ),
                   for (final c in candidates)
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       value: packages.contains(c.packageName),
                       title: Text(c.label),
-                      subtitle: Text('${c.count} alerts', style: caption),
+                      subtitle: Text(
+                        context.l10n.alertsCount(c.count),
+                        style: caption,
+                      ),
                       onChanged: (v) => _toggle(c.packageName, v == true),
                     ),
                   for (final p in picked)
@@ -323,23 +310,23 @@ class _DetectionSettingsScreenState
                       value: true,
                       title: Text(labels[p] ?? p),
                       subtitle: Text(
-                        'Chosen from installed apps',
+                        context.l10n.chosenFromInstalled,
                         style: caption,
                       ),
                       onChanged: (v) => _toggle(p, v == true),
                     ),
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: TextButton.icon(
                       onPressed: _pickInstalled,
                       icon: const Icon(Icons.apps_rounded),
-                      label: const Text('Choose from installed apps'),
+                      label: Text(context.l10n.chooseFromInstalled),
                     ),
                   ),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     value: notify,
-                    title: const Text('Notify me about new payments'),
+                    title: Text(context.l10n.notifyNewPayments),
                     onChanged: (v) async {
                       setState(() => notify = v);
                       await PreferencesService.setBool('detection_notify', v);
@@ -350,43 +337,26 @@ class _DetectionSettingsScreenState
               ])
             else
               section('iPhone', [
-                Text(
-                  'iOS does not let apps read messages, so Shortcuts sends '
-                  'them to Flourish. Set this up once (iOS 17 or later):',
-                  style: AppTextStyles.body,
-                ),
+                Text(context.l10n.iosShortcutsIntro, style: AppTextStyles.body),
                 const SizedBox(height: Sp.sm),
-                for (final step in const [
-                  'Open Shortcuts › Automation › New Automation › Message.',
-                  'Message Contains: EGP. Choose Run Immediately. Make one '
-                      'more automation for each word your bank uses: جنيه, '
-                      'ج.م, and the currencies you pay in abroad or online, '
-                      'such as USD, دولار, EUR, SAR.',
-                  'Add the action "Import Transaction Text" from Flourish and '
-                      'pass it the Message and Sender.',
-                  'For Apple Pay: New Automation › Wallet › choose your cards '
-                      '› Run Immediately › "Log Card Payment" with Amount, '
-                      'Merchant and Card.',
+                for (final step in [
+                  context.l10n.iosStep1,
+                  context.l10n.iosStep2,
+                  context.l10n.iosStep3,
+                  context.l10n.iosStep4,
                 ])
                   Padding(
                     padding: const EdgeInsets.only(bottom: Sp.xs),
                     child: Text('• $step', style: AppTextStyles.body),
                   ),
-                Text(
-                  'Payments arrive in your inbox without opening Flourish.',
-                  style: caption,
-                ),
+                Text(context.l10n.paymentsArriveInbox, style: caption),
               ]),
-            section('Adding payments', [
+            section(context.l10n.addingPayments, [
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: auto,
-                title: const Text('Add clear payments automatically'),
-                subtitle: const Text(
-                  'Only purchases and refunds from a recognised bank, on a card '
-                  'you saved with its last 4 digits, with no doubt about the '
-                  'amount or a possible duplicate. Everything else waits for you.',
-                ),
+                title: Text(context.l10n.autoAddClear),
+                subtitle: Text(context.l10n.autoAddClearSubtitle),
                 onChanged: (v) async {
                   setState(() => auto = v);
                   await PreferencesService.setBool('detection_auto_confirm', v);
@@ -395,27 +365,34 @@ class _DetectionSettingsScreenState
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.psychology_alt_outlined),
-                title: const Text('AI for unclear messages'),
+                title: Text(context.l10n.aiForUnclear),
                 subtitle: Text(
                   ref.watch(aiSettingsProvider).enabled
-                      ? 'On · ${ref.watch(aiSettingsProvider).preset.label}'
-                      : 'Off · DeepSeek, OpenRouter, Groq or Gemini',
+                      ? context.l10n.aiOnProvider(
+                          ref.watch(aiSettingsProvider).preset.label,
+                        )
+                      : context.l10n.aiOffProviders,
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/settings/ai'),
               ),
             ]),
-            section('Privacy', [
+            section(context.l10n.privacy, [
               DropdownButtonFormField<int>(
                 initialValue: keepDays,
-                decoration: const InputDecoration(
-                  labelText: 'Keep message text after review',
+                decoration: InputDecoration(
+                  labelText: context.l10n.keepMessageText,
                 ),
-                items: const [
-                  DropdownMenuItem(value: 0, child: Text("Don't keep")),
-                  DropdownMenuItem(value: 7, child: Text('7 days')),
-                  DropdownMenuItem(value: 30, child: Text('30 days')),
-                  DropdownMenuItem(value: 90, child: Text('90 days')),
+                items: [
+                  DropdownMenuItem(
+                    value: 0,
+                    child: Text(context.l10n.dontKeep),
+                  ),
+                  for (final d in [7, 30, 90])
+                    DropdownMenuItem(
+                      value: d,
+                      child: Text(context.l10n.daysCount(d)),
+                    ),
                 ],
                 onChanged: (v) async {
                   if (v == null) return;
@@ -426,7 +403,7 @@ class _DetectionSettingsScreenState
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: backupText,
-                title: const Text('Include message text in backups'),
+                title: Text(context.l10n.includeTextInBackups),
                 onChanged: (v) async {
                   setState(() => backupText = v);
                   await PreferencesService.setBool(
@@ -436,29 +413,29 @@ class _DetectionSettingsScreenState
                 },
               ),
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: TextButton.icon(
                   onPressed: () async {
                     await ref.read(detectionServiceProvider).purgeAllText();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Message text deleted')),
+                        SnackBar(
+                          content: Text(context.l10n.messageTextDeleted),
+                        ),
                       );
                     }
                   },
                   icon: const Icon(Icons.delete_sweep_outlined),
-                  label: const Text('Delete all message text now'),
+                  label: Text(context.l10n.deleteAllMessageText),
                 ),
               ),
             ]),
-            section('Test a message', [
+            section(context.l10n.testMessage, [
               TextField(
                 controller: _test,
                 minLines: 2,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  hintText: 'Paste a bank or wallet alert',
-                ),
+                decoration: InputDecoration(hintText: context.l10n.pasteAlert),
                 onChanged: (v) => setState(
                   () => _tested = v.trim().isEmpty
                       ? null
@@ -476,13 +453,13 @@ class _DetectionSettingsScreenState
                   padding: const EdgeInsets.only(top: Sp.sm),
                   child: Text(
                     p.ignored
-                        ? 'Not a payment (${p.ignoreReason}).'
+                        ? context.l10n.notAPayment('${p.ignoreReason}')
                         : '${kindLabel(p.kind)}: ${p.currency ?? '?'} ${p.amount}'
-                              '${p.merchant == null ? '' : ' at ${p.merchant}'}'
+                              '${p.merchant == null ? '' : ' · ${p.merchant}'}'
                               '${p.counterparty == null ? '' : ' · ${p.counterparty}'}'
-                              '${p.last4 == null ? '' : ' · card ••${p.last4}'}'
+                              '${p.last4 == null ? '' : ' · ••${p.last4}'}'
                               '${Issuers.byId(p.issuerId) == null ? '' : ' · ${Issuers.byId(p.issuerId)!.name}'}'
-                              ' · ${(p.confidence * 100).round()}% sure',
+                              ' · ${context.l10n.percentSure((p.confidence * 100).round())}',
                     style: AppTextStyles.body,
                   ),
                 ),

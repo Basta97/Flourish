@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
@@ -156,17 +157,17 @@ class AccountCard extends StatelessWidget {
                     if (isCredit)
                       Text(
                         account.balance > 0
-                            ? 'OWED'
+                            ? context.l10n.owedCaps
                             : account.balance < 0
-                            ? 'CREDIT BALANCE'
-                            : 'NOTHING OWED',
+                            ? context.l10n.creditBalanceCaps
+                            : context.l10n.nothingOwedCaps,
                         style: AppTextStyles.eyebrow.copyWith(
                           color: _onCard.withValues(alpha: 0.75),
                         ),
                       ),
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text(
                         CurrencyFormatter.format(
                           isCredit ? account.balance.abs() : account.balance,

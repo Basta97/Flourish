@@ -126,7 +126,7 @@ class _SparklineState extends State<Sparkline>
           animation: _reveal,
           builder: (context, child) => ClipRect(
             child: Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               widthFactor: Curves.easeInOutCubic.transform(_reveal.value),
               child: child,
             ),

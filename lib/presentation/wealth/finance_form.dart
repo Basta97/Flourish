@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/error_text.dart';
 
@@ -22,11 +23,15 @@ Future<bool?> financeForm(
   required String title,
   required List<FinanceField> fields,
   required Future<void> Function(Map<String, String>) save,
-  String submit = 'Save',
+  String? submit,
 }) => showDialog<bool>(
   context: context,
-  builder: (_) =>
-      _FinanceForm(title: title, fields: fields, save: save, submit: submit),
+  builder: (_) => _FinanceForm(
+    title: title,
+    fields: fields,
+    save: save,
+    submit: submit ?? context.l10n.save,
+  ),
 );
 
 class _FinanceForm extends StatefulWidget {
@@ -142,7 +147,7 @@ class _FinanceFormState extends State<_FinanceForm> {
     actions: [
       TextButton(
         onPressed: saving ? null : () => Navigator.pop(context, false),
-        child: const Text('Cancel'),
+        child: Text(context.l10n.cancel),
       ),
       FilledButton(
         onPressed: saving
@@ -153,7 +158,11 @@ class _FinanceFormState extends State<_FinanceForm> {
                 };
                 for (final f in widget.fields) {
                   if (f.required && data[f.key]!.isEmpty) {
-                    setState(() => error = 'Enter ${f.label.toLowerCase()}');
+                    setState(
+                      () => error = context.l10n.enterField(
+                        f.label.toLowerCase(),
+                      ),
+                    );
                     return;
                   }
                 }

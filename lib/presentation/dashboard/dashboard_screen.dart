@@ -24,7 +24,12 @@ import '../providers/category_providers.dart';
 import '../providers/transaction_providers.dart';
 import '../providers/theme_providers.dart';
 import '../transactions/widgets/add_transaction_sheet.dart';
+import 'widgets/motivation_card.dart';
 import 'widgets/net_worth_hero.dart';
+import '../../l10n/l10n.dart';
+import '../providers/goals_provider.dart';
+import '../providers/locale_providers.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -55,12 +60,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  static String _greeting() {
+  static String _greeting(BuildContext context) {
+    final l = context.l10n;
     final hour = DateTime.now().hour;
-    if (hour < 5) return 'Good night';
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 5) return l.greetingNight;
+    if (hour < 12) return l.greetingMorning;
+    if (hour < 18) return l.greetingAfternoon;
+    return l.greetingEvening;
   }
 
   @override
@@ -100,9 +106,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(width: Sp.md),
               Expanded(
                 child: Text(
-                  toReview == 1
-                      ? '1 payment to review'
-                      : '$toReview payments to review',
+                  context.l10n.paymentsToReview(toReview),
                   style: AppTextStyles.bodyMedium,
                 ),
               ),
@@ -113,14 +117,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         const SizedBox(height: Sp.lg),
       ],
       const NetWorthHero(),
+      const SizedBox(height: Sp.lg),
+      _Motivation(future: _monthlyFuture!, currency: currency),
       const SizedBox(height: Sp.xl),
       _MonthSummary(future: _monthlyFuture!, currency: currency),
       const SizedBox(height: Sp.xxl),
       const _QuickActions(),
       const SizedBox(height: Sp.xxl + Sp.xs),
       _SectionHeader(
-        title: 'Recent activity',
-        action: tx.isEmpty ? null : 'See all',
+        title: context.l10n.recentActivity,
+        action: tx.isEmpty ? null : context.l10n.seeAll,
         onAction: () => context.go('/transactions'),
       ),
       const SizedBox(height: Sp.md),
@@ -141,25 +147,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(
-            title: Text(_greeting()),
-            actions: [
-              IconButton(
-                tooltip: 'Settings',
-                onPressed: () {
-                  Haptics.tap();
-                  context.push('/settings');
-                },
-                icon: const Icon(Icons.tune_rounded),
-              ),
-              const SizedBox(width: Sp.sm),
-            ],
+          SliverSafeArea(
+            bottom: false,
+            sliver: SliverToBoxAdapter(
+              child: _Header(greeting: _greeting(context)),
+            ),
           ),
           CupertinoSliverRefreshControl(onRefresh: _refresh),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
               Sp.screenH,
-              Sp.xs,
+              Sp.sm,
               Sp.screenH,
               Sp.bottomNavClear + Sp.lg,
             ),
@@ -227,6 +225,123 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
+/// Greeting and today's date on the left; amount privacy and settings on
+/// the right. Sits directly under the status bar.
+class _Header extends ConsumerWidget {
+  const _Header({required this.greeting});
+
+  final String greeting;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final palette = FlourishPalette.of(context);
+    final hidden = ref.watch(hideAmountsProvider);
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        Sp.screenH,
+        Sp.md,
+        Sp.sm,
+        Sp.md,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DateFormat.MMMMEEEEd().format(DateTime.now()).toUpperCase(),
+                  style: AppTextStyles.eyebrow.copyWith(color: palette.textLow),
+                ),
+                const SizedBox(height: Sp.xs),
+                Text(
+                  greeting,
+                  style: AppTextStyles.headline.copyWith(
+                    color: palette.textHigh,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: hidden ? l.showAmounts : l.hideAmounts,
+            onPressed: () {
+              Haptics.select();
+              ref.read(hideAmountsProvider.notifier).toggle();
+            },
+            icon: AnimatedSwitcher(
+              duration: Motion.of(context, Motion.base),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: Icon(
+                hidden
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                key: ValueKey(hidden),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: l.settings,
+            onPressed: () {
+              Haptics.tap();
+              context.push('/settings');
+            },
+            icon: const Icon(Icons.tune_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Picks what to cheer about: a finished goal, money saved this month, a
+/// goal milestone, or the daily line.
+class _Motivation extends ConsumerWidget {
+  const _Motivation({required this.future, required this.currency});
+
+  final Future<(Amount, Amount, int)> future;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goals = ref.watch(goalsProvider).valueOrNull ?? const <Goal>[];
+    GoalMotivation? best;
+    for (final g in goals) {
+      if (g.targetAmount <= 0) continue;
+      final quarter =
+          (g.currentAmount / g.targetAmount * 4).floor().clamp(0, 4) * 25;
+      if (quarter >= 25 && (best == null || quarter > best.percent)) {
+        best = GoalMotivation(g.name, quarter);
+      }
+    }
+    return FutureBuilder<(Amount, Amount, int)>(
+      future: future,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final saved = data == null ? null : data.$1 - data.$2;
+        final Motivation motivation;
+        if (best != null && best.percent == 100) {
+          motivation = best;
+        } else if (saved != null && saved > Amount.zero) {
+          motivation = SavedMotivation(
+            CurrencyFormatter.formatCompact(
+              saved.toDouble(),
+              currency: currency,
+            ),
+          );
+        } else {
+          motivation = best ?? const DailyMotivation();
+        }
+        return MotivationCard(motivation: motivation);
+      },
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title, this.action, this.onAction});
 
@@ -282,7 +397,7 @@ class _MonthSummary extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'THIS MONTH',
+              context.l10n.thisMonth.toUpperCase(),
               style: AppTextStyles.eyebrow.copyWith(color: palette.textLow),
             ),
             const SizedBox(height: Sp.md),
@@ -290,7 +405,7 @@ class _MonthSummary extends StatelessWidget {
               children: [
                 Expanded(
                   child: StatPill(
-                    label: 'Income',
+                    label: context.l10n.income,
                     icon: Icons.south_west_rounded,
                     tone: palette.income,
                     value: income?.toDouble(),
@@ -300,7 +415,7 @@ class _MonthSummary extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: StatPill(
-                    label: 'Spending',
+                    label: context.l10n.spending,
                     icon: Icons.north_east_rounded,
                     tone: palette.expense,
                     value: expense?.toDouble(),
@@ -310,7 +425,7 @@ class _MonthSummary extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: StatPill(
-                    label: 'Saved',
+                    label: context.l10n.saved,
                     icon: Icons.savings_outlined,
                     tone: saved != null && saved < Amount.zero
                         ? palette.expense
@@ -324,7 +439,7 @@ class _MonthSummary extends StatelessWidget {
             if (data != null && data.$3 > 0) ...[
               const SizedBox(height: Sp.sm),
               Text(
-                '${data.$3} transactions need historical exchange rates.',
+                context.l10n.needHistoricalRates(data.$3),
                 style: AppTextStyles.caption.copyWith(color: palette.warning),
               ),
             ],
@@ -338,20 +453,20 @@ class _MonthSummary extends StatelessWidget {
 class _QuickActions extends StatelessWidget {
   const _QuickActions();
 
-  static const _actions = [
-    ('Holdings', '/wealth', Icons.diamond_outlined),
-    ('Budgets', '/budgets', Icons.track_changes_rounded),
-    ('Goals', '/goals', Icons.flag_outlined),
-    ('Recurring', '/recurring', Icons.repeat_rounded),
-    ('Import', '/smart-import', Icons.document_scanner_outlined),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final palette = FlourishPalette.of(context);
+    final l = context.l10n;
+    final actions = [
+      (l.holdings, '/wealth', Icons.diamond_outlined),
+      (l.budgets, '/budgets', Icons.track_changes_rounded),
+      (l.goals, '/goals', Icons.flag_outlined),
+      (l.recurring, '/recurring', Icons.repeat_rounded),
+      (l.importAction, '/smart-import', Icons.document_scanner_outlined),
+    ];
     return Row(
       children: [
-        for (final (label, route, icon) in _actions)
+        for (final (label, route, icon) in actions)
           Expanded(
             child: Pressable(
               semanticLabel: label,
@@ -472,10 +587,12 @@ class _GetStarted extends StatelessWidget {
         icon: hasAccounts
             ? Icons.receipt_long_rounded
             : Icons.account_balance_wallet_outlined,
-        title: hasAccounts ? 'No activity yet' : 'Let’s get you set up',
+        title: hasAccounts
+            ? context.l10n.noActivityYet
+            : context.l10n.getStartedTitle,
         subtitle: hasAccounts
-            ? 'Add your first transaction and it will show up here.'
-            : 'Add an account and your first transaction to get started.',
+            ? context.l10n.noActivitySubtitle
+            : context.l10n.getStartedSubtitle,
         action: FilledButton.icon(
           onPressed: () => showSpringBottomSheet(
             context: context,
@@ -484,7 +601,11 @@ class _GetStarted extends StatelessWidget {
                 : const AddAccountSheet(),
           ),
           icon: const Icon(Icons.add_rounded),
-          label: Text(hasAccounts ? 'Add transaction' : 'Add an account'),
+          label: Text(
+            hasAccounts
+                ? context.l10n.addTransaction
+                : context.l10n.addAnAccount,
+          ),
         ),
       ),
     );

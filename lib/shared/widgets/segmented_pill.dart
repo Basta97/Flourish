@@ -46,10 +46,10 @@ class SegmentedPill extends StatelessWidget {
               : activeColor!.withValues(alpha: 0.18);
           return Stack(
             children: [
-              AnimatedPositioned(
+              AnimatedPositionedDirectional(
                 duration: duration,
                 curve: Motion.springSnappy,
-                left: segment * selectedIndex,
+                start: segment * selectedIndex,
                 top: 0,
                 bottom: 0,
                 width: segment,

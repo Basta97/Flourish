@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -127,10 +128,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         chosen?.currency ?? ref.watch<String>(defaultCurrencyProvider);
     final tint = modeColor(context, _mode);
     return BottomSheetScaffold(
-      title: 'New Transaction',
+      title: context.l10n.newTransaction,
       children: [
         SegmentedPill(
-          labels: const ['Expense', 'Income', 'Transfer'],
+          labels: [
+            context.l10n.expense,
+            context.l10n.income,
+            context.l10n.transfer,
+          ],
           selectedIndex: _modes.indexOf(_mode),
           activeColor: tint,
           height: 44,
@@ -151,19 +156,17 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         const SizedBox(height: Sp.lg),
         if (allAccounts.isEmpty)
           Text(
-            accountsAsync.isLoading
-                ? ''
-                : 'No accounts available. Please add an account first.',
+            accountsAsync.isLoading ? '' : context.l10n.noAccountsAddFirst,
             style: AppTextStyles.caption.copyWith(color: AppColors.danger),
           )
         else if (_mode == 'transfer') ...[
           if (allAccounts.length < 2)
             Text(
-              'Add at least 2 accounts to transfer.',
+              context.l10n.needTwoAccounts,
               style: AppTextStyles.caption.copyWith(color: AppColors.danger),
             )
           else ...[
-            const FormLabel('From'),
+            FormLabel(context.l10n.from),
             AccountChips(
               accounts: allAccounts,
               selectedId: effectiveFrom,
@@ -175,7 +178,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               }),
             ),
             const SizedBox(height: Sp.lg),
-            const FormLabel('To'),
+            FormLabel(context.l10n.to),
             AccountChips(
               accounts: allAccounts
                   .where((a) => a.id != effectiveFrom)
@@ -194,8 +197,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 ),
                 inputFormatters: [AmountInputFormatter()],
                 decoration: InputDecoration(
-                  labelText: 'Amount received in $toCurrency',
-                  helperText: 'What actually arrived after conversion',
+                  labelText: context.l10n.amountReceivedIn(toCurrency),
+                  helperText: context.l10n.whatArrived,
                   errorText: _destinationError,
                 ),
                 onChanged: (_) => setState(() => _destinationError = null),
@@ -209,14 +212,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               ),
               inputFormatters: [AmountInputFormatter()],
               decoration: InputDecoration(
-                labelText: 'Transfer fee in $currency (optional)',
+                labelText: context.l10n.transferFeeIn(currency),
                 errorText: _feeError,
               ),
               onChanged: (_) => setState(() => _feeError = null),
             ),
           ],
         ] else ...[
-          const FormLabel('Account'),
+          FormLabel(context.l10n.account),
           AccountChips(
             accounts: allAccounts,
             selectedId: effectiveFrom,
@@ -232,7 +235,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           ],
           const SizedBox(height: Sp.lg),
           FormLabel(
-            _refund ? 'Refund for' : 'Category',
+            _refund ? context.l10n.refundFor : context.l10n.category,
             trailing: _categoryError == null
                 ? null
                 : Text(
@@ -270,8 +273,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           TextField(
             controller: _merchantController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              hintText: 'Merchant or payee (optional)',
+            decoration: InputDecoration(
+              hintText: context.l10n.merchantOptional,
               prefixIcon: Icon(Icons.storefront_outlined, size: 20),
             ),
           ),
@@ -279,8 +282,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         const SizedBox(height: Sp.lg),
         TextField(
           controller: _noteController,
-          decoration: const InputDecoration(
-            hintText: 'Add a note',
+          decoration: InputDecoration(
+            hintText: context.l10n.addNote,
             prefixIcon: Icon(Icons.notes_rounded, size: 20),
           ),
           minLines: 1,
@@ -291,10 +294,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         const SizedBox(height: Sp.xl),
         SubmitButton(
           label: _mode == 'transfer'
-              ? 'Transfer'
+              ? context.l10n.transfer
               : _mode == 'expense' && _refund
-              ? 'Add Refund'
-              : 'Add ${_mode == 'expense' ? 'Expense' : 'Income'}',
+              ? context.l10n.addRefund
+              : _mode == 'expense'
+              ? context.l10n.addExpense
+              : context.l10n.addIncome,
           color: tint,
           state: _submitState,
           onPressed: _submit,
@@ -361,15 +366,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       _amountController.text,
       currency: account.currency,
     ).value;
-    final over =
-        credit?.limit != null && typed != null && typed > credit!.available
-        ? typed - credit.available
-        : null;
+    final over = typed == null
+        ? null
+        : credit?.overAfter(typed, foreign: _foreign && !_refund);
     final currencies = AppConstants.currencies
         .where((c) => c != account.currency)
         .toList();
     return [
-      const FormLabel('Paid with'),
+      FormLabel(context.l10n.paidWith),
       PaidWithChips(
         account: account,
         instruments: instruments,
@@ -385,8 +389,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         Padding(
           padding: const EdgeInsets.only(top: Sp.sm),
           child: Text(
-            'This goes over the card limit by '
-            '${CurrencyFormatter.format(over.toDouble(), currency: account.currency)}.',
+            (over.international
+                ? context.l10n.overCardIntlLimit
+                : context.l10n.overCardLimit)(
+              CurrencyFormatter.format(
+                over.by.toDouble(),
+                currency: account.currency,
+              ),
+            ),
             style: AppTextStyles.caption.copyWith(color: AppColors.danger),
           ),
         ),
@@ -394,8 +404,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         contentPadding: EdgeInsets.zero,
         dense: true,
         value: _refund,
-        title: const Text('This is a refund'),
-        subtitle: const Text('Money back that reduces spending'),
+        title: Text(context.l10n.isRefund),
+        subtitle: Text(context.l10n.isRefundSubtitle),
         onChanged: (v) => setState(() {
           _refund = v;
           if (v) _foreign = false;
@@ -406,9 +416,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           contentPadding: EdgeInsets.zero,
           dense: true,
           value: _foreign,
-          title: const Text('Paid in another currency'),
+          title: Text(context.l10n.paidOtherCurrency),
           subtitle: Text(
-            'e.g. USD online or abroad, charged in ${account.currency}',
+            context.l10n.paidOtherCurrencySubtitle(account.currency),
           ),
           onChanged: (v) => setState(() {
             _foreign = v;
@@ -423,7 +433,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               child: DropdownButtonFormField<String>(
                 initialValue: _originalCurrency,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Currency'),
+                decoration: InputDecoration(labelText: context.l10n.currency),
                 items: [
                   for (final c in currencies)
                     DropdownMenuItem(value: c, child: Text(c)),
@@ -443,7 +453,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 ),
                 inputFormatters: [AmountInputFormatter()],
                 decoration: InputDecoration(
-                  labelText: 'Price in ${_originalCurrency ?? ''}',
+                  labelText: context.l10n.priceIn(_originalCurrency ?? ''),
                   errorText: _originalError,
                 ),
                 onChanged: (_) {
@@ -458,7 +468,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           contentPadding: EdgeInsets.zero,
           dense: true,
           value: _feeIncluded,
-          title: const Text('Charged amount already includes the bank fee'),
+          title: Text(context.l10n.feeIncluded),
           onChanged: (v) => setState(() => _feeIncluded = v),
         ),
         FutureBuilder<Amount>(
@@ -479,11 +489,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             );
             return Text(
               pct == Amount.zero
-                  ? 'The amount above is what ${account.name} was charged. '
-                        'Set a foreign transaction fee on the card to track it.'
-                  : 'Foreign transaction fee $pct%: ${fmt(fee)} '
-                        '${_feeIncluded ? 'inside' : 'on top of'} ${fmt(charged)}. '
-                        'Use the amount on your statement when you have it.',
+                  ? context.l10n.chargedAmountNote(account.name)
+                  : _feeIncluded
+                  ? context.l10n.fxFeeInside('$pct', fmt(fee), fmt(charged))
+                  : context.l10n.fxFeeOnTop('$pct', fmt(fee), fmt(charged)),
               style: AppTextStyles.caption.copyWith(color: palette.textLow),
             );
           },
@@ -571,21 +580,18 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       hasError = true;
     }
     if (accountId == null) {
-      setState(() => _accountError = 'Please select an account');
+      setState(() => _accountError = context.l10n.selectAccountError);
       hasError = true;
     }
 
     Amount? received, fee;
     if (_mode == 'transfer') {
       if (accounts.length < 2 || toAccountId == null) {
-        setState(() => _accountError = 'Please select destination account');
+        setState(() => _accountError = context.l10n.selectDestinationError);
         hasError = true;
       }
       if (toAccountId != null && toAccountId == accountId) {
-        setState(
-          () => _accountError =
-              'Transfer source and destination must be different',
-        );
+        setState(() => _accountError = context.l10n.sameAccountsError);
         hasError = true;
       }
       if (toCurrency != null && toCurrency != currency) {
@@ -615,7 +621,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     } else {
       if (categoryId == null) {
-        setState(() => _categoryError = 'Please select a category');
+        setState(() => _categoryError = context.l10n.selectCategoryError);
         hasError = true;
       }
     }
@@ -626,7 +632,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         currency: _originalCurrency ?? '',
       );
       if (!result.isValid || _originalCurrency == null) {
-        setState(() => _originalError = result.error ?? 'Choose a currency');
+        setState(
+          () => _originalError = result.error ?? context.l10n.chooseCurrency,
+        );
         hasError = true;
       } else {
         original = Money('${result.value}', _originalCurrency!);

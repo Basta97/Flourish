@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
@@ -178,20 +179,18 @@ class _FinanceAppLockState extends State<FinanceAppLock>
     setState(() => authenticating = true);
     try {
       final accepted = await LocalAuthentication().authenticate(
-        localizedReason: 'Unlock your Flourish finances',
+        localizedReason: context.l10n.unlockReason,
         persistAcrossBackgrounding: true,
       );
       if (mounted) {
         setState(() {
           locked = !accepted;
-          error = accepted ? null : 'Authentication cancelled';
+          error = accepted ? null : context.l10n.authCancelled;
         });
       }
     } catch (_) {
       if (mounted) {
-        setState(
-          () => error = 'Unlock with your device authentication to continue.',
-        );
+        setState(() => error = context.l10n.unlockToContinue);
       }
     } finally {
       if (mounted) setState(() => authenticating = false);
@@ -303,7 +302,7 @@ class _LockCurtain extends StatelessWidget {
                   if (showControls) ...[
                     const SizedBox(height: Sp.sm),
                     Text(
-                      error ?? 'Your finances are locked.',
+                      error ?? context.l10n.financesLocked,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.body.copyWith(
                         color: error == null
@@ -320,7 +319,7 @@ class _LockCurtain extends StatelessWidget {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.lock_open_rounded),
-                      label: const Text('Unlock'),
+                      label: Text(context.l10n.unlock),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(180, 52),
                         shape: const StadiumBorder(),

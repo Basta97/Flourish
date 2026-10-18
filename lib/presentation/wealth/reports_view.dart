@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import '../../core/finance/transaction_classifier.dart';
 import '../../core/finance/payment_methods.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +67,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
     final palette = FlourishPalette.of(context);
     final categoryColors = {
       for (final c in ref.watch(categoriesProvider).valueOrNull ?? <Category>[])
-        c.name: Color(c.color),
+        c.displayName: Color(c.color),
     };
 
     return FutureBuilder<Json>(
@@ -111,7 +113,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
           Row(
             children: [
               IconButton.filledTonal(
-                tooltip: 'Previous month',
+                tooltip: context.l10n.previousMonth,
                 style: IconButton.styleFrom(shape: const CircleBorder()),
                 onPressed: () => _shiftMonth(-1),
                 icon: const Icon(Icons.chevron_left_rounded),
@@ -124,7 +126,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                 ),
               ),
               IconButton.filledTonal(
-                tooltip: 'Next month',
+                tooltip: context.l10n.nextMonth,
                 style: IconButton.styleFrom(shape: const CircleBorder()),
                 onPressed: () => _shiftMonth(1),
                 icon: const Icon(Icons.chevron_right_rounded),
@@ -135,7 +137,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
             children: [
               Expanded(
                 child: StatPill(
-                  label: 'Income',
+                  label: context.l10n.income,
                   icon: Icons.south_west_rounded,
                   tone: palette.income,
                   value: income.toDouble(),
@@ -151,8 +153,8 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
               Expanded(
                 child: StatPill(
                   label: change == null
-                      ? 'Expenses'
-                      : 'Expenses · ${change >= 0 ? '▲' : '▼'} ${change.abs().toStringAsFixed(0)}% vs last',
+                      ? context.l10n.expenses
+                      : '${context.l10n.expenses} · ${change >= 0 ? '▲' : '▼'} ${context.l10n.percentVsLast(change.abs().toStringAsFixed(0))}',
                   icon: Icons.north_east_rounded,
                   tone: palette.expense,
                   value: total.toDouble(),
@@ -167,9 +169,9 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
               '${j['missing']} records need historical FX; totals are incomplete.',
             ),
           _Section(
-            title: 'Spending by category',
+            title: context.l10n.spendingByCategory,
             child: total <= Amount.zero
-                ? _Muted('No spending this month.')
+                ? _Muted(context.l10n.noSpendingMonth)
                 : Column(
                     children: [
                       SizedBox(
@@ -189,7 +191,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                               ? money(total)
                               : money(sortedGroups[_touched!].value),
                           centerLabel: _touched == null
-                              ? 'TOTAL'
+                              ? context.l10n.totalCaps
                               : sortedGroups[_touched!].key.toUpperCase(),
                         ),
                       ),
@@ -212,15 +214,15 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                     ],
                   ),
           ),
-          for (final (key, title, subtitle) in const [
-            ('byMethod', 'How you paid', null),
-            ('byInstrument', 'By card or wallet', null),
+          for (final (key, title, subtitle) in [
+            ('byMethod', context.l10n.howYouPaid, null),
+            ('byInstrument', context.l10n.byCardOrWallet, null),
             (
               'byCurrency',
-              'Spending by currency',
-              'Converted to your reporting currency at each date.',
+              context.l10n.spendingByCurrency,
+              context.l10n.convertedAtEachDate,
             ),
-            ('fees', 'Fees and interest paid', null),
+            ('fees', context.l10n.feesInterestPaid, null),
           ])
             if ((j[key] as Map<String, Amount>).isNotEmpty)
               _Section(
@@ -240,9 +242,9 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                 ),
               ),
           _Section(
-            title: 'Income sources',
+            title: context.l10n.incomeSources,
             child: incomeGroups.isEmpty
-                ? _Muted('No income this month.')
+                ? _Muted(context.l10n.noIncomeMonth)
                 : Column(
                     children: [
                       for (final e in incomeGroups.entries)
@@ -262,9 +264,9 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                 (s, e) => s + e.value.toDouble(),
               );
               return _Section(
-                title: 'Asset allocation',
+                title: context.l10n.assetAllocation,
                 child: allocation.isEmpty || sum <= 0
-                    ? _Muted('No valued assets yet.')
+                    ? _Muted(context.l10n.noValuedAssets)
                     : Column(
                         children: [
                           _StackedBar(
@@ -297,8 +299,8 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
               );
             }(),
             _Section(
-              title: 'Currency exposure',
-              subtitle: 'Original amounts, before conversion.',
+              title: context.l10n.currencyExposure,
+              subtitle: context.l10n.originalAmounts,
               child: Column(
                 children: [
                   for (final e in _allocation(
@@ -318,9 +320,8 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
               ),
             ),
             _Section(
-              title: 'Holding gains since opening',
-              subtitle:
-                  'Price gains and the FX effect on acquisition cost are separate. Missing acquisition history stays unknown.',
+              title: context.l10n.holdingGains,
+              subtitle: context.l10n.holdingGainsNote,
               child: Column(
                 children: [
                   for (final item in wealth.items.where(
@@ -328,7 +329,10 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                   ))
                     _ValueRow(
                       item.name,
-                      'Price ${item.gain?.fixed() ?? 'unknown'} · FX ${item.fxGain?.fixed() ?? 'unknown'}',
+                      context.l10n.priceFxGain(
+                        item.gain?.fixed() ?? context.l10n.unknown,
+                        item.fxGain?.fixed() ?? context.l10n.unknown,
+                      ),
                       tone: (item.gain ?? Amount.zero) >= Amount.zero
                           ? palette.income
                           : palette.expense,
@@ -336,15 +340,14 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                   if (!wealth.items.any(
                     (i) => i.gain != null || i.fxGain != null,
                   ))
-                    _Muted('No gains recorded yet.'),
+                    _Muted(context.l10n.noGainsYet),
                 ],
               ),
             ),
           ],
           _Section(
-            title: 'Net worth history',
-            subtitle:
-                'Recorded observations only. No values are invented before tracking began.',
+            title: context.l10n.netWorthHistory,
+            subtitle: context.l10n.netWorthHistoryNote,
             child: Column(
               children: [
                 if (history.length > 1)
@@ -357,7 +360,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
                     strokeWidth: 2.6,
                   )
                 else
-                  _Muted('The chart appears after a few days of tracking.'),
+                  _Muted(context.l10n.chartAppearsLater),
                 const SizedBox(height: Sp.sm),
                 for (final point in history.reversed.take(8))
                   _ValueRow(point['date'], money(amountOf(point['netWorth']))),
@@ -365,9 +368,8 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
             ),
           ),
           _Section(
-            title: 'Expected cash flow · next 30 days',
-            subtitle:
-                'Based on unconfirmed contract schedules. This is a projection, not available cash.',
+            title: context.l10n.expectedCashFlow,
+            subtitle: context.l10n.expectedCashFlowNote,
             child: _ValueRow(
               '${j['forecastMissing']} unconverted payments',
               money(amountOf(j['forecast'])),
@@ -377,9 +379,9 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
             ),
           ),
           _Section(
-            title: 'Realized investment gains',
+            title: context.l10n.realizedGains,
             child: (j['gains'] as List<Json>).isEmpty
-                ? _Muted('No realized gains yet.')
+                ? _Muted(context.l10n.noRealizedGains)
                 : Column(
                     children: [
                       for (final gain in j['gains'] as List<Json>)
@@ -484,7 +486,8 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
           parents.containsKey('$parent')) {
         parent = parents['$parent'];
       }
-      final name = categories[parent]?.name ?? category?.name ?? 'Other';
+      final name =
+          categories[parent]?.displayName ?? category?.displayName ?? currentL10n.other;
       if (flow == FlowClass.income) {
         income += amount;
         incomeGroups[name] = (incomeGroups[name] ?? Amount.zero) + amount;
@@ -497,7 +500,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
         add(
           byMethod,
           t.paymentMethod == null
-              ? 'Not recorded'
+              ? currentL10n.notRecorded
               : PaymentMethods.label(t.paymentMethod!),
           amount,
         );
@@ -513,14 +516,14 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
           add(fees, switch (d?['kind'] == 'contractInterest'
               ? 'interest'
               : d?['feeType']) {
-            'fx' => 'Foreign transaction fees',
-            'transfer' => 'Transfer fees',
-            'cashAdvance' => 'Cash advance fees',
-            'interest' => 'Interest',
-            'late' => 'Late payment fees',
-            'annual' => 'Annual card fees',
-            'investment' => 'Investment fees',
-            _ => 'Other bank fees',
+            'fx' => currentL10n.feesForeign,
+            'transfer' => currentL10n.feesTransfer,
+            'cashAdvance' => currentL10n.feesCashAdvance,
+            'interest' => currentL10n.interest,
+            'late' => currentL10n.feesLate,
+            'annual' => currentL10n.feesAnnual,
+            'investment' => currentL10n.feesInvestment,
+            _ => currentL10n.feesOther,
           }, amount);
         }
       }
@@ -596,7 +599,7 @@ class _ReportsViewState extends ConsumerState<ReportsView> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
+          child: Text(context.l10n.close),
         ),
       ],
     ),

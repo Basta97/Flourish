@@ -1,3 +1,5 @@
+import 'package:flourish/shared/category_label.dart';
+import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,16 +25,16 @@ import '../wealth/finance_form.dart';
 import '../wealth/holdings_view.dart' show number;
 
 String kindLabel(String? kind) => switch (kind) {
-  'purchase' => 'Purchase',
-  'withdrawal' => 'Cash withdrawal',
-  'transfer_out' => 'Money sent',
-  'transfer_in' => 'Money received',
-  'deposit' => 'Deposit',
-  'refund' => 'Refund',
-  'bill_payment' => 'Bill payment',
-  'card_payment' => 'Card payment',
-  'fee' => 'Fee',
-  _ => 'Payment',
+  'purchase' => currentL10n.kindPurchase,
+  'withdrawal' => currentL10n.kindWithdrawal,
+  'transfer_out' => currentL10n.kindMoneySent,
+  'transfer_in' => currentL10n.kindMoneyReceived,
+  'deposit' => currentL10n.kindDeposit,
+  'refund' => currentL10n.kindRefund,
+  'bill_payment' => currentL10n.kindBillPayment,
+  'card_payment' => currentL10n.kindCardPayment,
+  'fee' => currentL10n.kindFee,
+  _ => currentL10n.kindPayment,
 };
 
 /// Payments found in bank and wallet messages, waiting for a tap.
@@ -64,10 +66,10 @@ class InboxScreen extends ConsumerWidget {
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Payments to review'),
+        title: Text(context.l10n.paymentsToReviewTitle),
         actions: [
           IconButton(
-            tooltip: 'Detection settings',
+            tooltip: context.l10n.detectionSettings,
             icon: const Icon(Icons.tune_rounded),
             onPressed: () => context.push('/settings/detection'),
           ),
@@ -77,13 +79,11 @@ class InboxScreen extends ConsumerWidget {
         child: rows.isEmpty
             ? EmptyState(
                 icon: Icons.mark_email_unread_outlined,
-                title: 'Nothing detected yet',
-                subtitle:
-                    'Turn on payment detection to collect bank and wallet '
-                    'alerts here, or paste an alert.',
+                title: context.l10n.nothingDetected,
+                subtitle: context.l10n.nothingDetectedSubtitle,
                 action: FilledButton(
                   onPressed: () => context.push('/settings/detection'),
-                  child: const Text('Set up detection'),
+                  child: Text(context.l10n.setUpDetection),
                 ),
               )
             : ListView(
@@ -98,17 +98,11 @@ class InboxScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: Sp.md),
                       child: OutlinedButton.icon(
-                        onPressed: () => askAi(
-                          context,
-                          ref,
-                          [for (final r in unclear) r.id],
-                        ),
+                        onPressed: () => askAi(context, ref, [
+                          for (final r in unclear) r.id,
+                        ]),
                         icon: const Icon(Icons.psychology_alt_outlined),
-                        label: Text(
-                          unclear.length == 1
-                              ? 'Check the unclear payment with AI'
-                              : 'Check ${unclear.length} unclear payments with AI',
-                        ),
+                        label: Text(context.l10n.checkUnclear(unclear.length)),
                       ),
                     ),
                   if (ready.length > 1)
@@ -117,24 +111,27 @@ class InboxScreen extends ConsumerWidget {
                       child: FilledButton.icon(
                         onPressed: () => _confirmAll(context, ref, ready),
                         icon: const Icon(Icons.done_all_rounded),
-                        label: Text('Add ${ready.length} ready payments'),
+                        label: Text(context.l10n.addReady(ready.length)),
                       ),
                     ),
                   if (pending.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: Sp.lg),
-                      child: Text('All caught up.', style: AppTextStyles.body),
+                      child: Text(
+                        context.l10n.allCaughtUp,
+                        style: AppTextStyles.body,
+                      ),
                     ),
                   for (final r in pending) _DetectedCard(row: r),
                   if (auto.isNotEmpty) ...[
-                    _Header('Added automatically this week'),
+                    _Header(context.l10n.addedAutoThisWeek),
                     for (final r in auto) _DetectedCard(row: r),
                   ],
                   if (set.isNotEmpty)
                     ExpansionTile(
                       tilePadding: EdgeInsets.zero,
                       title: Text(
-                        'Duplicates and dismissed (${set.length})',
+                        context.l10n.duplicatesDismissed(set.length),
                         style: AppTextStyles.bodyMedium,
                       ),
                       children: [for (final r in set) _DetectedCard(row: r)],
@@ -165,6 +162,7 @@ class InboxScreen extends ConsumerWidget {
     List<DetectedPayment> rows,
   ) async {
     final service = ref.read(detectionServiceProvider);
+    final l = context.l10n;
     var added = 0;
     final problems = <String>[];
     for (final r in rows) {
@@ -180,8 +178,8 @@ class InboxScreen extends ConsumerWidget {
       SnackBar(
         content: Text(
           problems.isEmpty
-              ? 'Added $added payments'
-              : 'Added $added; ${problems.length} need a look: ${problems.first}',
+              ? l.addedPayments(added)
+              : l.addedWithProblems(added, problems.length, problems.first),
         ),
       ),
     );
@@ -191,7 +189,8 @@ class InboxScreen extends ConsumerWidget {
 /// Runs the AI stage on [ids] and reports the outcome.
 Future<void> askAi(BuildContext context, WidgetRef ref, List<int> ids) async {
   final messenger = ScaffoldMessenger.of(context);
-  messenger.showSnackBar(const SnackBar(content: Text('Asking the AI…')));
+  final l = context.l10n;
+  messenger.showSnackBar(SnackBar(content: Text(l.askingAi)));
   try {
     final changed = await ref
         .read(detectionServiceProvider)
@@ -201,16 +200,16 @@ Future<void> askAi(BuildContext context, WidgetRef ref, List<int> ids) async {
       ..showSnackBar(
         SnackBar(
           content: Text(
-            changed == 0
-                ? 'The AI had nothing to add'
-                : 'Updated $changed payment${changed == 1 ? '' : 's'}',
+            changed == 0 ? l.aiNothingToAdd : l.updatedPayments(changed),
           ),
         ),
       );
   } catch (e) {
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('AI unavailable: ${describeError(e)}')));
+      ..showSnackBar(
+        SnackBar(content: Text(l.aiUnavailable(describeError(e)))),
+      );
   }
 }
 
@@ -219,7 +218,7 @@ class _Header extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(Sp.xs, Sp.lg, 0, Sp.sm),
+    padding: const EdgeInsetsDirectional.fromSTEB(Sp.xs, Sp.lg, 0, Sp.sm),
     child: Text(text.toUpperCase(), style: AppTextStyles.eyebrow),
   );
 }
@@ -235,12 +234,14 @@ class _DetectedCard extends ConsumerWidget {
     final e = estimate.valueOrNull;
     if (e == null) {
       return estimate.isLoading
-          ? 'Converting to $currency…'
-          : 'No exchange rate yet · tap Edit to enter the $currency amount';
+          ? currentL10n.convertingTo(currency)
+          : currentL10n.noRateYetEdit(currency);
     }
-    final fee = e.fee > Amount.zero ? ' + ${e.feePercent}% card fee' : '';
+    final fee = e.fee > Amount.zero
+        ? currentL10n.cardFeePercent('${e.feePercent}')
+        : '';
     return '≈ ${CurrencyFormatter.format(e.amount.toDouble(), currency: currency)}'
-        '$fee · exchange rate estimate';
+        '$fee · ${currentL10n.rateEstimate}';
   }
 
   @override
@@ -271,10 +272,11 @@ class _DetectedCard extends ConsumerWidget {
     final when = row.occurredAt ?? row.receivedAt;
     final from = Issuers.byId(p.issuerId)?.name ?? row.sender ?? row.source;
     final details = [
-      account?.name ?? 'Choose an account',
+      account?.name ?? context.l10n.chooseAnAccount,
       ?instrument?.label,
-      if (category != null) category.name,
-      if (category == null && proposal != null) '✨ New: ${proposal.label}',
+      if (category != null) category.displayName,
+      if (category == null && proposal != null)
+        context.l10n.newProposal(proposal.label),
       DateFormat('d MMM, HH:mm').format(when),
       from,
     ].join(' · ');
@@ -282,7 +284,12 @@ class _DetectedCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: Sp.md),
       child: AppCard(
-        padding: const EdgeInsets.fromLTRB(Sp.lg, Sp.md, Sp.md, Sp.sm),
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          Sp.lg,
+          Sp.md,
+          Sp.md,
+          Sp.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -301,7 +308,7 @@ class _DetectedCard extends ConsumerWidget {
                       ),
                       Text(
                         '${kindLabel(row.kind)}'
-                        '${p.bookedAmount != null ? ' · charged ${p.bookedCurrency} ${p.bookedAmount}' : ''}',
+                        '${p.bookedAmount != null ? context.l10n.chargedAmountLine('${p.bookedCurrency}', '${p.bookedAmount}') : ''}',
                         style: AppTextStyles.caption.copyWith(
                           color: palette.textLow,
                         ),
@@ -334,30 +341,29 @@ class _DetectedCard extends ConsumerWidget {
             ),
             if (row.matchTransactionId != null && pending)
               _Flag(
-                'You may have entered this already',
-                action: 'Same entry',
+                context.l10n.maybeEnteredAlready,
+                action: context.l10n.sameEntry,
                 onAction: () => service.link(row.id, row.matchTransactionId!),
               ),
-            if (row.status == 'duplicate')
-              const _Flag('Same payment as another alert'),
+            if (row.status == 'duplicate') _Flag(context.l10n.sameAsOtherAlert),
             if (p.confidence < 0.7 && pending)
               _Flag(
-                'Unclear message: check the details',
+                context.l10n.unclearMessage,
                 action:
                     !p.aiAssisted &&
                         row.rawText != null &&
                         ref.watch(aiAssistProvider).valueOrNull != null
-                    ? 'Ask AI'
+                    ? context.l10n.askAi
                     : null,
                 onAction: () => askAi(context, ref, [row.id]),
               ),
-            if (p.aiAssisted && pending) const _Flag('Checked with AI'),
+            if (p.aiAssisted && pending) _Flag(context.l10n.checkedWithAi),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (row.rawText != null)
                   IconButton(
-                    tooltip: 'Show message',
+                    tooltip: context.l10n.showMessage,
                     icon: const Icon(Icons.notes_rounded, size: 20),
                     onPressed: () => showDialog(
                       context: context,
@@ -370,25 +376,25 @@ class _DetectedCard extends ConsumerWidget {
                 if (pending) ...[
                   TextButton(
                     onPressed: () => service.dismiss(row.id),
-                    child: const Text('Dismiss'),
+                    child: Text(context.l10n.dismiss),
                   ),
                   TextButton(
                     onPressed: () => _edit(context, ref, p),
-                    child: const Text('Edit'),
+                    child: Text(context.l10n.edit),
                   ),
                   FilledButton(
                     onPressed: () => _confirm(context, ref),
-                    child: const Text('Add'),
+                    child: Text(context.l10n.add),
                   ),
                 ] else if (row.status == 'confirmed')
                   TextButton(
                     onPressed: () => service.undoConfirm(row.id),
-                    child: const Text('Undo'),
+                    child: Text(context.l10n.undo),
                   )
                 else
                   TextButton(
                     onPressed: () => service.restore(row.id),
-                    child: const Text('Review again'),
+                    child: Text(context.l10n.reviewAgain),
                   ),
               ],
             ),
@@ -404,28 +410,53 @@ class _DetectedCard extends ConsumerWidget {
     DetectionDraft draft = const DetectionDraft(),
   ]) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       final result = await ref
           .read(detectionServiceProvider)
           .confirm(row.id, draft: draft);
-      final difference = result.balanceDifference;
-      if (difference == null) return;
       final accountId = draft.accountId ?? row.accountId!;
       final ledger = ref.read(financialLedgerProvider);
+      final gap = result.limitDifference;
+      if (gap != null) {
+        final available = ref.read(detectionServiceProvider).parsedOf(row);
+        messenger.showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 8),
+            content: Text(
+              l.bankLimitDiffers('${available.availableCredit}', '$gap'),
+            ),
+            action: SnackBarAction(
+              label: l.matchBank,
+              onPressed: () async {
+                // More available means less owed.
+                final owed = await ledger.store.balance(accountId);
+                await ledger.reconcile(
+                  accountId,
+                  owed - gap,
+                  l.matchedBankLimit,
+                );
+              },
+            ),
+          ),
+        );
+        return;
+      }
+      final difference = result.balanceDifference;
+      if (difference == null) return;
       messenger.showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 8),
           content: Text(
-            'The bank says your balance is ${row.balanceAfter}; Flourish '
-            'differs by $difference.',
+            l.bankBalanceDiffers('${row.balanceAfter}', '$difference'),
           ),
           action: SnackBarAction(
-            label: 'Match bank',
+            label: l.matchBank,
             onPressed: () async {
               await ledger.reconcile(
                 accountId,
                 amountOf(row.balanceAfter),
-                'Matched balance in bank message',
+                context.l10n.matchedBankBalance,
               );
             },
           ),
@@ -466,11 +497,11 @@ class _DetectedCard extends ConsumerWidget {
     final bankFigure = foreign && p.bookedCurrency == account.currency;
     final saved = await financeForm(
       context,
-      title: error ?? 'Review payment',
+      title: error ?? context.l10n.reviewPayment,
       fields: [
         FinanceField(
           'account',
-          'Account',
+          context.l10n.account,
           initial: '${row.accountId ?? ''}',
           options: {
             for (final a in accounts) '${a.id}': '${a.name} (${a.currency})',
@@ -479,11 +510,18 @@ class _DetectedCard extends ConsumerWidget {
         FinanceField(
           'amount',
           !foreign
-              ? 'Amount'
+              ? context.l10n.amount
               : bankFigure
-              ? 'Charged to the account (${account.currency}); paid ${p.currency} ${p.amount}'
-              : 'Charged in ${account.currency} (empty: exchange rate + card fee); '
-                    'paid ${p.currency} ${p.amount}',
+              ? context.l10n.chargedToAccountPaid(
+                  account.currency,
+                  '${p.currency}',
+                  '${p.amount}',
+                )
+              : context.l10n.chargedInEmpty(
+                  account.currency,
+                  '${p.currency}',
+                  '${p.amount}',
+                ),
           initial: !foreign
               ? (row.amount ?? '')
               : bankFigure
@@ -495,44 +533,51 @@ class _DetectedCard extends ConsumerWidget {
         if (!moves || p.kind == 'card_payment')
           FinanceField(
             'category',
-            'Category',
+            context.l10n.category,
             initial: '${row.categoryId ?? ''}',
             required: false,
             options: {
               '': ref.read(detectionServiceProvider).proposalOf(row) == null
-                  ? 'Automatic'
-                  : '✨ New: ${ref.read(detectionServiceProvider).proposalOf(row)!.label}',
+                  ? context.l10n.automatic
+                  : context.l10n.newProposal(
+                      ref.read(detectionServiceProvider).proposalOf(row)!.label,
+                    ),
               for (final c in categories.where((c) => c.type == categoryType))
-                '${c.id}': c.name,
+                '${c.id}': c.displayName,
             },
           ),
         if (moves)
           FinanceField(
             'to',
-            'Went to one of your accounts?',
+            context.l10n.wentToYourAccount,
             initial: '',
             required: false,
             options: {
-              '': p.kind == 'transfer_out' ? 'No, someone else' : 'Choose',
+              '': p.kind == 'transfer_out'
+                  ? context.l10n.noSomeoneElse
+                  : context.l10n.choose,
               for (final a in accounts) '${a.id}': a.name,
             },
           ),
         if (receives)
           FinanceField(
             'from',
-            'Came from one of your accounts?',
+            context.l10n.cameFromYourAccount,
             initial: '',
             required: false,
-            options: {'': 'No', for (final a in accounts) '${a.id}': a.name},
+            options: {
+              '': context.l10n.no,
+              for (final a in accounts) '${a.id}': a.name,
+            },
           ),
         FinanceField(
           'merchant',
-          'Merchant or person',
+          context.l10n.merchantOrPerson,
           initial: row.merchant ?? '',
           required: false,
         ),
       ],
-      submit: 'Add',
+      submit: context.l10n.add,
       save: (j) async {
         int? id(String key) =>
             j[key] == null || j[key]!.isEmpty ? null : int.parse(j[key]!);
@@ -554,7 +599,7 @@ class _DetectedCard extends ConsumerWidget {
     if (saved == true && context.mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Payment added')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.paymentAdded)));
     }
   }
 }

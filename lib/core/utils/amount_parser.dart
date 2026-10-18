@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'package:decimal/decimal.dart';
 import 'package:flutter/services.dart';
 import '../../domain/finance/amount.dart';
@@ -41,19 +42,19 @@ class AmountParser {
       s = match == null ? '' : match.group(0)!.trim();
       s = s.replaceAll(RegExp(r'[.,\s]+$'), '');
     }
-    if (s.isEmpty) return const AmountParseResult.fail('Enter an amount');
+    if (s.isEmpty) return AmountParseResult.fail(currentL10n.amountEnter);
     if (s.contains(' ')) {
       if (!_grouped.hasMatch(s)) {
-        return const AmountParseResult.fail('Check the number format');
+        return AmountParseResult.fail(currentL10n.amountCheckFormat);
       }
       s = s.replaceAll(' ', '');
     }
     if (!RegExp(r'^[\d.,]+$').hasMatch(s)) {
-      return const AmountParseResult.fail('Enter numbers only');
+      return AmountParseResult.fail(currentL10n.amountNumbersOnly);
     }
     final normalized = _canonical(s);
     if (normalized == null) {
-      return const AmountParseResult.fail('Check the number format');
+      return AmountParseResult.fail(currentL10n.amountCheckFormat);
     }
     var value = Decimal.parse(normalized);
     final digits = CurrencyFormatter.decimalsFor(currency);
@@ -61,14 +62,14 @@ class AmountParser {
       if (!lenient) {
         return AmountParseResult.fail(
           digits == 0
-              ? '$currency has no decimals'
-              : 'Use at most $digits decimals for $currency',
+              ? currentL10n.amountNoDecimals(currency)
+              : currentL10n.amountMaxDecimals(digits, currency),
         );
       }
       value = value.round(scale: digits);
     }
     if (value == Decimal.zero && !allowZero) {
-      return const AmountParseResult.fail('Enter an amount above zero');
+      return AmountParseResult.fail(currentL10n.amountAboveZero);
     }
     return AmountParseResult.ok(Amount(value.toString()));
   }

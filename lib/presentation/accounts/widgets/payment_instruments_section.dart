@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -27,29 +28,33 @@ class PaymentInstrumentsSection extends ConsumerWidget {
         .where((i) => i.accountId == account.id)
         .toList();
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(Sp.lg, Sp.md, Sp.sm, Sp.md),
+      padding: const EdgeInsetsDirectional.fromSTEB(Sp.lg, Sp.md, Sp.sm, Sp.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Expanded(
-                child: Text('Cards & wallets', style: AppTextStyles.title),
+                child: Text(
+                  context.l10n.cardsWallets,
+                  style: AppTextStyles.title,
+                ),
               ),
               TextButton.icon(
                 onPressed: () => editPaymentInstrument(context, ref, account),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add'),
+                label: Text(context.l10n.add),
               ),
             ],
           ),
           if (items.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(right: Sp.md, bottom: Sp.xs),
+              padding: const EdgeInsetsDirectional.only(
+                end: Sp.md,
+                bottom: Sp.xs,
+              ),
               child: Text(
-                'Add the cards and wallets that pay from this account so '
-                'spending shows what paid and detected payments find the '
-                'right account.',
+                context.l10n.cardsWalletsHelp,
                 style: AppTextStyles.caption.copyWith(color: palette.textLow),
               ),
             ),
@@ -68,9 +73,9 @@ class PaymentInstrumentsSection extends ConsumerWidget {
               subtitle: Text(
                 [
                   PaymentMethods.label(i.kind),
-                  if (i.isDefault) 'default',
+                  if (i.isDefault) context.l10n.defaultLower,
                   if (i.termsJson?['fxFeePercent'] != null)
-                    'FX fee ${i.termsJson!['fxFeePercent']}%',
+                    context.l10n.fxFee('${i.termsJson!['fxFeePercent']}'),
                 ].join(' · '),
                 style: AppTextStyles.caption.copyWith(color: palette.textLow),
               ),
@@ -104,76 +109,81 @@ Future<void> editPaymentInstrument(
         k: PaymentMethods.label(k),
   };
   if (kinds.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cash accounts have no cards or wallets')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.cashNoCards)));
     return;
   }
   await financeForm(
     context,
-    title: existing == null ? 'Add card or wallet' : 'Edit ${existing.name}',
+    title: existing == null
+        ? context.l10n.addCardOrWallet
+        : context.l10n.editNamed(existing.name),
     fields: [
       FinanceField(
         'name',
-        'Name (e.g. CIB Visa)',
+        context.l10n.instrumentName,
         initial: existing?.name ?? account.name,
       ),
       FinanceField(
         'kind',
-        'Type',
+        context.l10n.type,
         initial: existing?.kind ?? kinds.keys.first,
         options: kinds,
       ),
       FinanceField(
         'network',
-        'Card network',
+        context.l10n.cardNetwork,
         initial: existing?.network ?? '',
         required: false,
         options: {
-          '': 'None / not a card',
+          '': context.l10n.noneNotCard,
           for (final n in PaymentMethods.networks)
             n: PaymentMethods.networkLabel(n),
         },
       ),
       FinanceField(
         'last4',
-        'Last 4 digits (matches bank messages)',
+        context.l10n.last4Digits,
         initial: existing?.last4 ?? '',
         required: false,
         numeric: true,
       ),
       FinanceField(
         'issuer',
-        'Bank or wallet',
+        context.l10n.bankOrWallet,
         initial: existing?.issuer ?? '',
         required: false,
-        options: {'': 'Other', for (final i in Issuers.all) i.id: i.name},
+        options: {
+          '': context.l10n.other,
+          for (final i in Issuers.all) i.id: i.name,
+        },
       ),
       FinanceField(
         'handle',
-        'Wallet number or InstaPay address',
+        context.l10n.walletHandle,
         initial: existing?.handle ?? '',
         required: false,
       ),
       FinanceField(
         'fx',
-        'Foreign transaction fee, % (optional)',
+        context.l10n.foreignFeeOptional,
         initial: '${existing?.termsJson?['fxFeePercent'] ?? ''}',
         required: false,
         numeric: true,
       ),
       FinanceField(
         'default',
-        'Default for this account',
+        context.l10n.defaultForAccount,
         initial: existing?.isDefault == true ? 'yes' : 'no',
-        options: const {'no': 'No', 'yes': 'Yes'},
+        options: {'no': context.l10n.no, 'yes': context.l10n.yes},
       ),
       if (existing != null)
         FinanceField(
           'archived',
-          'Status',
+          context.l10n.status,
           initial: existing.archived ? 'yes' : 'no',
-          options: const {'no': 'In use', 'yes': 'Archived'},
+          options: {'no': context.l10n.inUse, 'yes': context.l10n.archived},
         ),
     ],
     save: (j) async {

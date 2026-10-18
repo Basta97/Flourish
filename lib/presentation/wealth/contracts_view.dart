@@ -1,3 +1,4 @@
+import 'package:flourish/l10n/l10n.dart';
 import '../accounts/widgets/credit_card_panel.dart' show payCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,13 +22,11 @@ class ContractsView extends ConsumerWidget {
       FilledButton.icon(
         onPressed: () => addContract(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Add contract or debt'),
+        label: Text(context.l10n.addContractOrDebt),
       ),
-      const Padding(
+      Padding(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-        child: WealthHint(
-          'Expected payments never change cash until you confirm receipt or payment.',
-        ),
+        child: WealthHint(context.l10n.expectedPaymentsNote),
       ),
       ...ref
           .watch(contractsProvider)
@@ -46,7 +45,7 @@ class ContractsView extends ConsumerWidget {
                               tint: tint,
                               title: c.name,
                               subtitle:
-                                  '${c.kind.name}${c.counterparty.isEmpty ? '' : ' · ${c.counterparty}'}\n${c.annualRate}% · matures ${c.maturity.toIso8601String().substring(0, 10)}',
+                                  '${contractKindLabel(context.l10n, c.kind)}${c.counterparty.isEmpty ? '' : ' · ${c.counterparty}'}\n${context.l10n.ratesMatures('${c.annualRate}', c.maturity.toIso8601String().substring(0, 10))}',
                               // A card's debt lives on its account, not
                               // in the contract's principal.
                               value: CurrencyFormatter.format(
@@ -66,7 +65,9 @@ class ContractsView extends ConsumerWidget {
                                 currency: c.currency,
                               ),
                               valueTone: c.isDebt ? AppColors.expense : null,
-                              secondary: c.isDebt ? 'Owed' : 'Principal',
+                              secondary: c.isDebt
+                                  ? context.l10n.owed
+                                  : context.l10n.principal,
                               // Root navigator so the detail page covers the
                               // floating nav bar.
                               onTap: () =>
@@ -97,62 +98,62 @@ Future<void> addContract(BuildContext context, WidgetRef ref) async {
   final accounts = ref.read(accountsProvider).valueOrNull ?? [];
   await financeForm(
     context,
-    title: 'Add contract or obligation',
+    title: context.l10n.addContractObligation,
     fields: [
-      const FinanceField('name', 'Name'),
+      FinanceField('name', context.l10n.name),
       FinanceField(
         'kind',
-        'Type',
+        context.l10n.type,
         initial: 'certificate',
-        options: {for (final k in ContractKind.values) k.name: k.name},
+        options: {
+          for (final k in ContractKind.values)
+            k.name: contractKindLabel(context.l10n, k),
+        },
       ),
       FinanceField(
         'currency',
-        'Currency',
+        context.l10n.currency,
         initial: ref.read(defaultCurrencyProvider),
         options: currencies,
       ),
-      const FinanceField(
-        'principal',
-        'Existing outstanding / invested principal',
-        numeric: true,
-      ),
-      const FinanceField(
+      FinanceField('principal', context.l10n.existingPrincipal, numeric: true),
+      FinanceField(
         'rate',
-        'Annual interest / coupon (%)',
+        context.l10n.annualInterestCoupon,
         initial: '0',
         numeric: true,
       ),
-      const FinanceField(
-        'counterparty',
-        'Bank / person / lender',
-        required: false,
-      ),
-      const FinanceField(
+      FinanceField('counterparty', context.l10n.counterparty, required: false),
+      FinanceField(
         'method',
-        'Interest convention',
+        context.l10n.interestConvention,
         initial: 'flat',
         options: {
-          'flat': 'Flat fixed annual rate / periodic coupons',
-          'reducing': 'Reducing balance, equal installments',
-          'manual': 'Enter an agreed schedule manually',
+          'flat': context.l10n.flatRate,
+          'reducing': context.l10n.reducingBalance,
+          'manual': context.l10n.manualSchedule,
         },
       ),
-      const FinanceField(
+      FinanceField(
         'frequency',
-        'Payments per year',
+        context.l10n.paymentsPerYear,
         initial: '12',
         options: {
-          '12': 'Monthly',
-          '4': 'Quarterly',
-          '2': 'Half-yearly',
-          '1': 'Yearly',
+          '12': context.l10n.monthly,
+          '4': context.l10n.quarterly,
+          '2': context.l10n.halfYearly,
+          '1': context.l10n.yearly,
         },
       ),
-      FinanceField('start', 'Start date', initial: today(), date: true),
+      FinanceField(
+        'start',
+        context.l10n.startDate,
+        initial: today(),
+        date: true,
+      ),
       FinanceField(
         'maturity',
-        'Maturity / end date',
+        context.l10n.maturityDate,
         initial: DateTime(
           DateTime.now().year + 1,
           DateTime.now().month,
@@ -162,7 +163,7 @@ Future<void> addContract(BuildContext context, WidgetRef ref) async {
       ),
       FinanceField(
         'account',
-        'Cash / payout account',
+        context.l10n.payoutAccount,
         initial: accounts.isEmpty ? '' : '${accounts.first.id}',
         options: {
           for (final a in accounts.where((a) => a.type != 'credit'))
@@ -172,39 +173,39 @@ Future<void> addContract(BuildContext context, WidgetRef ref) async {
       ),
       FinanceField(
         'card',
-        'Linked credit card (cards only)',
+        context.l10n.linkedCard,
         options: {
           for (final a in accounts.where((a) => a.type == 'credit'))
             '${a.id}': a.name,
         },
         required: false,
       ),
-      const FinanceField(
+      FinanceField(
         'statement',
-        'Card statement day',
+        context.l10n.cardStatementDay,
         initial: '1',
         numeric: true,
       ),
-      const FinanceField(
+      FinanceField(
         'due',
-        'Card payment day',
+        context.l10n.cardPaymentDay,
         initial: '15',
         numeric: true,
       ),
-      const FinanceField(
+      FinanceField(
         'fund',
-        'Move principal from/to cash now?',
+        context.l10n.movePrincipalNow,
         initial: 'no',
         options: {
-          'no': 'No — this is an existing position',
-          'yes': 'Yes — record new funding',
+          'no': context.l10n.existingPosition,
+          'yes': context.l10n.recordNewFunding,
         },
       ),
     ],
     save: (j) async {
       final statement = int.parse(j['statement']!), due = int.parse(j['due']!);
       if (statement < 1 || statement > 31 || due < 1 || due > 31) {
-        throw ArgumentError('Card days must be 1–31');
+        throw ArgumentError(context.l10n.cardDaysRange);
       }
       final c = FinanceContract(
         id: ref.read(financialLedgerProvider).newId(),
@@ -252,13 +253,17 @@ class ContractDetailScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                '${c.principal.fixed()} ${c.currency} · ${c.annualRate}% annual',
+                context.l10n.principalAnnual(
+                  c.principal.fixed(),
+                  c.currency,
+                  '${c.annualRate}',
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               Text(
                 c.interestMethod == 'reducing'
-                    ? 'Equal installments; periodic rate = annual rate / payments per year.'
-                    : 'Flat coupons; final partial period is prorated by actual days in the scheduled period.',
+                    ? context.l10n.equalInstallmentsNote
+                    : context.l10n.flatCouponsNote,
               ),
               const SizedBox(height: 16),
               if (c.kind == ContractKind.creditCard)
@@ -268,10 +273,18 @@ class ContractDetailScreen extends ConsumerWidget {
                     return Card(
                       child: ListTile(
                         title: Text(
-                          'Outstanding ${s.data?['outstanding'] ?? '…'} ${c.currency}',
+                          context.l10n.outstandingAmount(
+                            '${s.data?['outstanding'] ?? '…'}',
+                            c.currency,
+                          ),
                         ),
                         subtitle: Text(
-                          'Billed ${s.data?['billed'] ?? '…'} · unbilled ${s.data?['unbilled'] ?? '…'}\nOlder / opening ${s.data?['olderOrOpening'] ?? '…'} · due ${s.data?['due']?.toString().substring(0, 10) ?? '…'}',
+                          context.l10n.billedLine(
+                            '${s.data?['billed'] ?? '…'}',
+                            '${s.data?['unbilled'] ?? '…'}',
+                            '${s.data?['olderOrOpening'] ?? '…'}',
+                            s.data?['due']?.toString().substring(0, 10) ?? '…',
+                          ),
                         ),
                         trailing: TextButton(
                           onPressed: () async {
@@ -285,7 +298,7 @@ class ContractDetailScreen extends ConsumerWidget {
                             if (!context.mounted) return;
                             await payCard(context, ref, account, status);
                           },
-                          child: const Text('Pay card'),
+                          child: Text(context.l10n.payCard),
                         ),
                       ),
                     );
@@ -294,7 +307,7 @@ class ContractDetailScreen extends ConsumerWidget {
               if (c.interestMethod == 'manual')
                 OutlinedButton(
                   onPressed: () => _manualPayment(context, ref, c),
-                  child: const Text('Add agreed payment'),
+                  child: Text(context.l10n.addAgreedPayment),
                 ),
               if (c.kind != ContractKind.creditCard)
                 OutlinedButton(
@@ -304,24 +317,24 @@ class ContractDetailScreen extends ConsumerWidget {
                         .fold(Amount.zero, (sum, p) => sum + p.principal);
                     await financeForm(
                       context,
-                      title: 'Early settlement',
+                      title: context.l10n.earlySettlement,
                       fields: [
                         FinanceField(
                           'principal',
-                          'Outstanding principal',
+                          context.l10n.outstandingPrincipal,
                           initial: '${c.principal - paid}',
                           numeric: true,
                         ),
-                        const FinanceField(
+                        FinanceField(
                           'interest',
-                          'Agreed final interest / fee',
+                          context.l10n.agreedFinalInterest,
                           initial: '0',
                           numeric: true,
                         ),
                       ],
                       save: (j) async {
                         if (c.accountId == null) {
-                          throw StateError('No linked cash account');
+                          throw StateError(context.l10n.noLinkedCashAccount);
                         }
                         await ref
                             .read(contractServiceProvider)
@@ -334,7 +347,7 @@ class ContractDetailScreen extends ConsumerWidget {
                       },
                     );
                   },
-                  child: const Text('Record early settlement'),
+                  child: Text(context.l10n.recordEarlySettlement),
                 ),
               for (final p in rows)
                 Card(
@@ -343,29 +356,29 @@ class ContractDetailScreen extends ConsumerWidget {
                       '${p.date.toIso8601String().substring(0, 10)} · ${p.total.fixed()} ${c.currency}',
                     ),
                     subtitle: Text(
-                      'Principal ${p.principal.fixed()} · interest ${p.interest.fixed()}${p.paid ? ' · Confirmed' : ''}',
+                      '${context.l10n.principalInterestLine(p.principal.fixed(), p.interest.fixed())}${p.paid ? ' · ${context.l10n.confirmed}' : ''}',
                     ),
                     trailing: p.paid
                         ? IconButton(
-                            tooltip: 'Reverse confirmed payment',
+                            tooltip: context.l10n.reverseConfirmedPayment,
                             icon: const Icon(Icons.undo),
                             onPressed: () async {
                               final reverse = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: const Text('Reverse payment?'),
-                                  content: const Text(
-                                    'This reverses the linked cash entries and marks the payment unpaid.',
+                                  title: Text(context.l10n.reversePaymentTitle),
+                                  content: Text(
+                                    context.l10n.reversePaymentBody,
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(ctx, false),
-                                      child: const Text('Cancel'),
+                                      child: Text(context.l10n.cancel),
                                     ),
                                     FilledButton(
                                       onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('Reverse'),
+                                      child: Text(context.l10n.reverse),
                                     ),
                                   ],
                                 ),
@@ -397,12 +410,14 @@ class ContractDetailScreen extends ConsumerWidget {
                                       .toList();
                               await financeForm(
                                 context,
-                                title:
-                                    'Confirm actual ${p.total.fixed()} ${c.currency}',
+                                title: context.l10n.confirmActual(
+                                  p.total.fixed(),
+                                  c.currency,
+                                ),
                                 fields: [
                                   FinanceField(
                                     'account',
-                                    'Cash account · record actual payment now',
+                                    context.l10n.cashAccountRecordNow,
                                     initial:
                                         c.accountId?.toString() ??
                                         accounts.firstOrNull?.id.toString() ??
@@ -413,7 +428,7 @@ class ContractDetailScreen extends ConsumerWidget {
                                     },
                                   ),
                                 ],
-                                submit: 'Confirm',
+                                submit: context.l10n.confirm,
                                 save: (j) => ref
                                     .read(contractServiceProvider)
                                     .confirm(
@@ -422,7 +437,7 @@ class ContractDetailScreen extends ConsumerWidget {
                                     ),
                               );
                             },
-                            child: const Text('Confirm'),
+                            child: Text(context.l10n.confirm),
                           ),
                   ),
                 ),
@@ -434,6 +449,15 @@ class ContractDetailScreen extends ConsumerWidget {
   }
 }
 
+String contractKindLabel(AppLocalizations l, ContractKind kind) =>
+    switch (kind) {
+      ContractKind.deposit => l.contractDeposit,
+      ContractKind.certificate => l.contractCertificate,
+      ContractKind.loan => l.contractLoan,
+      ContractKind.receivable => l.contractReceivable,
+      ContractKind.creditCard => l.contractCreditCard,
+    };
+
 Future<void> _manualPayment(
   BuildContext context,
   WidgetRef ref,
@@ -442,13 +466,13 @@ Future<void> _manualPayment(
 }) async {
   await financeForm(
     context,
-    title: card ? 'Pay credit card' : 'Add agreed payment',
+    title: card ? context.l10n.payCreditCard : context.l10n.addAgreedPayment,
     fields: [
-      FinanceField('date', 'Due date', initial: today(), date: true),
-      const FinanceField('principal', 'Principal amount', numeric: true),
-      const FinanceField(
+      FinanceField('date', context.l10n.dueDate, initial: today(), date: true),
+      FinanceField('principal', context.l10n.principalAmount, numeric: true),
+      FinanceField(
         'interest',
-        'Interest amount',
+        context.l10n.interestAmount,
         initial: '0',
         numeric: true,
       ),
@@ -463,7 +487,7 @@ Future<void> _manualPayment(
       );
       if (card) {
         if (p.total <= Amount.zero) {
-          throw ArgumentError('Enter a positive payment');
+          throw ArgumentError(context.l10n.enterPositivePayment);
         }
         await ref.read(databaseProvider).transaction(() async {
           await ref

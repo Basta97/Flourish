@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../data/database/database.dart';
 import '../../data/finance/finance_store.dart';
 import '../../domain/finance/models.dart';
+import '../finance/credit_card_service.dart';
 import '../finance/financial_ledger_service.dart';
 import '../finance/valuation_service.dart';
 import '../services/category_suggester.dart';
@@ -56,7 +57,15 @@ class ConfirmResult {
   /// Message balance minus the account's balance after booking, when the
   /// message stated one and they differ.
   final Amount? balanceDifference;
-  const ConfirmResult(this.transactionId, this.balanceDifference);
+
+  /// On a credit card: the available limit the message stated minus what
+  /// Flourish shows after booking, when they differ.
+  final Amount? limitDifference;
+  const ConfirmResult(
+    this.transactionId,
+    this.balanceDifference, [
+    this.limitDifference,
+  ]);
 }
 
 /// Turns bank and wallet messages into pending payments, matches them to
@@ -719,7 +728,25 @@ class DetectionService {
         difference = stated - booked;
       }
     }
-    return ConfirmResult(transactionId, difference);
+    Amount? limitDifference;
+    if (account.type == 'credit' &&
+        (p.availableCredit != null || p.availableIntlCredit != null)) {
+      // Bank limits are in the card's currency even on foreign purchases.
+      final cards = CreditCardService(ledger);
+      await cards.recordBankLimits(
+        account.id,
+        available: p.availableCredit,
+        intlAvailable: p.availableIntlCredit,
+        at: row.occurredAt ?? row.receivedAt,
+      );
+      final status = await cards.status(account.id);
+      if (p.availableCredit != null &&
+          status.limit != null &&
+          p.availableCredit != status.available) {
+        limitDifference = p.availableCredit! - status.available;
+      }
+    }
+    return ConfirmResult(transactionId, difference, limitDifference);
   });
 
   /// Records that the payment is already in the ledger as [transactionId].

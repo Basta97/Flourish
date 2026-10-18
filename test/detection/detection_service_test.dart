@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flourish/core/detection/detection_service.dart';
 import 'package:flourish/core/detection/parsed_payment.dart';
+import 'package:flourish/core/finance/credit_card_service.dart';
 import 'package:flourish/core/finance/financial_ledger_service.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/domain/finance/models.dart';
@@ -316,5 +317,36 @@ void main() {
     addTearDown(upgraded.close);
     expect(await upgraded.select(upgraded.detectedPayments).get(), isEmpty);
     db = AppDatabase.forTesting(NativeDatabase.memory());
+  });
+
+  test('a card alert keeps the limits it states and flags a gap', () async {
+    final cards = CreditCardService(ledger);
+    final visa = await cards.createCard(
+      name: 'NBE Visa',
+      currency: 'EGP',
+      owed: Amount('1000'),
+      terms: CardTerms(creditLimit: Amount('20000'), intlLimit: Amount('5000')),
+      purchaseApr: Amount('30'),
+      statementDay: 25,
+      paymentDay: 10,
+    );
+    final row = await detection.ingest(
+      sms(
+        'Your credit card was charged EGP 500.00 at SPINNEYS. '
+        'Available limit EGP 18,000.00. '
+        'Available international limit EGP 4,200.00',
+        sender: 'NBE',
+      ),
+    );
+    final result = await detection.confirm(
+      row!.id,
+      draft: DetectionDraft(accountId: visa),
+    );
+    // Flourish shows 20000 - 1500 = 18500 available.
+    expect(result.limitDifference, Amount('-500'));
+    expect(result.balanceDifference, isNull);
+    final s = await cards.status(visa);
+    expect(s.bankAvailable!.value, Amount('18000'));
+    expect(s.bankIntlAvailable!.value, Amount('4200'));
   });
 }

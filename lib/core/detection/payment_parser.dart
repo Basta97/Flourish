@@ -68,6 +68,9 @@ class PaymentMessageParser {
         .firstOrNull;
     var balance = candidates.where((c) => c.role == _Role.balance).firstOrNull;
     var limit = candidates.where((c) => c.role == _Role.limit).firstOrNull;
+    final intlLimit = candidates
+        .where((c) => c.role == _Role.intlLimit)
+        .firstOrNull;
     // On a credit card the "available balance" is the credit left.
     if (balance != null && _creditCard.hasMatch(f)) {
       limit = balance;
@@ -124,6 +127,7 @@ class PaymentMessageParser {
       occurredAt: occurredAt ?? message.receivedAt,
       balanceAfter: balance?.value,
       availableCredit: limit?.value,
+      availableIntlCredit: intlLimit?.value,
       confidence: confidence > 0.99 ? 0.99 : confidence,
     );
   }
@@ -218,7 +222,11 @@ class PaymentMessageParser {
           : Lexicon.feeLabel.hasMatch(window)
           ? _Role.fee
           : balance != null && !spentAfterBalance
-          ? (_limitWord.hasMatch(_label(window)) ? _Role.limit : _Role.balance)
+          ? (Lexicon.intlLabel.hasMatch(_clause(_label(window)))
+                ? _Role.intlLimit
+                : _limitWord.hasMatch(_label(window))
+                ? _Role.limit
+                : _Role.balance)
           : _Role.amount;
       out.add(_Candidate(value, currency, start, end, role));
     }
@@ -230,6 +238,13 @@ class PaymentMessageParser {
     final label = window.split(RegExp(r'\d')).last;
     return label.length > 40 ? label.substring(label.length - 40) : label;
   }
+
+  /// The last clause of [label]: "international purchase at X. available
+  /// limit" is about the local limit.
+  static String _clause(String label) => label
+      .replaceAllMapped(RegExp(r'\b(intl|avail|int)\.'), (m) => m[1]!)
+      .split(RegExp(r'[.!;،,؛\n]'))
+      .last;
 
   static String? _last4(String f) {
     for (final pattern in Lexicon.last4) {
@@ -380,7 +395,7 @@ class PaymentMessageParser {
   }
 }
 
-enum _Role { amount, balance, limit, fee, equivalent }
+enum _Role { amount, balance, limit, intlLimit, fee, equivalent }
 
 class _Candidate {
   final Amount value;

@@ -43,6 +43,9 @@ class ParsedPayment {
   final String? last4, merchant, counterparty, reference, issuerId;
   final DateTime? occurredAt;
   final Amount? balanceAfter, availableCredit;
+
+  /// What is left of the card's international limit, when stated.
+  final Amount? availableIntlCredit;
   final double confidence;
 
   /// otp, declined, promo, no_amount — the message is not a payment.
@@ -70,6 +73,7 @@ class ParsedPayment {
     this.occurredAt,
     this.balanceAfter,
     this.availableCredit,
+    this.availableIntlCredit,
     required this.confidence,
     this.ignoreReason,
     this.aiAssisted = false,
@@ -92,6 +96,7 @@ class ParsedPayment {
       occurredAt = null,
       balanceAfter = null,
       availableCredit = null,
+      availableIntlCredit = null,
       confidence = 0,
       aiAssisted = false,
       proposedCategory = null;
@@ -115,6 +120,8 @@ class ParsedPayment {
     'occurredAt': occurredAt?.toIso8601String(),
     'balanceAfter': balanceAfter?.toString(),
     'availableCredit': availableCredit?.toString(),
+    if (availableIntlCredit != null)
+      'availableIntlCredit': availableIntlCredit.toString(),
     'confidence': confidence,
     'ignoreReason': ignoreReason,
     if (aiAssisted) 'aiAssisted': true,
@@ -141,6 +148,7 @@ class ParsedPayment {
           : DateTime.parse(j['occurredAt']),
       balanceAfter: a('balanceAfter'),
       availableCredit: a('availableCredit'),
+      availableIntlCredit: a('availableIntlCredit'),
       confidence: (j['confidence'] as num?)?.toDouble() ?? 0,
       ignoreReason: j['ignoreReason'],
       aiAssisted: j['aiAssisted'] == true,
@@ -178,6 +186,7 @@ class ParsedPayment {
     occurredAt: occurredAt ?? this.occurredAt,
     balanceAfter: balanceAfter,
     availableCredit: availableCredit,
+    availableIntlCredit: availableIntlCredit,
     confidence: confidence ?? this.confidence,
     ignoreReason: clearIgnore ? null : ignoreReason ?? this.ignoreReason,
     aiAssisted: aiAssisted ?? this.aiAssisted,

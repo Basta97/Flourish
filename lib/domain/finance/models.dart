@@ -153,8 +153,14 @@ class CardTerms {
   final Amount creditLimit, minPaymentPercent, minPaymentFloor;
   final Amount fxFeePercent, cashAdvanceFeePercent, cashAdvanceFeeMin;
   final Amount cashAdvanceApr, lateFee;
+
+  /// How much of [creditLimit] may be used abroad or in other currencies
+  /// (online purchases from foreign merchants included). Null when the card
+  /// has no separate international limit.
+  final Amount? intlLimit;
   CardTerms({
     required this.creditLimit,
+    Amount? intlLimit,
     Amount? minPaymentPercent,
     Amount? minPaymentFloor,
     Amount? fxFeePercent,
@@ -168,7 +174,10 @@ class CardTerms {
        cashAdvanceFeePercent = cashAdvanceFeePercent ?? Amount.zero,
        cashAdvanceFeeMin = cashAdvanceFeeMin ?? Amount.zero,
        cashAdvanceApr = cashAdvanceApr ?? Amount.zero,
-       lateFee = lateFee ?? Amount.zero;
+       lateFee = lateFee ?? Amount.zero,
+       intlLimit = intlLimit == null || intlLimit == Amount.zero
+           ? null
+           : intlLimit;
 
   /// Rejects terms no card would have.
   void validate() {
@@ -182,8 +191,16 @@ class CardTerms {
         minPaymentFloor < Amount.zero ||
         cashAdvanceFeeMin < Amount.zero ||
         lateFee < Amount.zero ||
+        (intlLimit != null && intlLimit! < Amount.zero) ||
         percents.any((p) => p < Amount.zero || p > Amount('100'))) {
       throw ArgumentError('Check the card limit, fees and percentages');
+    }
+    if (intlLimit != null &&
+        creditLimit > Amount.zero &&
+        intlLimit! > creditLimit) {
+      throw ArgumentError(
+        'The international limit cannot be more than the credit limit',
+      );
     }
   }
 
@@ -196,6 +213,7 @@ class CardTerms {
     'cashAdvanceFeeMin': '$cashAdvanceFeeMin',
     'cashAdvanceApr': '$cashAdvanceApr',
     'lateFee': '$lateFee',
+    if (intlLimit != null) 'intlLimit': '$intlLimit',
   };
   factory CardTerms.fromJson(Json j) => CardTerms(
     creditLimit: amountOf(j['creditLimit']),
@@ -206,6 +224,7 @@ class CardTerms {
     cashAdvanceFeeMin: amountOf(j['cashAdvanceFeeMin']),
     cashAdvanceApr: amountOf(j['cashAdvanceApr']),
     lateFee: amountOf(j['lateFee']),
+    intlLimit: j['intlLimit'] == null ? null : amountOf(j['intlLimit']),
   );
 }
 

@@ -144,8 +144,18 @@ class Lexicon {
   /// payment.
   static final balanceLabel = RegExp(
     r'(avail(able)?\.?\s*(bal(ance)?|limit|credit)|\bbal(ance)?\b|'
-    r'remaining|current balance|limit|الرصيد|رصيدك|رصيد|الحد المتاح|المتاح|'
+    r'remaining|current balance|limit|international (usage|available)|'
+    r'\bintl\.? avail(able)?|الرصيد|رصيدك|رصيد|الحد المتاح|المتاح|'
+    r'الحد الدولي|الاستخدام الدولي|'
     r'المتبقي)[^0-9]{0,24}$',
+  );
+
+  /// A limit label that means the international (abroad and foreign
+  /// currency) limit, e.g. "available international limit", "الحد الدولي",
+  /// "حد الاستخدام الدولي".
+  static final intlLabel = RegExp(
+    r'international|\bintl\b|abroad|overseas|outside egypt|دولي|بالخارج|'
+    r'الخارج|خارج مصر',
   );
   static final feeLabel = RegExp(
     r'(\bfees?\b|\bcharges?\b|\bcommission\b|رسوم|عموله|مصاريف)[^0-9]{0,16}$',

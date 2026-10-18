@@ -6,6 +6,13 @@ import '../utils/currency_formatter.dart';
 import 'contract_service.dart';
 import 'financial_ledger_service.dart';
 
+/// A figure the bank stated in a message, e.g. "Available limit EGP 5,000".
+class ReportedLimit {
+  final Amount value;
+  final DateTime at;
+  const ReportedLimit(this.value, this.at);
+}
+
 /// Where a credit card stands today. Amounts are in the card's currency;
 /// [owed] is positive when money is owed.
 class CreditStatus {
@@ -26,7 +33,16 @@ class CreditStatus {
   final Amount cashAdvanceBalance;
   final DateTime? closing, due;
   final CardTerms? terms;
-  const CreditStatus({
+
+  /// The international limit, what of it is in use (unpaid spending in
+  /// other currencies and its fees) and what is left of it; null without
+  /// an international limit. [intlAvailable] never exceeds [available].
+  final Amount? intlLimit, intlUsed, intlAvailable;
+  final Amount intlOverLimitBy;
+
+  /// The latest available limits a bank message stated, if any.
+  final ReportedLimit? bankAvailable, bankIntlAvailable;
+  CreditStatus({
     required this.currency,
     required this.owed,
     required this.available,
@@ -42,8 +58,31 @@ class CreditStatus {
     required this.closing,
     required this.due,
     required this.terms,
-  });
+    this.intlLimit,
+    this.intlUsed,
+    this.intlAvailable,
+    Amount? intlOverLimitBy,
+    this.bankAvailable,
+    this.bankIntlAvailable,
+  }) : intlOverLimitBy = intlOverLimitBy ?? Amount.zero;
   bool get hasTerms => terms != null;
+
+  /// How far spending [spend] more would go over a limit, or null when it
+  /// fits (or the card has no limit). [foreign] spending also counts against
+  /// the international limit; [international] says which limit it breaks.
+  ({Amount by, bool international})? overAfter(
+    Amount spend, {
+    bool foreign = false,
+  }) {
+    final total = limit != null && spend > available ? spend - available : null;
+    final intl = foreign && intlAvailable != null && spend > intlAvailable!
+        ? spend - intlAvailable!
+        : null;
+    if (intl != null && (total == null || intl > total)) {
+      return (by: intl, international: true);
+    }
+    return total == null ? null : (by: total, international: false);
+  }
 }
 
 /// Credit card setup and status, built on the card's billing contract so
@@ -53,6 +92,30 @@ class CreditCardService {
   CreditCardService(this.ledger);
   AppDatabase get db => ledger.db;
   FinanceStore get store => ledger.store;
+
+  static const reportsCollection = 'cardLimitReports';
+
+  /// Keeps the available limits a bank message stated at [at], unless a
+  /// newer message already said otherwise.
+  Future<void> recordBankLimits(
+    int accountId, {
+    Amount? available,
+    Amount? intlAvailable,
+    required DateTime at,
+  }) async {
+    if (available == null && intlAvailable == null) return;
+    final j = {...?await store.get(reportsCollection, '$accountId')};
+    void keep(String key, Amount? value) {
+      if (value == null) return;
+      final old = j[key] as Map?;
+      if (old != null && dateOf(old['at']).isAfter(at)) return;
+      j[key] = {'value': '$value', 'at': at.toIso8601String()};
+    }
+
+    keep('available', available);
+    keep('intlAvailable', intlAvailable);
+    await store.put(reportsCollection, '$accountId', j);
+  }
 
   Future<FinanceContract?> contractFor(int accountId) async {
     for (final j in await store.list('contracts')) {
@@ -163,7 +226,8 @@ class CreditCardService {
     DateTime? closing, due;
     var atClosing = Amount.zero,
         paidSince = Amount.zero,
-        cashAdvance = Amount.zero;
+        cashAdvance = Amount.zero,
+        intlUsed = Amount.zero;
     if (contract != null) {
       final dates = ContractService.statementDates(contract, today);
       closing = dates.closing;
@@ -177,15 +241,29 @@ class CreditCardService {
       atClosing = opening.isEmpty
           ? Amount.zero
           : amountOf(opening.single.read<String>('opening'));
-      final rows = await db.getTransactionsByAccount(accountId);
+      final rows = [...await db.getTransactionsByAccount(accountId)]
+        ..sort((a, b) {
+          final byDate = a.transactionDate.compareTo(b.transactionDate);
+          return byDate != 0 ? byDate : a.id.compareTo(b.id);
+        });
       final details = await store.transactionDetailsFor(rows.map((t) => t.id));
+      Amount amountOfRow(Transaction t) => details[t.id]?['amount'] == null
+          ? Amount.fromNum(t.amount)
+          : amountOf(details[t.id]!['amount']);
+      // Payments clear the oldest debt first; what is left of spending in
+      // other currencies is what uses the international limit.
+      final debts = _DebtQueue();
+      var net = Amount.zero;
+      for (final t in rows) {
+        net += t.type == 'expense' ? amountOfRow(t) : -amountOfRow(t);
+      }
+      debts.add(owed - net, foreign: false);
       for (final t in rows) {
         if (t.transactionDate.isAfter(today)) continue;
         final d = details[t.id];
-        final amount = d?['amount'] == null
-            ? Amount.fromNum(t.amount)
-            : amountOf(d!['amount']);
+        final amount = amountOfRow(t);
         final debt = t.type == 'expense' ? amount : -amount;
+        debts.add(debt, foreign: _isForeign(d, account.currency));
         if (t.transactionDate.isBefore(closing)) {
           atClosing += debt;
         } else if (t.type == 'income') {
@@ -195,6 +273,7 @@ class CreditCardService {
           cashAdvance += amount;
         }
       }
+      intlUsed = debts.foreign;
     }
     // Payments reduce the oldest debt first, so advances cannot exceed it.
     if (cashAdvance > owed) {
@@ -221,6 +300,23 @@ class CreditCardService {
           ? atStatement - paidSince
           : Amount.zero;
     }
+    final intlLimit = terms?.intlLimit;
+    Amount? intlAvailable;
+    if (intlLimit != null) {
+      intlAvailable = intlLimit - intlUsed;
+      if (hasLimit && limit - owed < intlAvailable) {
+        intlAvailable = limit - owed;
+      }
+      if (intlAvailable < Amount.zero) intlAvailable = Amount.zero;
+    }
+    final reports = await store.get(reportsCollection, '$accountId');
+    ReportedLimit? reported(String key) {
+      final r = reports?[key] as Map?;
+      return r == null
+          ? null
+          : ReportedLimit(amountOf(r['value']), dateOf(r['at']));
+    }
+
     final monthly = Amount('1200');
     final interest =
         (remaining * (contract?.annualRate ?? Amount.zero) / monthly +
@@ -244,15 +340,61 @@ class CreditCardService {
       closing: closing,
       due: due,
       terms: terms,
+      intlLimit: intlLimit,
+      intlUsed: intlLimit == null ? null : intlUsed,
+      intlAvailable: intlAvailable,
+      intlOverLimitBy: intlLimit != null && intlUsed > intlLimit
+          ? intlUsed - intlLimit
+          : Amount.zero,
+      bankAvailable: reported('available'),
+      bankIntlAvailable: reported('intlAvailable'),
     );
   }
 
-  /// Warns before a purchase would push the card over its limit; returns
-  /// the amount over, or null when it fits (or no limit is set).
-  Future<Amount?> overLimitAfter(int accountId, Amount spend) async {
-    final s = await status(accountId);
-    if (s.limit == null) return null;
-    final after = s.owed + spend;
-    return after > s.limit! ? after - s.limit! : null;
+  /// Spending booked in another currency than the card's, or its FX fee.
+  static bool _isForeign(Json? d, String currency) {
+    final original = d?['original'] as Map?;
+    return (original != null && original['currency'] != currency) ||
+        d?['feeType'] == 'fx';
   }
+
+  /// Warns before a purchase would push the card over its limit (or, for
+  /// [foreign] spending, its international limit); returns the amount over,
+  /// or null when it fits (or no limit is set).
+  Future<Amount?> overLimitAfter(
+    int accountId,
+    Amount spend, {
+    bool foreign = false,
+  }) async => (await status(accountId)).overAfter(spend, foreign: foreign)?.by;
+}
+
+/// Unpaid card debt, oldest first, split into local and foreign spending.
+class _DebtQueue {
+  final _chunks = <(Amount, bool)>[];
+  var _credit = Amount.zero;
+
+  /// Adds spending (positive) or a payment (negative).
+  void add(Amount debt, {required bool foreign}) {
+    if (debt > Amount.zero) {
+      final used = _credit < debt ? _credit : debt;
+      _credit -= used;
+      if (debt - used > Amount.zero) _chunks.add((debt - used, foreign));
+      return;
+    }
+    var pay = -debt;
+    while (pay > Amount.zero && _chunks.isNotEmpty) {
+      final (amount, isForeign) = _chunks.first;
+      if (amount > pay) {
+        _chunks[0] = (amount - pay, isForeign);
+        pay = Amount.zero;
+      } else {
+        _chunks.removeAt(0);
+        pay -= amount;
+      }
+    }
+    _credit += pay;
+  }
+
+  Amount get foreign =>
+      _chunks.where((c) => c.$2).fold(Amount.zero, (sum, c) => sum + c.$1);
 }

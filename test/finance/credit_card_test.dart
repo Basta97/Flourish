@@ -17,8 +17,13 @@ void main() {
   });
   tearDown(() => db.close());
 
-  CardTerms terms({String limit = '20000', String floor = '300'}) => CardTerms(
+  CardTerms terms({
+    String limit = '20000',
+    String floor = '300',
+    String? intl,
+  }) => CardTerms(
     creditLimit: Amount(limit),
+    intlLimit: intl == null ? null : Amount(intl),
     minPaymentPercent: Amount('5'),
     minPaymentFloor: Amount(floor),
     fxFeePercent: Amount('3'),
@@ -26,12 +31,12 @@ void main() {
     cashAdvanceFeeMin: Amount('50'),
     cashAdvanceApr: Amount('48'),
   );
-  Future<int> card({String limit = '20000', String owed = '0'}) =>
+  Future<int> card({String limit = '20000', String owed = '0', String? intl}) =>
       cards.createCard(
         name: 'CIB Visa',
         currency: 'EGP',
         owed: Amount(owed),
-        terms: terms(limit: limit),
+        terms: terms(limit: limit, intl: intl),
         purchaseApr: Amount('36'),
         statementDay: 25,
         paymentDay: 10,
@@ -167,5 +172,128 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  group('international limit', () {
+    Future<void> abroad(int id, String egp, String usd, DateTime date) async {
+      final food = (await db.getAllCategories()).firstWhere(
+        (c) => c.name == 'Food & Drinks',
+      );
+      await ledger.recordPurchase(
+        accountId: id,
+        amount: Amount(egp),
+        categoryId: food.id,
+        original: Money(usd, 'USD'),
+        date: date,
+      );
+    }
+
+    test('foreign spending and its fee use the international limit', () async {
+      final id = await card(owed: '1000', intl: '5000');
+      await abroad(id, '1000', '20', DateTime(2026, 3, 1));
+      await spend(id, '500', DateTime(2026, 3, 2));
+      final s = await cards.status(id, now: now);
+      expect(s.intlLimit, Amount('5000'));
+      // 1000 plus the card's 3% FX fee.
+      expect(s.intlUsed, Amount('1030'));
+      expect(s.intlAvailable, Amount('3970'));
+      expect(s.available, Amount('17470'));
+      expect(s.intlOverLimitBy, Amount.zero);
+    });
+
+    test('payments clear the oldest debt first', () async {
+      final id = await card(owed: '1000', intl: '5000');
+      await abroad(id, '1000', '20', DateTime(2026, 3, 1));
+      await pay(id, '1500', DateTime(2026, 3, 2));
+      var s = await cards.status(id, now: now);
+      expect(s.intlUsed, Amount('530'));
+      await pay(id, '1000', DateTime(2026, 3, 3));
+      s = await cards.status(id, now: now);
+      expect(s.intlUsed, Amount.zero);
+      expect(s.intlAvailable, Amount('5000'));
+      // The overpayment is credit that absorbs the next foreign purchase.
+      await abroad(id, '800', '16', DateTime(2026, 3, 4));
+      s = await cards.status(id, now: now);
+      // 824 with the fee, less the 470 overpaid.
+      expect(s.intlUsed, Amount('354'));
+    });
+
+    test('what is left abroad never exceeds the credit left', () async {
+      final id = await card(limit: '5000', owed: '3000', intl: '4000');
+      final s = await cards.status(id, now: now);
+      expect(s.intlUsed, Amount.zero);
+      expect(s.intlAvailable, Amount('2000'));
+    });
+
+    test('warns about the limit a purchase would break', () async {
+      final id = await card(owed: '1000', intl: '5000');
+      await abroad(id, '1000', '20', DateTime(2026, 3, 1));
+      final s = await cards.status(id, now: now);
+      final over = s.overAfter(Amount('4500'), foreign: true)!;
+      expect(over.international, isTrue);
+      expect(over.by, Amount('530'));
+      expect(s.overAfter(Amount('4500')), isNull);
+      expect(s.overAfter(Amount('19000'))!.by, Amount('1030'));
+      expect(
+        await cards.overLimitAfter(id, Amount('4000'), foreign: true),
+        Amount('30'),
+      );
+    });
+
+    test('over the international limit', () async {
+      final id = await card(intl: '500');
+      await abroad(id, '1000', '20', DateTime(2026, 3, 1));
+      final s = await cards.status(id, now: now);
+      expect(s.intlOverLimitBy, Amount('530'));
+      expect(s.intlAvailable, Amount.zero);
+    });
+
+    test('without one, cards work as before', () async {
+      final id = await card(owed: '1000');
+      await abroad(id, '1000', '20', DateTime(2026, 3, 1));
+      final s = await cards.status(id, now: now);
+      expect(s.intlLimit, isNull);
+      expect(s.intlAvailable, isNull);
+      expect(s.overAfter(Amount('18000'), foreign: true)!.international, false);
+      expect(
+        CardTerms(creditLimit: Amount('1'), intlLimit: Amount.zero).intlLimit,
+        isNull,
+      );
+    });
+
+    test('is stored with the terms and validated', () async {
+      final t = terms(intl: '7500');
+      expect(CardTerms.fromJson(t.toJson()).intlLimit, Amount('7500'));
+      expect(CardTerms.fromJson(terms().toJson()).intlLimit, isNull);
+      expect(
+        () => terms(limit: '5000', intl: '6000').validate(),
+        throwsArgumentError,
+      );
+      expect(() => terms(intl: '-1').validate(), throwsArgumentError);
+    });
+
+    test('keeps the newest limits a bank message stated', () async {
+      final id = await card(intl: '5000');
+      await cards.recordBankLimits(
+        id,
+        available: Amount('15000'),
+        intlAvailable: Amount('4200'),
+        at: DateTime(2026, 3, 2),
+      );
+      await cards.recordBankLimits(
+        id,
+        intlAvailable: Amount('9999'),
+        at: DateTime(2026, 3, 1),
+      );
+      await cards.recordBankLimits(
+        id,
+        available: Amount('14000'),
+        at: DateTime(2026, 3, 3),
+      );
+      final s = await cards.status(id, now: now);
+      expect(s.bankAvailable!.value, Amount('14000'));
+      expect(s.bankIntlAvailable!.value, Amount('4200'));
+      expect(s.bankIntlAvailable!.at, DateTime(2026, 3, 2));
+    });
   });
 }

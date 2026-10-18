@@ -12,7 +12,7 @@ class Fixture {
   final String text;
   final String? sender;
   final String? kind, currency, amount, last4, merchant, counterparty;
-  final String? balance, available, booked, fee, ignore, issuer;
+  final String? balance, available, intl, booked, fee, ignore, issuer;
   final String direction;
   final DateTime? date;
   const Fixture(
@@ -26,6 +26,7 @@ class Fixture {
     this.counterparty,
     this.balance,
     this.available,
+    this.intl,
     this.booked,
     this.fee,
     this.ignore,
@@ -378,8 +379,54 @@ final fixtures = <Fixture>[
     last4: '4827',
     merchant: 'FACEBK',
     available: '512.4',
+    intl: '41250.75',
     issuer: 'banque_misr',
     date: DateTime(2026, 10, 14),
+  ),
+  // ── Local and international limits ───────────────────────────────────
+  Fixture(
+    'Your credit card ending 5521 was charged EGP 750.00 at SPINNEYS on 12/10/2026. Available limit EGP 18,250.00. Available international limit EGP 4,100.00',
+    kind: 'purchase',
+    amount: '750',
+    last4: '5521',
+    merchant: 'SPINNEYS',
+    available: '18250',
+    intl: '4100',
+  ),
+  Fixture(
+    'Purchase of USD 25.00 at AMAZON.COM with card **8810. Equivalent EGP 1,262.50. Intl. limit available: EGP 2,737.50. Avail. limit EGP 30,000',
+    kind: 'purchase',
+    currency: 'USD',
+    amount: '25',
+    last4: '8810',
+    booked: '1262.5',
+    available: '30000',
+    intl: '2737.5',
+  ),
+  Fixture(
+    'International purchase on credit card 7741 of EUR 40.00 at ZARA ES. Available limit EGP 9,800.00',
+    kind: 'purchase',
+    currency: 'EUR',
+    amount: '40',
+    last4: '7741',
+    available: '9800',
+  ),
+  Fixture(
+    'تم خصم 600 جنيه من بطاقتك الائتمانية المنتهية ب 3390 لدى كارفور. الحد المتاح 14,400 جنيه، الحد الدولي المتاح 3,000 جنيه',
+    kind: 'purchase',
+    amount: '600',
+    last4: '3390',
+    available: '14400',
+    intl: '3000',
+  ),
+  Fixture(
+    'تم خصم مبلغ 35 دولار من بطاقة الائتمان ****6612 لدى NETFLIX. حد الاستخدام الدولي المتبقي 1,850 جنيه. الحد المتاح 22,000 جنيه',
+    kind: 'purchase',
+    currency: 'USD',
+    amount: '35',
+    last4: '6612',
+    available: '22000',
+    intl: '1850',
   ),
 ];
 
@@ -423,6 +470,11 @@ void main() {
         expect(p.availableCredit, Amount(f.available!), reason: 'available');
         expect(p.balanceAfter, isNull, reason: 'credit balance is no balance');
       }
+      expect(
+        p.availableIntlCredit,
+        f.intl == null ? isNull : Amount(f.intl!),
+        reason: 'international limit',
+      );
       if (f.booked != null) {
         expect(p.bookedAmount, Amount(f.booked!), reason: 'booked');
       }

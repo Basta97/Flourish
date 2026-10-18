@@ -1,0 +1,93 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 1564 >>
+stream
+BT /F2 9.0 Tf 50.0 780.0 Td (Nile Commercial Bank) Tj ET
+BT /F1 9.0 Tf 50.0 765.0 Td (Account statement  Account no. 1002003004005) Tj ET
+BT /F1 9.0 Tf 50.0 752.0 Td (Customer: Sample Customer  sample@example.com) Tj ET
+BT /F1 9.0 Tf 50.0 739.0 Td (Period 01/10/2026 - 31/10/2026  Currency EGP) Tj ET
+BT /F2 9.0 Tf 50.0 710.0 Td (Date) Tj ET
+BT /F2 9.0 Tf 120.0 710.0 Td (Description) Tj ET
+BT /F2 9.0 Tf 374.0 710.0 Td (Debit) Tj ET
+BT /F2 9.0 Tf 440.0 710.0 Td (Credit) Tj ET
+BT /F2 9.0 Tf 507.0 710.0 Td (Balance) Tj ET
+BT /F1 9.0 Tf 50.0 694.0 Td (01/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 694.0 Td (Opening balance) Tj ET
+BT /F1 9.0 Tf 504.968 694.0 Td (10,000.00) Tj ET
+BT /F1 9.0 Tf 50.0 678.0 Td (02/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 678.0 Td (POS CARREFOUR MAADI) Tj ET
+BT /F1 9.0 Tf 364.972 678.0 Td (1,250.50) Tj ET
+BT /F1 9.0 Tf 509.972 678.0 Td (8,749.50) Tj ET
+BT /F1 9.0 Tf 50.0 662.0 Td (05/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 662.0 Td (SALARY OCTOBER) Tj ET
+BT /F1 9.0 Tf 429.968 662.0 Td (25,000.00) Tj ET
+BT /F1 9.0 Tf 504.968 662.0 Td (33,749.50) Tj ET
+BT /F1 9.0 Tf 50.0 646.0 Td (07/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 646.0 Td (ATM WITHDRAWAL) Tj ET
+BT /F1 9.0 Tf 364.972 646.0 Td (2,000.00) Tj ET
+BT /F1 9.0 Tf 504.968 646.0 Td (31,749.50) Tj ET
+BT /F1 9.0 Tf 50.0 630.0 Td (10/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 630.0 Td (INSTAPAY TRANSFER) Tj ET
+BT /F1 9.0 Tf 372.478 630.0 Td (500.00) Tj ET
+BT /F1 9.0 Tf 504.968 630.0 Td (31,249.50) Tj ET
+BT /F1 9.0 Tf 120.0 619.0 Td (TO MOSTAFA HASSAN) Tj ET
+BT /F1 9.0 Tf 50.0 80.0 Td (Page 1 of 2) Tj ET
+
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 765 >>
+stream
+BT /F2 9.0 Tf 50.0 780.0 Td (Date) Tj ET
+BT /F2 9.0 Tf 120.0 780.0 Td (Description) Tj ET
+BT /F2 9.0 Tf 374.0 780.0 Td (Debit) Tj ET
+BT /F2 9.0 Tf 440.0 780.0 Td (Credit) Tj ET
+BT /F2 9.0 Tf 507.0 780.0 Td (Balance) Tj ET
+BT /F1 9.0 Tf 50.0 764.0 Td (12/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 764.0 Td (REFUND AMAZON.EG) Tj ET
+BT /F1 9.0 Tf 442.478 764.0 Td (349.99) Tj ET
+BT /F1 9.0 Tf 504.968 764.0 Td (31,599.49) Tj ET
+BT /F1 9.0 Tf 50.0 748.0 Td (15/10/2026) Tj ET
+BT /F1 9.0 Tf 120.0 748.0 Td (VODAFONE CASH BILL) Tj ET
+BT /F1 9.0 Tf 372.478 748.0 Td (120.00) Tj ET
+BT /F1 9.0 Tf 504.968 748.0 Td (31,479.49) Tj ET
+BT /F1 9.0 Tf 120.0 720.0 Td (Closing balance) Tj ET
+BT /F1 9.0 Tf 504.968 720.0 Td (31,479.49) Tj ET
+BT /F1 9.0 Tf 50.0 80.0 Td (Page 2 of 2) Tj ET
+
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000320 00000 n 
+0000000456 00000 n 
+0000002072 00000 n 
+0000002208 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+3024
+%%EOF

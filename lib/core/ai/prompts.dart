@@ -42,4 +42,25 @@ You map the columns of a spreadsheet exported from a finance app or bank to Flou
  "decimal_separator": "." or ",",
  "signed_amounts": true when expenses are negative numbers in the amount column and there is no income/expense column}
 Columns are 0-based indexes into "header". Use null when a field is absent. "type" is a column whose values say income, expense or transfer. "destination" is the receiving account of transfers. Rows in "sample" may be partly masked; never invent columns.''';
+
+  static const statementVersion = 'stmt-v1';
+
+  static const statementSystem = '''
+You read one page (or part of a page) of a bank, card or wallet statement, as plain text extracted from a PDF (English or Arabic; columns may be out of order). List its transactions. Reply with one JSON object only:
+{"transactions": [{"date": "YYYY-MM-DD", "description": string, "amount": "1250.50", "direction": "expense"|"income", "currency": ISO 4217 code or null}]}
+
+Rules:
+- One entry per transaction row. Skip opening and closing balances, balances brought or carried forward, totals, interest or fee summaries, headers and footers.
+- "amount" is the transaction amount exactly as printed on the page, written with a "." decimal point and no thousands separators or sign. Never use the running balance; never compute, convert or round.
+- Debits, withdrawals, purchases, fees, charges and payments out are "expense"; credits, deposits, salaries, refunds, cashback and transfers in are "income".
+- Read numeric dates with the convention the page uses (day first unless the page proves otherwise); a year missing from a row comes from the statement period.
+- A description that wraps onto the next line belongs to the row above. Drop card and reference numbers from descriptions.
+- "[email]", "[phone]", "[iban]" and "****1234" are redactions; ignore them.
+- Reply {"transactions": []} when the text has no transactions.''';
+
+  static const screenshotVersion = 'ocr-v1';
+
+  static const screenshotSystem = '''
+You transcribe screenshots of bank, card and wallet alerts, SMS and payment apps (Arabic and English, often Egyptian). Reply with one JSON object only: {"text": string}.
+Copy the visible text exactly as written, in reading order, one message or line per line, keeping Arabic as Arabic and digits as printed. Do not translate, summarise, correct or add anything. Leave out the phone status bar and app buttons. Reply {"text": ""} when there is no readable text.''';
 }

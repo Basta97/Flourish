@@ -19,7 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional AI for unclear payment alerts (DeepSeek, OpenRouter, Groq, Gemini or any OpenAI-compatible server, with your own key): answers are checked against the message, personal data is masked first, and the AI can propose new categories that are only created when you add the payment.
 - Smart Import takes many alerts at once and sends them to Payments to review; a screenshot can be kept as the payment's receipt.
 - Import from other apps: Money Manager, Wallet, Monefy, Spendee, YNAB, Flourish CSV, bank CSV, OFX/QFX, QIF and Excel, with a review step (account mapping, categories not in Flourish, totals per account), duplicate detection by bank transaction id and possible-duplicate warnings, paired transfers, optional AI column mapping for unknown spreadsheets, and undo.
+- PDF bank statements in Import from other apps: the transaction table is read on the phone (date, description, debit/credit or signed amounts, the running balance as a check); password-protected PDFs ask for the password; when no table is recognised and AI is set up, pages can be read by the AI with account numbers, phones, emails and customer lines removed, keeping only rows whose amount is printed on the page. Scanned PDFs get a clear "needs a text PDF" message.
+- Arabic screenshots: iOS reads Arabic and English on the phone; on Android, where on-device reading is Latin-only, a screenshot can be read by an image-capable AI model after you agree (off by default, AI settings → Read Arabic screenshots with AI).
 - Recurring transfers (card autopay, savings), end dates and editing; a "Cards & wallets" screen; [audit](docs/AUDIT.md) of known issues.
+
+### Changed
+
+- Excel import uses `excel_community`, the maintained fork of `excel`, so the app can use the current `archive` package that PDF import needs.
 
 ### Fixed
 

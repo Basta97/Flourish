@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as paths;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:flourish/core/ai/ai_client.dart';
+import 'package:flourish/core/ai/ai_screenshot_reader.dart';
 import 'package:flourish/core/detection/message_splitter.dart';
 import 'package:flourish/core/detection/parsed_payment.dart';
 import 'package:flourish/core/models/shared_import_draft.dart';
@@ -18,6 +21,7 @@ import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/presentation/providers/ai_providers.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
+import 'package:flourish/presentation/settings/screenshot_ai_disclosure.dart';
 import 'package:flourish/shared/widgets/app_card.dart';
 import 'package:flourish/shared/widgets/liquid_page.dart';
 
@@ -94,18 +98,79 @@ class _NotificationImportScreenState
     await _recognize(path);
   }
 
+  /// Android's on-device reader (ML Kit Latin) cannot read Arabic, so
+  /// there a screenshot may also be read by a vision model, on request.
+  bool get _aiReadable =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      _imagePath != null &&
+      ref.read(aiClientProvider).valueOrNull != null;
+
   Future<void> _recognize(String path) async {
     setState(() => _busy = true);
     try {
       final text = await SharedImportService.recognizeImage(path);
       if (!mounted) return;
       if (text.trim().isEmpty) {
-        _snack('No readable text found. Type or paste the alert instead.');
+        _snack(
+          _aiReadable
+              ? 'No readable text found. For Arabic, try "Read with AI".'
+              : 'No readable text found. Type or paste the alert instead.',
+        );
         return;
       }
       setState(() => _text.text = text);
     } catch (e) {
       if (mounted) _snack('Text recognition failed: ${describeError(e)}');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _readWithAi() async {
+    final path = _imagePath;
+    final client = await ref.read(aiClientProvider.future);
+    if (path == null || client == null || !mounted) return;
+    var settings = ref.read(aiSettingsProvider);
+    if (settings.preset.readsImages == false) {
+      _snack(
+        '${settings.preset.label} cannot read images. Choose a model that '
+        'can, such as Gemini, in AI settings.',
+      );
+      return;
+    }
+    if (!settings.screenshotOcr) {
+      if (!await confirmScreenshotAi(context, settings)) return;
+      settings = settings.copyWith(screenshotOcr: true);
+      ref.read(aiSettingsProvider.notifier).state = settings;
+      await settings.save();
+    }
+    setState(() => _busy = true);
+    try {
+      final text =
+          await AiScreenshotReader(
+            client,
+            usage: ref.read(aiUsageTrackerProvider),
+          ).read(
+            await File(path).readAsBytes(),
+            mimeType: AiScreenshotReader.mimeTypeFor(path),
+          );
+      if (!mounted) return;
+      if (text.isEmpty) {
+        _snack('The AI found no readable text in this image.');
+        return;
+      }
+      setState(() => _text.text = text);
+    } on AiException catch (e) {
+      if (mounted) {
+        _snack(
+          e.statusCode == 400 || e.statusCode == 404
+              ? 'This model could not read the image (${e.message}). Choose a '
+                    'model that reads images in AI settings.'
+              : 'AI reading failed: ${e.message}',
+        );
+      }
+    } catch (e) {
+      if (mounted) _snack('AI reading failed: ${describeError(e)}');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -178,6 +243,8 @@ class _NotificationImportScreenState
   Widget build(BuildContext context) {
     final draft = widget.initialDraft;
     final aiReady = ref.watch(aiAssistProvider).valueOrNull != null;
+    ref.watch(aiClientProvider);
+    final aiReadable = _aiReadable;
     final secondary = AppTextStyles.body.copyWith(
       color: AppColors.textSecondary(context),
     );
@@ -248,6 +315,15 @@ class _NotificationImportScreenState
                       value: _attachReceipt,
                       onChanged: (v) => setState(() => _attachReceipt = v),
                     ),
+                    if (aiReadable)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          onPressed: _busy ? null : _readWithAi,
+                          icon: const Icon(Icons.translate_rounded),
+                          label: const Text('Read with AI (Arabic)'),
+                        ),
+                      ),
                   ],
                   const SizedBox(height: Sp.lg),
                   TextField(

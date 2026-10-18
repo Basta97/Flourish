@@ -63,11 +63,12 @@ class SceneDelegate: FlutterSceneDelegate {
           let request = VNRecognizeTextRequest()
           request.recognitionLevel = .accurate
           request.usesLanguageCorrection = true
-          // Read Arabic receipts and screenshots where Vision supports it.
-          if let supported = try? request.supportedRecognitionLanguages() {
-            let arabic = supported.filter { $0.hasPrefix("ar") }
-            if !arabic.isEmpty { request.recognitionLanguages = arabic + ["en-US"] }
-          }
+          // Arabic and English alerts. Vision reads Arabic from iOS 16 (accurate
+          // level only); older systems keep English.
+          let wanted = ["ar-SA", "en-US"]
+          let supported = (try? request.supportedRecognitionLanguages()) ?? []
+          let languages = wanted.filter { supported.contains($0) }
+          if !languages.isEmpty { request.recognitionLanguages = languages }
           do {
             try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
             let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")

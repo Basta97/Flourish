@@ -26,9 +26,18 @@ Read `docs/ARCHITECTURE.md`, `docs/FINANCE_IMPLEMENTATION.md` and
   fallback. `CategoryResolver` dedups near-identical names and creates
   proposals (`CategoryResolver.ensure`) only on confirm.
 - File import: `lib/core/finance/import/` parsers (OFX/QFX, QIF, app CSV
-  presets) → `FileImportService.plan` (account map, category decisions,
-  FITID/row keys, possible duplicates) → `ImportReviewScreen` → `apply`
-  (one DB transaction, `sourceRef` = batch id) → `undo`.
+  presets, PDF statements) → `FileImportService.plan` (account map, category
+  decisions, FITID/row keys, possible duplicates) → `ImportReviewScreen` →
+  `apply` (one DB transaction, `sourceRef` = batch id) → `undo`.
+- PDF statements: `PdfTextReader` (pdfrx/pdfium text layer with word
+  positions) → `PdfStatementParser` (header columns by x position, running
+  balance as the tie-breaker) → `AiStatementReader` only when the table
+  heuristic finds nothing (page chunks, `Redactor`, amount must be printed
+  on the page). Fixtures: `tool/make_statement_pdfs.dart`.
+- Screenshots: on-device OCR over `flourish/imports` (iOS Vision `ar-SA` +
+  `en-US`; Android ML Kit Latin). Android can opt in to
+  `AiScreenshotReader` (image sent to a vision model, after a disclosure;
+  `AiSettings.screenshotOcr`).
 
 **Non-negotiables**
 
@@ -52,12 +61,18 @@ Read `docs/ARCHITECTURE.md`, `docs/FINANCE_IMPLEMENTATION.md` and
 **Open phases**
 
 - "Let AI decide" for categories not in Flourish during file import.
-- PDF statements: text extraction (e.g. `pdfrx`), local table heuristic,
-  AI page-chunk fallback; scanned PDFs need OCR.
 - Verify the five app CSV presets built from third-party docs against real
-  exports.
-- Arabic OCR: iOS `recognitionLanguages = ["ar-SA", "en-US"]`; Android ML
-  Kit Latin cannot read Arabic (offer an AI vision fallback behind a flag).
+  exports, and the PDF heuristic against real bank statements (Egyptian
+  banks, Arabic layouts).
+- Scanned PDFs: today they get a "needs a text PDF" message; OCR of the
+  rendered pages (Vision / ML Kit, or the AI vision path) is not built.
+
+**Done**
+
+- PDF statements (2026-10-18): pdfrx 2.4.7 text extraction, table
+  heuristic, AI page-chunk fallback, password prompt, scanned-PDF message.
+- Arabic OCR (2026-10-18): iOS Vision `["ar-SA", "en-US"]` where supported
+  (app and share extension); Android opt-in AI vision fallback.
 
 Work phase by phase. After each, run `flutter analyze` and `flutter test`,
 summarise what changed and list remaining risks before continuing.

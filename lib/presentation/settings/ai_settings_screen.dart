@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +11,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/liquid_page.dart';
 import '../providers/ai_providers.dart';
 import '../providers/finance_providers.dart';
+import 'screenshot_ai_disclosure.dart';
 
 /// Provider, key and behaviour of the optional AI stage of Smart Import.
 class AiSettingsScreen extends ConsumerStatefulWidget {
@@ -261,6 +263,23 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                         ? null
                         : (v) => _update(s.copyWith(redact: v)),
                   ),
+                  if (defaultTargetPlatform == TargetPlatform.android)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Read Arabic screenshots with AI'),
+                      subtitle: Text(
+                        s.preset.readsImages == false
+                            ? '${s.preset.label} cannot read images; choose a '
+                                  'model that can, such as Gemini.'
+                            : 'Sends the image itself, unmasked, when you tap '
+                                  '"Read with AI" in Smart Import.',
+                      ),
+                      value: s.screenshotOcr,
+                      onChanged: (v) async {
+                        if (v && !await confirmScreenshotAi(context, s)) return;
+                        await _update(s.copyWith(screenshotOcr: v));
+                      },
+                    ),
                 ],
               ),
             ),

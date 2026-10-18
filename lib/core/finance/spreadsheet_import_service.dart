@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:csv/csv.dart' as csv;
-import 'package:excel/excel.dart' as xlsx;
+import 'package:excel_community/excel_community.dart' as xlsx;
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import '../../domain/finance/models.dart';

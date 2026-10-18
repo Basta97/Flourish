@@ -12,6 +12,7 @@ class AiProviderPreset {
     required this.keyHint,
     this.free = false,
     this.supportsJsonMode = true,
+    this.readsImages,
   });
 
   final String id;
@@ -24,6 +25,10 @@ class AiProviderPreset {
   final bool free;
   final bool supportsJsonMode;
 
+  /// Whether the preset's default model accepts images; null when it
+  /// depends on the model the person picks.
+  final bool? readsImages;
+
   static const all = <AiProviderPreset>[
     AiProviderPreset(
       id: 'deepseek',
@@ -31,6 +36,7 @@ class AiProviderPreset {
       baseUrl: 'https://api.deepseek.com',
       model: 'deepseek-chat',
       keyHint: 'platform.deepseek.com → API keys',
+      readsImages: false,
     ),
     AiProviderPreset(
       id: 'openrouter',
@@ -50,6 +56,7 @@ class AiProviderPreset {
       model: 'llama-3.3-70b-versatile',
       keyHint: 'console.groq.com/keys (free tier)',
       free: true,
+      readsImages: false,
     ),
     AiProviderPreset(
       id: 'gemini',
@@ -58,6 +65,7 @@ class AiProviderPreset {
       model: 'gemini-2.5-flash',
       keyHint: 'aistudio.google.com/apikey (free tier)',
       free: true,
+      readsImages: true,
     ),
     AiProviderPreset(
       id: 'custom',
@@ -83,6 +91,7 @@ class AiSettings {
     this.threshold = 0.75,
     this.allowNewCategories = true,
     this.redact = true,
+    this.screenshotOcr = false,
   });
 
   static const apiKeyStorageKey = 'ai_api_key';
@@ -96,6 +105,10 @@ class AiSettings {
   final double threshold;
   final bool allowNewCategories;
   final bool redact;
+
+  /// Android only: screenshots the on-device reader cannot read (Arabic)
+  /// may be sent, as images, to the AI. Off until the person agrees.
+  final bool screenshotOcr;
 
   AiProviderPreset get preset => AiProviderPreset.byId(presetId);
 
@@ -112,6 +125,7 @@ class AiSettings {
     double? threshold,
     bool? allowNewCategories,
     bool? redact,
+    bool? screenshotOcr,
   }) => AiSettings(
     enabled: enabled ?? this.enabled,
     presetId: presetId ?? this.presetId,
@@ -120,6 +134,7 @@ class AiSettings {
     threshold: threshold ?? this.threshold,
     allowNewCategories: allowNewCategories ?? this.allowNewCategories,
     redact: redact ?? this.redact,
+    screenshotOcr: screenshotOcr ?? this.screenshotOcr,
   );
 
   static AiSettings load() {
@@ -145,6 +160,7 @@ class AiSettings {
           defaultValue: d.allowNewCategories,
         ),
         redact: PreferencesService.getBool('ai_redact', defaultValue: true),
+        screenshotOcr: PreferencesService.getBool('ai_screenshot_ocr'),
       );
     } on StateError {
       return d; // Preferences not initialised (tests).
@@ -159,5 +175,6 @@ class AiSettings {
     await PreferencesService.setDouble('ai_threshold', threshold);
     await PreferencesService.setBool('ai_new_categories', allowNewCategories);
     await PreferencesService.setBool('ai_redact', redact);
+    await PreferencesService.setBool('ai_screenshot_ocr', screenshotOcr);
   }
 }

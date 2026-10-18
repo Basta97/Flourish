@@ -17,6 +17,15 @@ class AiUsage {
   final int promptTokens, completionTokens;
 }
 
+/// A picture sent with the user turn to a vision-capable model.
+class AiImage {
+  const AiImage(this.bytes, {this.mimeType = 'image/jpeg'});
+  final List<int> bytes;
+  final String mimeType;
+
+  String get dataUrl => 'data:$mimeType;base64,${base64Encode(bytes)}';
+}
+
 class AiReply {
   const AiReply(this.json, this.usage);
   final Map<String, dynamic> json;
@@ -52,15 +61,25 @@ class AiClient {
 
   /// Sends one system + user turn and returns the reply parsed as a JSON
   /// object. Retries once on rate limits and server errors, and once without
-  /// JSON mode when a provider rejects `response_format`.
+  /// JSON mode when a provider rejects `response_format`. [images] go in the
+  /// user turn as OpenAI-style `image_url` parts; the model must accept
+  /// images. [timeout] overrides the client's for slow, long replies.
   Future<AiReply> completeJson({
     required String system,
     required String user,
+    List<AiImage> images = const [],
+    Duration? timeout,
   }) async {
     var useJsonMode = jsonMode;
     for (var attempt = 0; ; attempt++) {
       try {
-        return await _send(system, user, useJsonMode);
+        return await _send(
+          system,
+          user,
+          images,
+          useJsonMode,
+          timeout ?? this.timeout,
+        );
       } on AiException catch (e) {
         if (useJsonMode &&
             e.statusCode == 400 &&
@@ -74,7 +93,13 @@ class AiClient {
     }
   }
 
-  Future<AiReply> _send(String system, String user, bool useJsonMode) async {
+  Future<AiReply> _send(
+    String system,
+    String user,
+    List<AiImage> images,
+    bool useJsonMode,
+    Duration timeout,
+  ) async {
     final http.Response response;
     try {
       response = await httpClient
@@ -90,7 +115,19 @@ class AiClient {
               'temperature': 0,
               'messages': [
                 {'role': 'system', 'content': system},
-                {'role': 'user', 'content': user},
+                {
+                  'role': 'user',
+                  'content': images.isEmpty
+                      ? user
+                      : [
+                          {'type': 'text', 'text': user},
+                          for (final image in images)
+                            {
+                              'type': 'image_url',
+                              'image_url': {'url': image.dataUrl},
+                            },
+                        ],
+                },
               ],
               if (useJsonMode) 'response_format': {'type': 'json_object'},
             }),

@@ -9,6 +9,10 @@ abstract final class ImportValues {
   static const _easternDigits = '٠١٢٣٤٥٦٧٨٩';
   static const _persianDigits = '۰۱۲۳۴۵۶۷۸۹';
 
+  /// [text] with Arabic-Indic and Persian digits (and the Arabic decimal
+  /// and thousands marks) replaced by ASCII ones.
+  static String westernDigits(String text) => _westernDigits(text);
+
   static String _westernDigits(String text) {
     final out = StringBuffer();
     for (final rune in text.runes) {

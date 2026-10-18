@@ -1,5 +1,6 @@
 import 'package:csv/csv.dart' as csv;
 import '../../core/finance/payment_methods.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -16,6 +17,10 @@ import '../providers/transaction_providers.dart';
 import '../providers/theme_providers.dart';
 import '../../core/finance/backup_service.dart';
 import '../../core/ai/ai_column_mapper.dart';
+import '../../core/ai/ai_statement_reader.dart';
+import '../../core/finance/import/pdf_statement.dart';
+import '../../core/finance/import/pdf_text_reader.dart';
+import 'package:pdfrx/pdfrx.dart' show PdfPasswordException;
 import '../../core/finance/import/import_sources.dart';
 import '../../core/utils/error_text.dart';
 import '../providers/ai_providers.dart';
@@ -185,8 +190,8 @@ class FinanceToolsView extends ConsumerWidget {
         leading: const Icon(Icons.table_chart_outlined),
         title: const Text('Import from other apps'),
         subtitle: const Text(
-          'Money Manager, Wallet, Monefy, Spendee, YNAB, bank CSV, OFX, QIF '
-          'or Excel · review before anything is added',
+          'Money Manager, Wallet, Monefy, Spendee, YNAB, bank CSV, OFX, QIF, '
+          'Excel or PDF statements · review before anything is added',
         ),
         onTap: () => importSpreadsheet(context, ref),
       ),
@@ -918,15 +923,19 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
     if (filePath == null || !context.mounted) return;
     final name = path.basename(filePath);
     final lower = name.toLowerCase();
-    if (!RegExp(r'\.(csv|txt|tsv|xlsx|ofx|qfx|qif)$').hasMatch(lower)) {
+    if (!RegExp(r'\.(csv|txt|tsv|xlsx|ofx|qfx|qif|pdf)$').hasMatch(lower)) {
       throw const FormatException(
-        'Choose a CSV, Excel (.xlsx), OFX/QFX or QIF file',
+        'Choose a CSV, Excel (.xlsx), OFX/QFX, QIF or PDF statement',
       );
     }
     final legacy = SpreadsheetImportService(ref.read(financialLedgerProvider));
     final options = ImportOptions(
       defaultCurrency: ref.read(defaultCurrencyProvider),
     );
+    if (lower.endsWith('.pdf')) {
+      await _importPdf(context, ref, filePath, options);
+      return;
+    }
 
     // Spreadsheets are read as CSV so app presets recognise them too.
     List<List<String>>? matrix;
@@ -989,6 +998,163 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
       ).showSnackBar(SnackBar(content: Text('Import: ${describeError(e)}')));
     }
   }
+}
+
+/// A PDF statement: the table heuristic first, then (when it finds nothing
+/// and AI is set up) the AI, page by page, after the person agrees.
+Future<void> _importPdf(
+  BuildContext context,
+  WidgetRef ref,
+  String filePath,
+  ImportOptions options,
+) async {
+  final List<StatementPage> pages;
+  try {
+    pages = await PdfTextReader.read(
+      filePath,
+      password: () => _askPdfPassword(context),
+    );
+  } on PdfPasswordException {
+    throw const FormatException(
+      'This PDF is password protected. Enter its password to import it.',
+    );
+  }
+  if (!context.mounted) return;
+  if (!PdfStatementParser.hasTextLayer(pages)) {
+    throw const FormatException(
+      'This PDF has no text, it looks like a scan. Import needs a text PDF: '
+      "download the statement from your bank's website or app, or export "
+      'CSV, Excel or OFX instead.',
+    );
+  }
+  final local = PdfStatementParser.parse(pages, options: options);
+  if (local.rows.isNotEmpty) {
+    await _openImportReview(context, local, 'PDF statement');
+    return;
+  }
+
+  final client = await ref.read(aiClientProvider.future);
+  if (client == null) {
+    throw const FormatException(
+      'No transaction table found in this PDF. Set up AI in Settings to read '
+      'unusual layouts, or export CSV, Excel or OFX from your bank.',
+    );
+  }
+  if (!context.mounted) return;
+  final reader = AiStatementReader(
+    client,
+    usage: ref.read(aiUsageTrackerProvider),
+  );
+  final requests = reader.requestCount(pages);
+  final provider = ref.read(aiSettingsProvider).preset;
+  final ask = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Read this statement with AI?'),
+      content: Text(
+        'No table Flourish recognises was found. The text of '
+        '${pages.length} page${pages.length == 1 ? '' : 's'} '
+        '($requests request${requests == 1 ? '' : 's'}) goes to '
+        '${provider.label}, with account and card numbers, IBANs, phones, '
+        'emails and customer name lines removed. Amounts, dates and '
+        'descriptions are sent. Rows whose amount is not on the page are '
+        'left out, and you review everything before it is added.'
+        '${provider.free ? '\n\nFree tiers may keep what you send.' : ''}',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Use AI'),
+        ),
+      ],
+    ),
+  );
+  if (ask != true || !context.mounted) return;
+
+  final progress = ValueNotifier<String>('Reading page 1 of ${pages.length}…');
+  final navigator = Navigator.of(context, rootNavigator: true);
+  unawaited(
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 20),
+              Expanded(
+                child: ValueListenableBuilder(
+                  valueListenable: progress,
+                  builder: (_, text, _) => Text(text),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  ImportParseResult parsed;
+  try {
+    parsed = await reader.read(
+      pages,
+      options: options,
+      onProgress: (done, total) => progress.value =
+          'Reading part ${done < total ? done + 1 : total} '
+          'of $total…',
+    );
+  } finally {
+    navigator.pop();
+    progress.dispose();
+  }
+  if (!context.mounted) return;
+  if (parsed.rows.isEmpty) {
+    throw FormatException(
+      parsed.warnings.isEmpty
+          ? 'The AI found no transactions in this PDF'
+          : parsed.warnings.first.message,
+    );
+  }
+  await _openImportReview(context, parsed, 'PDF statement (AI)');
+}
+
+Future<String?> _askPdfPassword(BuildContext context) async {
+  if (!context.mounted) return null;
+  // Not disposed here: the dialog still uses it while it animates out.
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('PDF password'),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        obscureText: true,
+        decoration: const InputDecoration(
+          labelText: 'Password',
+          helperText: 'Banks often use your ID or account number',
+        ),
+        onSubmitted: (v) => Navigator.pop(ctx, v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, controller.text),
+          child: const Text('Open'),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<void> _openImportReview(

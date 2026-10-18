@@ -97,11 +97,12 @@ final class ShareViewController: SLComposeServiceViewController {
         continuation.resume(returning: text)
       }
       request.recognitionLevel = .accurate
-      // Read Arabic receipts and screenshots where Vision supports it.
-      if let supported = try? request.supportedRecognitionLanguages() {
-        let arabic = supported.filter { $0.hasPrefix("ar") }
-        if !arabic.isEmpty { request.recognitionLanguages = arabic + ["en-US"] }
-      }
+      // Arabic and English alerts. Vision reads Arabic from iOS 16 (accurate
+      // level only); older systems keep English.
+      let wanted = ["ar-SA", "en-US"]
+      let supported = (try? request.supportedRecognitionLanguages()) ?? []
+      let languages = wanted.filter { supported.contains($0) }
+      if !languages.isEmpty { request.recognitionLanguages = languages }
       request.usesLanguageCorrection = true
 
       let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])

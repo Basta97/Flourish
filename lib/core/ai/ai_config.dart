@@ -62,7 +62,8 @@ class AiProviderPreset {
       id: 'gemini',
       label: 'Google Gemini',
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-      model: 'gemini-2.5-flash',
+      // An alias Google keeps pointed at the current Flash model.
+      model: 'gemini-flash-latest',
       keyHint: 'aistudio.google.com/apikey (free tier)',
       free: true,
       readsImages: true,
@@ -140,6 +141,11 @@ class AiSettings {
   static AiSettings load() {
     const d = AiSettings();
     try {
+      var model = PreferencesService.getString('ai_model', defaultValue: d.model);
+      // The first Gemini default was a dated model id; follow the alias.
+      if (model == 'gemini-2.5-flash' || model == 'gemini-2.0-flash') {
+        model = 'gemini-flash-latest';
+      }
       return AiSettings(
         enabled: PreferencesService.getBool('ai_enabled'),
         presetId: PreferencesService.getString(
@@ -150,7 +156,7 @@ class AiSettings {
           'ai_base_url',
           defaultValue: d.baseUrl,
         ),
-        model: PreferencesService.getString('ai_model', defaultValue: d.model),
+        model: model,
         threshold: PreferencesService.getDouble(
           'ai_threshold',
           defaultValue: d.threshold,

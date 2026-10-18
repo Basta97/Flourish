@@ -75,6 +75,53 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
     );
   }
 
+  /// Lists the models the saved key can use, so a renamed or retired model
+  /// is one tap to fix.
+  Future<void> _chooseModel() async {
+    setState(() {
+      _testing = true;
+      _testResult = null;
+    });
+    List<String> models = const [];
+    try {
+      final client = await ref.read(aiClientProvider.future);
+      if (client == null) {
+        throw const AiException('Save an API key first');
+      }
+      models = await client.listModels();
+      if (models.isEmpty) throw const AiException('No models available for this key');
+    } on Exception catch (e) {
+      _testOk = false;
+      _testResult = '$e';
+    } finally {
+      if (mounted) setState(() => _testing = false);
+    }
+    if (models.isEmpty || !mounted) return;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final m in models)
+              ListTile(
+                title: Text(m),
+                trailing: m == _model.text.trim()
+                    ? const Icon(Icons.check_rounded)
+                    : null,
+                onTap: () => Navigator.pop(ctx, m),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    _model.text = picked;
+    await _update(ref.read(aiSettingsProvider).copyWith(model: picked));
+    await _test();
+  }
+
   Future<void> _test() async {
     setState(() {
       _testing = true;
@@ -169,7 +216,14 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   TextField(
                     controller: _model,
                     autocorrect: false,
-                    decoration: const InputDecoration(labelText: 'Model'),
+                    decoration: InputDecoration(
+                      labelText: 'Model',
+                      suffixIcon: IconButton(
+                        tooltip: 'Choose model',
+                        icon: const Icon(Icons.list_alt_rounded),
+                        onPressed: _testing ? null : _chooseModel,
+                      ),
+                    ),
                     onChanged: (v) => _update(s.copyWith(model: v)),
                   ),
                   const SizedBox(height: Sp.md),

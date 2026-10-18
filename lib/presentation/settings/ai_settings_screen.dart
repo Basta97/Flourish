@@ -222,7 +222,10 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ask the AI below', style: AppTextStyles.subtitle),
+                  Text(
+                    'Ask the AI below ${(s.threshold * 100).round()}% confidence',
+                    style: AppTextStyles.subtitle,
+                  ),
                   Slider(
                     value: s.threshold,
                     min: 0.5,

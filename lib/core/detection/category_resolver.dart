@@ -139,6 +139,23 @@ class CategoryResolver {
     return null;
   }
 
+  /// [findSimilar], or a category that means the same thing under another
+  /// name ("Food" → "Food & Drinks", "Restaurants" → "Food & Drinks").
+  /// Used for parents, where a near match is better than a second category.
+  Category? findRelated(String name, String type) {
+    final direct = findSimilar(name, type);
+    if (direct != null) return direct;
+    final n = name.toLowerCase().trim();
+    for (final concept in CategoryConcepts.all) {
+      if (concept.type != type || !concept.names.contains(n)) continue;
+      for (final other in concept.names) {
+        final hit = findSimilar(other, type);
+        if (hit != null) return hit;
+      }
+    }
+    return null;
+  }
+
   /// Keeps proposals inside what the app can render and store.
   static ProposedCategory sanitize(ProposedCategory p) {
     var name = p.name.trim().replaceAll(RegExp(r'\s+'), ' ');
@@ -217,7 +234,7 @@ class CategoryResolver {
     );
     final parent = clean.parentName == null
         ? null
-        : resolver.findSimilar(clean.parentName!, clean.type);
+        : resolver.findRelated(clean.parentName!, clean.type);
     // A brand-new category has no children, so linking it cannot loop.
     if (parent != null) {
       await store.put('categoryParents', '$id', {

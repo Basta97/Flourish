@@ -398,20 +398,24 @@ class FileImportService {
           ),
         ),
       };
-      // A parent named in the file that does not exist yet is created too.
+      // A parent named in the file is matched to an existing category with
+      // the same meaning ("Food" → "Food & Drinks") or created.
       if (need.decision is CreateCategory && need.parentName != null) {
-        final parentId = await CategoryResolver.ensure(
-          db,
-          ledger.store,
-          ProposedCategory(
-            name: need.parentName!,
-            type: need.type,
-            icon: 'category',
-            colorIndex: need.parentName!.codeUnits.fold<int>(0, (a, b) => a + b) % 12,
-          ),
-        );
-        if (parentId != id &&
-            await ledger.store.get('categoryParents', '$id') == null) {
+        final all = await db.getAllCategories();
+        final parentId =
+            CategoryResolver(all).findRelated(need.parentName!, need.type)?.id ??
+            await CategoryResolver.ensure(
+              db,
+              ledger.store,
+              ProposedCategory(
+                name: need.parentName!,
+                type: need.type,
+                icon: 'category',
+                colorIndex:
+                    need.parentName!.codeUnits.fold<int>(0, (a, b) => a + b) % 12,
+              ),
+            );
+        if (parentId != id) {
           await ledger.store.put('categoryParents', '$id', {
             'child': id,
             'parent': parentId,
@@ -434,8 +438,10 @@ class FileImportService {
       }
       final row = r.row;
       final from = await account(row.account!, r.currency);
+      // Some apps write payee and description on separate lines.
       final note = [row.payee, row.note].nonNulls
-          .where((s) => s.trim().isNotEmpty)
+          .map((s) => s.trim().replaceAll(RegExp(r'\s*\n\s*'), ' · '))
+          .where((s) => s.isNotEmpty)
           .toSet()
           .join(' · ');
       if (row.type == 'transfer') {
@@ -458,7 +464,7 @@ class FileImportService {
               ? (await db.fallbackCategoryFor(row.type)).id
               : await category(r.category!),
           note: note.isEmpty ? null : note,
-          merchant: row.payee,
+          merchant: row.payee?.split('\n').first.trim(),
           date: row.date,
           source: 'import',
           sourceRef: batchId,

@@ -911,14 +911,18 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
 
 Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
   try {
-    final picked = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['csv', 'txt', 'xlsx', 'ofx', 'qfx', 'qif'],
-    );
+    // iOS only offers files whose type it knows, and OFX/QIF have no system
+    // type, so the picker is unfiltered and the extension is checked here.
+    final picked = await FilePicker.platform.pickFiles(type: FileType.any);
     final filePath = picked?.files.single.path;
     if (filePath == null || !context.mounted) return;
     final name = path.basename(filePath);
     final lower = name.toLowerCase();
+    if (!RegExp(r'\.(csv|txt|tsv|xlsx|ofx|qfx|qif)$').hasMatch(lower)) {
+      throw const FormatException(
+        'Choose a CSV, Excel (.xlsx), OFX/QFX or QIF file',
+      );
+    }
     final legacy = SpreadsheetImportService(ref.read(financialLedgerProvider));
     final options = ImportOptions(
       defaultCurrency: ref.read(defaultCurrencyProvider),
@@ -1000,7 +1004,8 @@ Future<void> _openImportReview(
     );
   }
   if (!context.mounted) return;
-  await Navigator.of(context).push(
+  // Above the tab shell, so the floating tab bar does not cover the button.
+  await Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<bool>(
       builder: (_) => ImportReviewScreen(parsed: parsed, sourceName: sourceName),
     ),

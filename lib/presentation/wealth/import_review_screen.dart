@@ -8,6 +8,7 @@ import '../../core/finance/system_categories.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/error_text.dart';
 import '../../data/database/database.dart';
 import '../../shared/widgets/app_card.dart';
@@ -239,7 +240,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
             initialValue: a.accountId ?? -1,
             isExpanded: true,
             decoration: InputDecoration(
-              labelText: '“${a.name}” in the file · ${a.rows} rows',
+              labelText: '“${a.name}” in the file · ${_rowsLabel(a.rows)}',
             ),
             items: [
               DropdownMenuItem(
@@ -284,7 +285,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
             },
             isExpanded: true,
             decoration: InputDecoration(
-              labelText: '${c.label} · ${c.type} · ${c.rows} rows',
+              labelText: '${c.label} · ${c.type} · ${_rowsLabel(c.rows)}',
             ),
             items: [
               DropdownMenuItem(value: 'new', child: Text('Create “${c.name}”')),
@@ -314,7 +315,8 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
           children: [
             Expanded(child: Text(e.key, style: AppTextStyles.body)),
             Text(
-              '${e.value > Amount.zero ? '+' : ''}${e.value}',
+              '${e.value > Amount.zero ? '+' : ''}'
+              '${CurrencyFormatter.format(e.value.toDouble(), currency: e.key.substring(e.key.lastIndexOf('(') + 1, e.key.length - 1))}',
               style: AppTextStyles.number,
             ),
           ],
@@ -338,10 +340,12 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
                   _includes['$i'] = r.include;
                 }),
           title: Text(
+            maxLines: 1,
             [
-              r.row.payee ?? r.row.note ?? r.category?.name ?? r.row.type,
+              (r.row.payee ?? r.row.note ?? r.category?.name ?? r.row.type)
+                  .replaceAll(RegExp(r'\s*\n\s*'), ' · '),
               '${r.row.type == 'income' ? '+' : r.row.type == 'expense' ? '−' : '⇄ '}'
-                  '${r.row.amount} ${r.currency}',
+                  '${CurrencyFormatter.format(r.row.amount.toDouble(), currency: r.currency)}',
             ].join(' · '),
             overflow: TextOverflow.ellipsis,
           ),
@@ -370,3 +374,5 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
     ]);
   }
 }
+
+String _rowsLabel(int n) => n == 1 ? '1 row' : '$n rows';

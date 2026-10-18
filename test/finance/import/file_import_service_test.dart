@@ -102,7 +102,8 @@ void main() {
     final lunchCat = all.firstWhere((c) => c.name == 'Lunch');
     final link = await ledger.store.get('categoryParents', '${lunchCat.id}');
     final parent = all.firstWhere((c) => c.id == link!['parent']);
-    expect(parent.name, anyOf('Food', 'Food & Drinks'));
+    expect(parent.name, 'Food & Drinks', reason: 'parent "Food" maps by meaning');
+    expect(all.where((c) => c.name == 'Food'), isEmpty);
     expect(all.where((c) => c.name == 'Salary'), hasLength(1));
   });
 
@@ -215,5 +216,20 @@ void main() {
     expect(usd.status, ImportRowStatus.invalid);
     expect(usd.problem, contains('USD'));
     expect(usd.include, isFalse);
+  });
+
+  test('QIF: Parent:Child categories reuse existing parents by meaning', () async {
+    final p = await plan('quicken_us.qif');
+    await service.apply(p);
+    final all = await db.getAllCategories();
+    Future<String?> parentOf(String child) async {
+      final c = all.firstWhere((x) => x.name == child);
+      final link = await ledger.store.get('categoryParents', '${c.id}');
+      return all.where((x) => x.id == link?['parent']).firstOrNull?.name;
+    }
+
+    expect(await parentOf('Groceries'), 'Food & Drinks');
+    expect(await parentOf('Rent'), 'Housing');
+    expect(all.where((c) => c.name == 'Food' || c.name == 'Housing'), hasLength(1));
   });
 }

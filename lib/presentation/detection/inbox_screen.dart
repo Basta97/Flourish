@@ -69,6 +69,11 @@ class InboxScreen extends ConsumerWidget {
         title: Text(context.l10n.paymentsToReviewTitle),
         actions: [
           IconButton(
+            tooltip: context.l10n.catchUpTitle,
+            icon: const Icon(Icons.history_rounded),
+            onPressed: () => context.push('/catch-up'),
+          ),
+          IconButton(
             tooltip: context.l10n.detectionSettings,
             icon: const Icon(Icons.tune_rounded),
             onPressed: () => context.push('/settings/detection'),

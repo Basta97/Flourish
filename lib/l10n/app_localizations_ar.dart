@@ -3311,4 +3311,224 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get catInterestEarned => 'فوائد مكتسبة';
+
+  @override
+  String get catchUpTitle => 'مراجعة آخر 7 أيام';
+
+  @override
+  String get catchUpSubtitle =>
+      'اعثر على مدفوعات الأسبوع الماضي غير المسجلة في Flourish';
+
+  @override
+  String get catchUpIntro =>
+      'لا يسمح iPhone للتطبيقات بقراءة الرسائل، لذا أحضر مدفوعات الأسبوع الماضي بإحدى طريقتين. يقارنها Flourish بما سجّلته بالفعل ويسألك فقط عن الناقص.';
+
+  @override
+  String get catchUpPasteTitle => 'الصق رسائل البنك';
+
+  @override
+  String get catchUpPasteBody =>
+      'في تطبيق الرسائل انسخ كل رسالة من آخر 7 أيام والصقها هنا واحدة تلو الأخرى.';
+
+  @override
+  String get catchUpPasteHint => 'الصق الرسائل هنا';
+
+  @override
+  String get catchUpCheck => 'افحص';
+
+  @override
+  String get catchUpStatementTitle => 'استيراد كشف حساب';
+
+  @override
+  String get catchUpStatementBody =>
+      'نزّل كشف حساب من تطبيق البنك (PDF أو CSV أو OFX أو QIF). تتم مقارنة آخر 7 أيام فقط.';
+
+  @override
+  String get catchUpChooseFile => 'اختر ملفًا';
+
+  @override
+  String catchUpMissingHeader(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مدفوعة غير مسجلة في Flourish',
+      many: '$count مدفوعة غير مسجلة في Flourish',
+      few: '$count مدفوعات غير مسجلة في Flourish',
+      two: 'مدفوعتان غير مسجلتين في Flourish',
+      one: 'مدفوعة واحدة غير مسجلة في Flourish',
+      zero: 'لا شيء ناقص',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpAllCaughtUp =>
+      'كل شيء محدّث: جميع مدفوعات آخر 7 أيام مسجلة بالفعل في Flourish.';
+
+  @override
+  String catchUpAlreadyHeader(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مسجلة بالفعل',
+      many: '$count مسجلة بالفعل',
+      few: '$count مسجلة بالفعل',
+      two: 'اثنتان مسجلتان بالفعل',
+      one: 'واحدة مسجلة بالفعل',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpMarkRecorded => 'اعتبرها مضافة بالفعل';
+
+  @override
+  String catchUpOlder(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count أقدم من 7 أيام',
+      many: '$count أقدم من 7 أيام',
+      few: '$count أقدم من 7 أيام',
+      two: 'اثنتان أقدم من 7 أيام',
+      one: 'واحدة أقدم من 7 أيام',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String catchUpIgnored(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رمز أو عرض أو تنبيه',
+      many: '$count رمزًا أو عرضًا أو تنبيهًا',
+      few: '$count رموز أو عروض أو تنبيهات',
+      two: 'رمزان أو عروض أو تنبيهات',
+      one: 'رمز أو عرض أو تنبيه واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String catchUpRepeated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مستلمة من قبل',
+      many: '$count مستلمة من قبل',
+      few: '$count مستلمة من قبل',
+      two: 'اثنتان مستلمتان من قبل',
+      one: 'واحدة مستلمة من قبل',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpAdd => 'أضف';
+
+  @override
+  String get catchUpSkip => 'تخطَّ';
+
+  @override
+  String get catchUpAdded => 'تمت الإضافة';
+
+  @override
+  String get catchUpSkipped => 'تم التخطي';
+
+  @override
+  String catchUpAddAll(int count) {
+    return 'أضف الكل ($count)';
+  }
+
+  @override
+  String catchUpOlderLeftOut(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم استبعاد $count صف أقدم من 7 أيام',
+      many: 'تم استبعاد $count صفًا أقدم من 7 أيام',
+      few: 'تم استبعاد $count صفوف أقدم من 7 أيام',
+      two: 'تم استبعاد صفين أقدم من 7 أيام',
+      one: 'تم استبعاد صف واحد أقدم من 7 أيام',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpReviewTitle => 'المدفوعات الناقصة';
+
+  @override
+  String get catchUpChooseAccount => 'اختر الحساب أولًا';
+
+  @override
+  String get catchUpAlreadyTitle => 'مسجلة بالفعل في Flourish';
+
+  @override
+  String get iosGuideTitle => 'الاكتشاف التلقائي على iPhone';
+
+  @override
+  String get iosGuideSubtitle =>
+      'اضبط الاختصارات لتصل رسائل البنك الجديدة إلى Flourish تلقائيًا';
+
+  @override
+  String get iosGuideIntro =>
+      'لا يسمح iPhone للتطبيقات بقراءة الرسائل أو الإشعارات. تقوم أتمتة في تطبيق الاختصارات بتمرير كل رسالة جديدة إلى Flourish في الخلفية. اضبطها مرة واحدة، وتستغرق دقيقتين تقريبًا.';
+
+  @override
+  String get iosGuideMessagesTitle => '1. رسائل البنك (الرسائل)';
+
+  @override
+  String get iosGuideMsg1 => 'افتح تطبيق الاختصارات، واضغط الأتمتة ثم +.';
+
+  @override
+  String get iosGuideMsg2 =>
+      'اختر رسالة. في «تحتوي الرسالة على» اكتب EGP (ويمكنك أيضًا اختيار البنك في «المرسل»).';
+
+  @override
+  String get iosGuideMsg3 => 'اختر «تشغيل فورًا» ثم «التالي».';
+
+  @override
+  String get iosGuideMsg4 =>
+      'اضغط «أتمتة فارغة جديدة» ثم «إضافة إجراء» وابحث عن Flourish.';
+
+  @override
+  String get iosGuideMsg5 =>
+      'اختر Import Transaction Text. اجعل Transaction Text = مُدخل الاختصار › المحتوى، وSender = مُدخل الاختصار › المرسل.';
+
+  @override
+  String get iosGuideMsg6 =>
+      'اضغط «تم». كرّر ذلك لكلمات جنيه وج.م وأي عملة أخرى يكتبها البنك (USD، دولار…).';
+
+  @override
+  String get iosGuideWalletTitle => '2. Apple Pay (المحفظة)';
+
+  @override
+  String get iosGuideWallet1 =>
+      'في الاختصارات › الأتمتة اضغط +، واختر «معاملة» ثم بطاقاتك.';
+
+  @override
+  String get iosGuideWallet2 => 'اختر «تشغيل فورًا» ثم «أتمتة فارغة جديدة».';
+
+  @override
+  String get iosGuideWallet3 =>
+      'أضف Flourish › Log Card Payment واجعل Amount وMerchant وCard من مُدخل الاختصار.';
+
+  @override
+  String get iosGuideWallet4 =>
+      'اضغط «تم». ستظهر كل مدفوعة Apple Pay الآن في «مدفوعات للمراجعة».';
+
+  @override
+  String get iosGuideCheckTitle => '3. تأكد أنها تعمل';
+
+  @override
+  String get iosGuideCheck =>
+      'انتظر رسالة البنك التالية، أو أرسل لنفسك رسالة تجريبية مثل «Purchase of EGP 10.00 at Test». سيُظهر Flourish إشعارًا وتنتظر المدفوعة في «مدفوعات للمراجعة».';
+
+  @override
+  String get iosGuideOpenShortcuts => 'افتح الاختصارات';
+
+  @override
+  String get iosGuideCatchUpHint =>
+      'فاتتك بعض الأيام؟ «مراجعة آخر 7 أيام» تُحضر مدفوعات الأسبوع الماضي.';
 }

@@ -23,6 +23,7 @@ import '../../core/finance/import/pdf_statement.dart';
 import '../../core/finance/import/pdf_text_reader.dart';
 import 'package:pdfrx/pdfrx.dart' show PdfPasswordException;
 import '../../core/finance/import/import_sources.dart';
+import '../../core/finance/import/import_window.dart';
 import '../../core/utils/error_text.dart';
 import '../providers/ai_providers.dart';
 import 'import_review_screen.dart';
@@ -959,7 +960,13 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
   await Share.shareXFiles([XFile(file.path)]);
 }
 
-Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
+/// [since] limits the review to rows on or after that day and switches it
+/// to catch-up mode (only payments missing from Flourish are asked about).
+Future<void> importSpreadsheet(
+  BuildContext context,
+  WidgetRef ref, {
+  DateTime? since,
+}) async {
   try {
     // iOS only offers files whose type it knows, and OFX/QIF have no system
     // type, so the picker is unfiltered and the extension is checked here.
@@ -976,7 +983,7 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
       defaultCurrency: ref.read(defaultCurrencyProvider),
     );
     if (lower.endsWith('.pdf')) {
-      await _importPdf(context, ref, filePath, options);
+      await _importPdf(context, ref, filePath, options, since: since);
       return;
     }
 
@@ -1022,6 +1029,7 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
         context,
         source.parse(content, options: options),
         source.name,
+        since: since,
       );
       return;
     }
@@ -1033,7 +1041,7 @@ Future<void> importSpreadsheet(BuildContext context, WidgetRef ref) async {
         .map((r) => r.map((v) => v?.toString() ?? '').toList())
         .toList();
     if (!context.mounted) return;
-    await _manualImport(context, ref, matrix, legacy);
+    await _manualImport(context, ref, matrix, legacy, since: since);
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1049,8 +1057,9 @@ Future<void> _importPdf(
   BuildContext context,
   WidgetRef ref,
   String filePath,
-  ImportOptions options,
-) async {
+  ImportOptions options, {
+  DateTime? since,
+}) async {
   final List<StatementPage> pages;
   try {
     pages = await PdfTextReader.read(
@@ -1066,7 +1075,12 @@ Future<void> _importPdf(
   }
   final local = PdfStatementParser.parse(pages, options: options);
   if (local.rows.isNotEmpty) {
-    await _openImportReview(context, local, context.l10n.pdfStatement);
+    await _openImportReview(
+      context,
+      local,
+      context.l10n.pdfStatement,
+      since: since,
+    );
     return;
   }
 
@@ -1153,7 +1167,12 @@ Future<void> _importPdf(
           : parsed.warnings.first.message,
     );
   }
-  await _openImportReview(context, parsed, context.l10n.pdfStatementAi);
+  await _openImportReview(
+    context,
+    parsed,
+    context.l10n.pdfStatementAi,
+    since: since,
+  );
 }
 
 String _columnLabel(AppLocalizations l, String key) => switch (key) {
@@ -1203,8 +1222,15 @@ Future<String?> _askPdfPassword(BuildContext context) async {
 Future<void> _openImportReview(
   BuildContext context,
   ImportParseResult parsed,
-  String sourceName,
-) async {
+  String sourceName, {
+  DateTime? since,
+}) async {
+  if (since != null) {
+    parsed = parsed.since(
+      since,
+      olderWarning: (n) => currentL10n.catchUpOlderLeftOut(n),
+    );
+  }
   if (parsed.rows.isEmpty) {
     throw FormatException(
       parsed.errors.isEmpty
@@ -1216,8 +1242,11 @@ Future<void> _openImportReview(
   // Above the tab shell, so the floating tab bar does not cover the button.
   await Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<bool>(
-      builder: (_) =>
-          ImportReviewScreen(parsed: parsed, sourceName: sourceName),
+      builder: (_) => ImportReviewScreen(
+        parsed: parsed,
+        sourceName: sourceName,
+        catchUp: since != null,
+      ),
     ),
   );
 }
@@ -1228,8 +1257,9 @@ Future<void> _manualImport(
   BuildContext context,
   WidgetRef ref,
   List<List<String>> matrix,
-  SpreadsheetImportService legacy,
-) async {
+  SpreadsheetImportService legacy, {
+  DateTime? since,
+}) async {
   if (matrix.isEmpty) throw FormatException(currentL10n.fileEmpty);
   var header = 0;
   final headerChosen = await financeForm(
@@ -1382,5 +1412,10 @@ Future<void> _manualImport(
   );
   final result = parsed;
   if (result == null || !context.mounted) return;
-  await _openImportReview(context, result, context.l10n.spreadsheet);
+  await _openImportReview(
+    context,
+    result,
+    context.l10n.spreadsheet,
+    since: since,
+  );
 }

@@ -400,6 +400,17 @@ class _NotificationImportScreenState
                 ],
               ),
             ),
+            const SizedBox(height: Sp.md),
+            AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: Sp.sm),
+              child: ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: Text(context.l10n.catchUpTitle),
+                subtitle: Text(context.l10n.catchUpSubtitle),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/catch-up'),
+              ),
+            ),
           ],
         ),
       ),

@@ -27,10 +27,16 @@ class ImportReviewScreen extends ConsumerStatefulWidget {
     super.key,
     required this.parsed,
     required this.sourceName,
+    this.catchUp = false,
   });
 
   final ImportParseResult parsed;
   final String sourceName;
+
+  /// "Catch up on the last 7 days": file accounts default to the person's
+  /// own account of that currency, and rows already in Flourish are folded
+  /// away so only the missing ones are asked about.
+  final bool catchUp;
 
   @override
   ConsumerState<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -42,6 +48,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
   final _decisions = <String, CategoryDecision>{};
   final _includes = <String, bool>{};
   bool _busy = true;
+  bool _autoMapped = false;
   String? _error;
 
   FileImportService get _service =>
@@ -72,6 +79,23 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
         if (kept != null && r.status != ImportRowStatus.invalid) {
           r.include = kept;
         }
+      }
+      if (widget.catchUp && !_autoMapped) {
+        _autoMapped = true;
+        // A statement names the account by number; the only non-cash
+        // account in that currency is almost certainly the one.
+        final accounts = await ref.read(databaseProvider).getAllAccounts();
+        var mapped = false;
+        for (final need in plan.newAccounts) {
+          final candidates = accounts
+              .where((a) => a.currency == need.currency && a.type != 'cash')
+              .toList();
+          if (candidates.length == 1) {
+            _accountMap[need.name.toLowerCase()] = candidates.single.id;
+            mapped = true;
+          }
+        }
+        if (mapped) return _replan();
       }
       if (mounted) setState(() => _plan = plan);
     } catch (e) {
@@ -134,7 +158,13 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
     final plan = _plan;
     final count = plan?.included.length ?? 0;
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.reviewImport)),
+      appBar: AppBar(
+        title: Text(
+          widget.catchUp
+              ? context.l10n.catchUpReviewTitle
+              : context.l10n.reviewImport,
+        ),
+      ),
       bottomNavigationBar: plan == null
           ? null
           : SafeArea(
@@ -165,11 +195,31 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
                   Sp.xxxl,
                 ),
                 children: [
+                  if (widget.catchUp) _catchUpHeader(context, plan),
                   _summary(context, plan),
                   if (plan.accounts.isNotEmpty) _accounts(context, plan),
                   if (plan.unresolved.isNotEmpty) _categories(context, plan),
                   _totals(context, plan),
-                  _rows(context, plan),
+                  if (!widget.catchUp)
+                    _rows(context, plan, plan.rows, context.l10n.transactions)
+                  else ...[
+                    _rows(
+                      context,
+                      plan,
+                      plan.rows.where((r) => !_alreadyThere(r)).toList(),
+                      context.l10n.catchUpReviewTitle,
+                    ),
+                    if (plan.rows.any(_alreadyThere))
+                      _rows(
+                        context,
+                        plan,
+                        plan.rows.where(_alreadyThere).toList(),
+                        context.l10n.catchUpAlreadyHeader(
+                          plan.rows.where(_alreadyThere).length,
+                        ),
+                        collapsed: true,
+                      ),
+                  ],
                 ],
               ),
       ),
@@ -335,11 +385,50 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
     ]);
   }
 
-  Widget _rows(BuildContext context, ImportPlan plan) {
-    final shown = plan.rows.take(300).toList();
+  static bool _alreadyThere(ImportRowPlan r) =>
+      r.status == ImportRowStatus.duplicate ||
+      r.status == ImportRowStatus.possibleDuplicate;
+
+  Widget _catchUpHeader(BuildContext context, ImportPlan plan) {
+    final missing = plan.rows.where((r) => !_alreadyThere(r)).length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Sp.lg),
+      child: AppCard(
+        padding: const EdgeInsets.all(Sp.lg),
+        child: Row(
+          children: [
+            Icon(
+              missing == 0
+                  ? Icons.verified_rounded
+                  : Icons.playlist_add_check_rounded,
+              color: missing == 0 ? AppColors.income : AppColors.primary,
+            ),
+            const SizedBox(width: Sp.md),
+            Expanded(
+              child: Text(
+                missing == 0
+                    ? context.l10n.catchUpAllCaughtUp
+                    : context.l10n.catchUpMissingHeader(missing),
+                style: AppTextStyles.subtitle,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rows(
+    BuildContext context,
+    ImportPlan plan,
+    List<ImportRowPlan> rows,
+    String title, {
+    bool collapsed = false,
+  }) {
+    final shown = rows.take(300).toList();
     final date = DateFormat.yMMMd();
-    return _section(context, context.l10n.transactions, [
-      for (final (i, r) in shown.indexed)
+    final tiles = [
+      for (final r in shown)
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
@@ -348,7 +437,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
               ? null
               : (v) => setState(() {
                   r.include = v ?? false;
-                  _includes['$i'] = r.include;
+                  _includes['${plan.rows.indexOf(r)}'] = r.include;
                 }),
           controlAffinity: ListTileControlAffinity.leading,
           title: Text(
@@ -390,11 +479,24 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
             style: _low(context),
           ),
         ),
-      if (plan.rows.length > shown.length)
+      if (rows.length > shown.length)
         Text(
-          context.l10n.moreRowsFollow(plan.rows.length - shown.length),
+          context.l10n.moreRowsFollow(rows.length - shown.length),
           style: _low(context),
         ),
-    ]);
+    ];
+    if (!collapsed) return _section(context, title, tiles);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Sp.lg),
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: Sp.lg),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          shape: const Border(),
+          title: Text(title, style: AppTextStyles.subtitle),
+          children: tiles,
+        ),
+      ),
+    );
   }
 }

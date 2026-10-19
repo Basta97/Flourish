@@ -2066,5 +2066,99 @@
   "catPrincipalReceived": "Principal received",
   "catBankFees": "Bank fees",
   "catInterestCharges": "Interest & charges",
-  "catInterestEarned": "Interest earned"
+  "catInterestEarned": "Interest earned",
+  "catchUpTitle": "Catch up on the last 7 days",
+  "catchUpSubtitle": "Find payments from the past week that aren't in Flourish yet",
+  "catchUpIntro": "iPhone apps can't read your Messages, so bring last week's payments in one of two ways. Flourish compares them with what you already have and only asks about the missing ones.",
+  "catchUpPasteTitle": "Paste bank alerts",
+  "catchUpPasteBody": "In Messages, copy each alert from the last 7 days and paste them here, one after another.",
+  "catchUpPasteHint": "Paste alerts here",
+  "catchUpCheck": "Check",
+  "catchUpStatementTitle": "Import a statement",
+  "catchUpStatementBody": "Download a statement from your bank app (PDF, CSV, OFX or QIF). Only the last 7 days are compared.",
+  "catchUpChooseFile": "Choose file",
+  "catchUpMissingHeader": "{count, plural, =0{Nothing missing} =1{1 payment is not in Flourish} other{{count} payments are not in Flourish}}",
+  "@catchUpMissingHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpAllCaughtUp": "You're all caught up: every payment from the last 7 days is already in Flourish.",
+  "catchUpAlreadyHeader": "{count, plural, =1{1 already in Flourish} other{{count} already in Flourish}}",
+  "@catchUpAlreadyHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpMarkRecorded": "Mark as already added",
+  "catchUpOlder": "{count, plural, =1{1 older than 7 days} other{{count} older than 7 days}}",
+  "@catchUpOlder": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpIgnored": "{count, plural, =1{1 code, offer or notice} other{{count} codes, offers or notices}}",
+  "@catchUpIgnored": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpRepeated": "{count, plural, =1{1 already received} other{{count} already received}}",
+  "@catchUpRepeated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpAdd": "Add",
+  "catchUpSkip": "Skip",
+  "catchUpAdded": "Added",
+  "catchUpSkipped": "Skipped",
+  "catchUpAddAll": "Add all ({count})",
+  "@catchUpAddAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpOlderLeftOut": "{count, plural, =1{1 row older than 7 days left out} other{{count} rows older than 7 days left out}}",
+  "@catchUpOlderLeftOut": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catchUpReviewTitle": "Missing payments",
+  "catchUpChooseAccount": "Choose the account first",
+  "catchUpAlreadyTitle": "Already in Flourish",
+  "iosGuideTitle": "Automatic detection on iPhone",
+  "iosGuideSubtitle": "Set up Shortcuts so new bank alerts reach Flourish by themselves",
+  "iosGuideIntro": "iPhone doesn't let apps read Messages or notifications. A Shortcuts automation hands each new alert to Flourish in the background. Set it up once; it takes about two minutes.",
+  "iosGuideMessagesTitle": "1. Bank SMS (Messages)",
+  "iosGuideMsg1": "Open the Shortcuts app, tap Automation, then +.",
+  "iosGuideMsg2": "Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender).",
+  "iosGuideMsg3": "Choose Run Immediately, then Next.",
+  "iosGuideMsg4": "Tap New Blank Automation, then Add Action, and search for Flourish.",
+  "iosGuideMsg5": "Pick Import Transaction Text. Set Transaction Text to Shortcut Input › Content and Sender to Shortcut Input › Sender.",
+  "iosGuideMsg6": "Tap Done. Repeat for جنيه, ج.م and any other currency your bank writes (USD, دولار…).",
+  "iosGuideWalletTitle": "2. Apple Pay (Wallet)",
+  "iosGuideWallet1": "In Shortcuts › Automation tap +, choose Transaction and pick your cards.",
+  "iosGuideWallet2": "Choose Run Immediately, then New Blank Automation.",
+  "iosGuideWallet3": "Add Flourish › Log Card Payment and set Amount, Merchant and Card from Shortcut Input.",
+  "iosGuideWallet4": "Tap Done. Each Apple Pay payment now appears in Payments to review.",
+  "iosGuideCheckTitle": "3. Check it works",
+  "iosGuideCheck": "Wait for the next bank alert, or send yourself a test like “Purchase of EGP 10.00 at Test”. Flourish shows a notification and the payment waits in Payments to review.",
+  "iosGuideOpenShortcuts": "Open Shortcuts",
+  "iosGuideCatchUpHint": "Missed some days? Catch up brings in the last 7 days."
 }

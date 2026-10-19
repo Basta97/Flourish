@@ -3292,4 +3292,207 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catInterestEarned => 'Interest earned';
+
+  @override
+  String get catchUpTitle => 'Catch up on the last 7 days';
+
+  @override
+  String get catchUpSubtitle =>
+      'Find payments from the past week that aren\'t in Flourish yet';
+
+  @override
+  String get catchUpIntro =>
+      'iPhone apps can\'t read your Messages, so bring last week\'s payments in one of two ways. Flourish compares them with what you already have and only asks about the missing ones.';
+
+  @override
+  String get catchUpPasteTitle => 'Paste bank alerts';
+
+  @override
+  String get catchUpPasteBody =>
+      'In Messages, copy each alert from the last 7 days and paste them here, one after another.';
+
+  @override
+  String get catchUpPasteHint => 'Paste alerts here';
+
+  @override
+  String get catchUpCheck => 'Check';
+
+  @override
+  String get catchUpStatementTitle => 'Import a statement';
+
+  @override
+  String get catchUpStatementBody =>
+      'Download a statement from your bank app (PDF, CSV, OFX or QIF). Only the last 7 days are compared.';
+
+  @override
+  String get catchUpChooseFile => 'Choose file';
+
+  @override
+  String catchUpMissingHeader(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count payments are not in Flourish',
+      one: '1 payment is not in Flourish',
+      zero: 'Nothing missing',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpAllCaughtUp =>
+      'You\'re all caught up: every payment from the last 7 days is already in Flourish.';
+
+  @override
+  String catchUpAlreadyHeader(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count already in Flourish',
+      one: '1 already in Flourish',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpMarkRecorded => 'Mark as already added';
+
+  @override
+  String catchUpOlder(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count older than 7 days',
+      one: '1 older than 7 days',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String catchUpIgnored(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count codes, offers or notices',
+      one: '1 code, offer or notice',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String catchUpRepeated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count already received',
+      one: '1 already received',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpAdd => 'Add';
+
+  @override
+  String get catchUpSkip => 'Skip';
+
+  @override
+  String get catchUpAdded => 'Added';
+
+  @override
+  String get catchUpSkipped => 'Skipped';
+
+  @override
+  String catchUpAddAll(int count) {
+    return 'Add all ($count)';
+  }
+
+  @override
+  String catchUpOlderLeftOut(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rows older than 7 days left out',
+      one: '1 row older than 7 days left out',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catchUpReviewTitle => 'Missing payments';
+
+  @override
+  String get catchUpChooseAccount => 'Choose the account first';
+
+  @override
+  String get catchUpAlreadyTitle => 'Already in Flourish';
+
+  @override
+  String get iosGuideTitle => 'Automatic detection on iPhone';
+
+  @override
+  String get iosGuideSubtitle =>
+      'Set up Shortcuts so new bank alerts reach Flourish by themselves';
+
+  @override
+  String get iosGuideIntro =>
+      'iPhone doesn\'t let apps read Messages or notifications. A Shortcuts automation hands each new alert to Flourish in the background. Set it up once; it takes about two minutes.';
+
+  @override
+  String get iosGuideMessagesTitle => '1. Bank SMS (Messages)';
+
+  @override
+  String get iosGuideMsg1 => 'Open the Shortcuts app, tap Automation, then +.';
+
+  @override
+  String get iosGuideMsg2 =>
+      'Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender).';
+
+  @override
+  String get iosGuideMsg3 => 'Choose Run Immediately, then Next.';
+
+  @override
+  String get iosGuideMsg4 =>
+      'Tap New Blank Automation, then Add Action, and search for Flourish.';
+
+  @override
+  String get iosGuideMsg5 =>
+      'Pick Import Transaction Text. Set Transaction Text to Shortcut Input › Content and Sender to Shortcut Input › Sender.';
+
+  @override
+  String get iosGuideMsg6 =>
+      'Tap Done. Repeat for جنيه, ج.م and any other currency your bank writes (USD, دولار…).';
+
+  @override
+  String get iosGuideWalletTitle => '2. Apple Pay (Wallet)';
+
+  @override
+  String get iosGuideWallet1 =>
+      'In Shortcuts › Automation tap +, choose Transaction and pick your cards.';
+
+  @override
+  String get iosGuideWallet2 =>
+      'Choose Run Immediately, then New Blank Automation.';
+
+  @override
+  String get iosGuideWallet3 =>
+      'Add Flourish › Log Card Payment and set Amount, Merchant and Card from Shortcut Input.';
+
+  @override
+  String get iosGuideWallet4 =>
+      'Tap Done. Each Apple Pay payment now appears in Payments to review.';
+
+  @override
+  String get iosGuideCheckTitle => '3. Check it works';
+
+  @override
+  String get iosGuideCheck =>
+      'Wait for the next bank alert, or send yourself a test like “Purchase of EGP 10.00 at Test”. Flourish shows a notification and the payment waits in Payments to review.';
+
+  @override
+  String get iosGuideOpenShortcuts => 'Open Shortcuts';
+
+  @override
+  String get iosGuideCatchUpHint =>
+      'Missed some days? Catch up brings in the last 7 days.';
 }

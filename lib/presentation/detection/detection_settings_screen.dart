@@ -350,7 +350,25 @@ class _DetectionSettingsScreenState
                     child: Text('• $step', style: AppTextStyles.body),
                   ),
                 Text(context.l10n.paymentsArriveInbox, style: caption),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.bolt_rounded),
+                  title: Text(context.l10n.iosGuideTitle),
+                  subtitle: Text(context.l10n.iosGuideSubtitle),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings/detection/iphone'),
+                ),
               ]),
+            section(context.l10n.catchUpTitle, [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.history_rounded),
+                title: Text(context.l10n.catchUpTitle),
+                subtitle: Text(context.l10n.catchUpSubtitle),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push('/catch-up'),
+              ),
+            ]),
             section(context.l10n.addingPayments, [
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,

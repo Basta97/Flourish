@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Payment detection: English/Arabic parser for Egyptian banks and wallets, a review inbox with duplicate detection, merchant category learning and optional automatic adding; Android notification listener and iOS Shortcuts actions.
 - Detected payments in USD and other currencies: the Android filter and the parser know foreign codes, symbols and Arabic names; without the bank's EGP figure the charge is estimated at the day's exchange rate plus the card's foreign-transaction fee.
 - Payment detection on Android: pick bank and wallet apps from every installed app, before they post an alert; repeat notifications are ignored for 24 hours, even after the app restarts.
+- Catch up on the last 7 days: paste last week's bank alerts or import a statement, and Flourish asks only about the payments it doesn't have yet; plus a step-by-step guide for the iPhone Messages and Wallet automations.
 - Gemini works with Google's newer `AQ.` API keys (native Gemini API instead of the OpenAI-compatible layer), and Settings › AI Assistant can list the models your key can use.
 - Optional AI for unclear payment alerts (DeepSeek, OpenRouter, Groq, Gemini or any OpenAI-compatible server, with your own key): answers are checked against the message, personal data is masked first, and the AI can propose new categories that are only created when you add the payment.
 - Smart Import takes many alerts at once and sends them to Payments to review; a screenshot can be kept as the payment's receipt.

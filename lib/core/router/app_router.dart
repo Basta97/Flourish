@@ -1,3 +1,5 @@
+import 'package:flourish/presentation/detection/catch_up_screen.dart';
+import 'package:flourish/presentation/detection/iphone_guide_screen.dart';
 import 'package:flourish/presentation/settings/ai_settings_screen.dart';
 import 'package:flourish/presentation/detection/inbox_screen.dart';
 import 'package:flourish/presentation/detection/detection_settings_screen.dart';
@@ -94,6 +96,16 @@ final appRouter = GoRouter(
       path: '/settings/ai',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const AiSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/catch-up',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CatchUpScreen(),
+    ),
+    GoRoute(
+      path: '/settings/detection/iphone',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const IphoneGuideScreen(),
     ),
     GoRoute(
       path: '/settings/detection',

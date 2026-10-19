@@ -354,7 +354,13 @@ class DetectionService {
       final unknown =
           (p.last4 == null || o.last4 == null) &&
           (p.issuerId == null || o.issuerId == null);
-      if (o.direction == p.direction && (sameCard || sameIssuer || unknown)) {
+      // Two shops are two payments, even for the same amount.
+      final a = p.merchant ?? p.counterparty, b = o.merchant ?? o.counterparty;
+      final otherShop =
+          a != null && b != null && _ruleKey(a) != _ruleKey(b);
+      if (o.direction == p.direction &&
+          !otherShop &&
+          (sameCard || sameIssuer || unknown)) {
         return other.id;
       }
     }

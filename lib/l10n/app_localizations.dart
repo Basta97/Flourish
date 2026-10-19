@@ -5749,6 +5749,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Interest earned'**
   String get catInterestEarned;
+
+  /// No description provided for @catchUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch up on the last 7 days'**
+  String get catchUpTitle;
+
+  /// No description provided for @catchUpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find payments from the past week that aren\'t in Flourish yet'**
+  String get catchUpSubtitle;
+
+  /// No description provided for @catchUpIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'iPhone apps can\'t read your Messages, so bring last week\'s payments in one of two ways. Flourish compares them with what you already have and only asks about the missing ones.'**
+  String get catchUpIntro;
+
+  /// No description provided for @catchUpPasteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste bank alerts'**
+  String get catchUpPasteTitle;
+
+  /// No description provided for @catchUpPasteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'In Messages, copy each alert from the last 7 days and paste them here, one after another.'**
+  String get catchUpPasteBody;
+
+  /// No description provided for @catchUpPasteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste alerts here'**
+  String get catchUpPasteHint;
+
+  /// No description provided for @catchUpCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get catchUpCheck;
+
+  /// No description provided for @catchUpStatementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a statement'**
+  String get catchUpStatementTitle;
+
+  /// No description provided for @catchUpStatementBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Download a statement from your bank app (PDF, CSV, OFX or QIF). Only the last 7 days are compared.'**
+  String get catchUpStatementBody;
+
+  /// No description provided for @catchUpChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose file'**
+  String get catchUpChooseFile;
+
+  /// No description provided for @catchUpMissingHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing missing} =1{1 payment is not in Flourish} other{{count} payments are not in Flourish}}'**
+  String catchUpMissingHeader(int count);
+
+  /// No description provided for @catchUpAllCaughtUp.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all caught up: every payment from the last 7 days is already in Flourish.'**
+  String get catchUpAllCaughtUp;
+
+  /// No description provided for @catchUpAlreadyHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 already in Flourish} other{{count} already in Flourish}}'**
+  String catchUpAlreadyHeader(int count);
+
+  /// No description provided for @catchUpMarkRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as already added'**
+  String get catchUpMarkRecorded;
+
+  /// No description provided for @catchUpOlder.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 older than 7 days} other{{count} older than 7 days}}'**
+  String catchUpOlder(int count);
+
+  /// No description provided for @catchUpIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 code, offer or notice} other{{count} codes, offers or notices}}'**
+  String catchUpIgnored(int count);
+
+  /// No description provided for @catchUpRepeated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 already received} other{{count} already received}}'**
+  String catchUpRepeated(int count);
+
+  /// No description provided for @catchUpAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get catchUpAdd;
+
+  /// No description provided for @catchUpSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get catchUpSkip;
+
+  /// No description provided for @catchUpAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get catchUpAdded;
+
+  /// No description provided for @catchUpSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get catchUpSkipped;
+
+  /// No description provided for @catchUpAddAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Add all ({count})'**
+  String catchUpAddAll(int count);
+
+  /// No description provided for @catchUpOlderLeftOut.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 row older than 7 days left out} other{{count} rows older than 7 days left out}}'**
+  String catchUpOlderLeftOut(int count);
+
+  /// No description provided for @catchUpReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing payments'**
+  String get catchUpReviewTitle;
+
+  /// No description provided for @catchUpChooseAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the account first'**
+  String get catchUpChooseAccount;
+
+  /// No description provided for @catchUpAlreadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in Flourish'**
+  String get catchUpAlreadyTitle;
+
+  /// No description provided for @iosGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic detection on iPhone'**
+  String get iosGuideTitle;
+
+  /// No description provided for @iosGuideSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Shortcuts so new bank alerts reach Flourish by themselves'**
+  String get iosGuideSubtitle;
+
+  /// No description provided for @iosGuideIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'iPhone doesn\'t let apps read Messages or notifications. A Shortcuts automation hands each new alert to Flourish in the background. Set it up once; it takes about two minutes.'**
+  String get iosGuideIntro;
+
+  /// No description provided for @iosGuideMessagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Bank SMS (Messages)'**
+  String get iosGuideMessagesTitle;
+
+  /// No description provided for @iosGuideMsg1.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the Shortcuts app, tap Automation, then +.'**
+  String get iosGuideMsg1;
+
+  /// No description provided for @iosGuideMsg2.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender).'**
+  String get iosGuideMsg2;
+
+  /// No description provided for @iosGuideMsg3.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Run Immediately, then Next.'**
+  String get iosGuideMsg3;
+
+  /// No description provided for @iosGuideMsg4.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap New Blank Automation, then Add Action, and search for Flourish.'**
+  String get iosGuideMsg4;
+
+  /// No description provided for @iosGuideMsg5.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick Import Transaction Text. Set Transaction Text to Shortcut Input › Content and Sender to Shortcut Input › Sender.'**
+  String get iosGuideMsg5;
+
+  /// No description provided for @iosGuideMsg6.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Done. Repeat for جنيه, ج.م and any other currency your bank writes (USD, دولار…).'**
+  String get iosGuideMsg6;
+
+  /// No description provided for @iosGuideWalletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Apple Pay (Wallet)'**
+  String get iosGuideWalletTitle;
+
+  /// No description provided for @iosGuideWallet1.
+  ///
+  /// In en, this message translates to:
+  /// **'In Shortcuts › Automation tap +, choose Transaction and pick your cards.'**
+  String get iosGuideWallet1;
+
+  /// No description provided for @iosGuideWallet2.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Run Immediately, then New Blank Automation.'**
+  String get iosGuideWallet2;
+
+  /// No description provided for @iosGuideWallet3.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Flourish › Log Card Payment and set Amount, Merchant and Card from Shortcut Input.'**
+  String get iosGuideWallet3;
+
+  /// No description provided for @iosGuideWallet4.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Done. Each Apple Pay payment now appears in Payments to review.'**
+  String get iosGuideWallet4;
+
+  /// No description provided for @iosGuideCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Check it works'**
+  String get iosGuideCheckTitle;
+
+  /// No description provided for @iosGuideCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for the next bank alert, or send yourself a test like “Purchase of EGP 10.00 at Test”. Flourish shows a notification and the payment waits in Payments to review.'**
+  String get iosGuideCheck;
+
+  /// No description provided for @iosGuideOpenShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Shortcuts'**
+  String get iosGuideOpenShortcuts;
+
+  /// No description provided for @iosGuideCatchUpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed some days? Catch up brings in the last 7 days.'**
+  String get iosGuideCatchUpHint;
 }
 
 class _AppLocalizationsDelegate

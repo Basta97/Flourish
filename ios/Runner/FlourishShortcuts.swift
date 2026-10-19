@@ -20,9 +20,15 @@ struct ImportTransactionTextIntent: AppIntent {
   @Parameter(title: "Sender")
   var sender: String?
 
+  /// When the message arrived. Set it from "Find Messages" so a catch-up
+  /// keeps each message's real date and running it again adds nothing twice.
+  @Parameter(title: "Received")
+  var received: Date?
+
   static var parameterSummary: some ParameterSummary {
     Summary("Import \(\.$transactionText) into Flourish") {
       \.$sender
+      \.$received
     }
   }
 
@@ -31,7 +37,8 @@ struct ImportTransactionTextIntent: AppIntent {
     SharedImportStore.appendDetection(
       text: transactionText,
       sender: sender,
-      source: "ios_shortcut"
+      source: "ios_shortcut",
+      receivedAt: received ?? Date()
     )
     await PaymentNotice.post()
     return .result(dialog: "Saved to Flourish for review")

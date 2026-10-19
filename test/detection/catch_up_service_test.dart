@@ -97,13 +97,24 @@ void main() {
     expect(result.already.single.transactionId, isNotNull);
   });
 
-  test('pasting the same alerts again does not add them twice', () async {
-    const text =
-        'Card ending 1234 was charged EGP 99.00 at Seoudi on 17/10/2026';
-    final first = await catchUp.fromText(text, now: now);
-    expect(first.missing, hasLength(1));
-    final again = await catchUp.fromText(text, now: now);
-    expect(again.missing, isEmpty);
+  test('pasting the same alerts again offers the one already waiting', () async {
+    for (final text in [
+      'Card ending 1234 was charged EGP 99.00 at Seoudi on 17/10/2026',
+      'Card ending 1234 was charged EGP 64.00 at Costa',
+    ]) {
+      final first = await catchUp.fromText(text, now: now);
+      expect(first.missing, hasLength(1));
+      final again = await catchUp.fromText(
+        text,
+        now: now.add(const Duration(days: 1)),
+      );
+      expect(again.missing.single.id, first.missing.single.id, reason: text);
+      expect(again.already, isEmpty);
+    }
+    final pending = await (db.select(
+      db.detectedPayments,
+    )..where((d) => d.status.equals('pending'))).get();
+    expect(pending, hasLength(2), reason: 'no second copy in the inbox');
   });
 
   test(

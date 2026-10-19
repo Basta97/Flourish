@@ -12,6 +12,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/error_text.dart';
 import '../../data/database/database.dart';
+import '../../shared/category_label.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/liquid_page.dart';
 import '../providers/account_providers.dart';
@@ -350,7 +351,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
               ),
               DropdownMenuItem(value: 'other', child: Text(context.l10n.other)),
               for (final x in all.where((x) => x.type == c.type))
-                DropdownMenuItem(value: '${x.id}', child: Text(x.name)),
+                DropdownMenuItem(value: '${x.id}', child: Text(x.displayName)),
             ],
             onChanged: (v) => setState(() {
               c.decision = switch (v) {

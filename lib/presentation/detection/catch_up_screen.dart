@@ -15,6 +15,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/error_text.dart';
 import '../../data/database/database.dart';
+import '../../shared/category_label.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/liquid_page.dart';
 import '../providers/account_providers.dart';
@@ -57,6 +58,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
   ).showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _paste() async {
+    FocusScope.of(context).unfocus();
     final data = await Clipboard.getData('text/plain');
     final text = data?.text?.trim() ?? '';
     if (text.isEmpty) return;
@@ -68,6 +70,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
   }
 
   Future<void> _check() async {
+    FocusScope.of(context).unfocus();
     if (_text.text.trim().isEmpty) return;
     setState(() => _busy = true);
     try {
@@ -142,6 +145,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
       appBar: AppBar(title: Text(l.catchUpTitle)),
       body: LiquidPageBackground(
         child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(
             Sp.screenH,
             Sp.lg,
@@ -161,6 +165,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
                   minLines: 3,
                   maxLines: 8,
                   decoration: InputDecoration(hintText: l.catchUpPasteHint),
+                  onTapOutside: (_) => FocusScope.of(context).unfocus(),
                 ),
                 const SizedBox(height: Sp.md),
                 Row(
@@ -427,7 +432,7 @@ class _MissingCard extends ConsumerWidget {
                             Localizations.localeOf(context).toString(),
                           ).format(when),
                           kindLabel(row.kind),
-                          ?category?.name,
+                          ?category?.displayName,
                         ].join(' · '),
                         style: low,
                       ),

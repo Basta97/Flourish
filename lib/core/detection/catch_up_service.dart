@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart';
 
 import '../../data/database/database.dart';
 import 'detection_service.dart';
@@ -63,6 +63,7 @@ class CatchUpService {
     // Each ledger entry accounts for one alert at most: two 45 EGP coffees
     // and one entered by hand leave one missing.
     final used = <int>{};
+    final shown = <int>{};
 
     for (final message in MessageSplitter.split(text)) {
       final raw = RawMessage(text: message, receivedAt: clock, source: source);
@@ -84,23 +85,31 @@ class CatchUpService {
         repeated++;
         continue;
       }
-      if (row.duplicateOfId != null) {
-        already.add((payment: row, transactionId: null));
-        continue;
-      }
+      final windowFrom = dated ? at.subtract(const Duration(days: 1)) : from;
+      final windowTo = dated ? at.add(const Duration(days: 1)) : clock;
       final match = await _ledgerMatch(
         row,
         parsed,
-        from: dated ? at.subtract(const Duration(days: 1)) : from,
-        to: dated ? at.add(const Duration(days: 1)) : clock,
+        from: windowFrom,
+        to: windowTo,
         used: used,
       );
       if (match != null) {
         used.add(match);
         already.add((payment: row, transactionId: match));
-      } else {
-        missing.add(row);
+        continue;
       }
+      // Waiting in the inbox from an earlier paste or notification: offer
+      // that one instead of keeping a second copy.
+      final waiting = row.duplicateOfId != null
+          ? await detection.get(row.duplicateOfId!)
+          : await _waitingTwin(row, from: windowFrom, to: windowTo);
+      if (waiting != null && waiting.status == 'pending') {
+        if (row.status == 'pending') await detection.dismiss(row.id);
+        if (shown.add(waiting.id)) missing.add(waiting);
+        continue;
+      }
+      if (shown.add(row.id)) missing.add(row);
     }
     return CatchUpResult(
       missing: missing,
@@ -147,6 +156,40 @@ class CatchUpService {
     for (final r in rows) {
       final id = r.read<int>('id');
       if (!used.contains(id)) return id;
+    }
+    return null;
+  }
+
+  /// An earlier pending alert for the same payment (same amount, direction
+  /// and shop) in the window.
+  Future<DetectedPayment?> _waitingTwin(
+    DetectedPayment row, {
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final candidates =
+        await (db.select(db.detectedPayments)..where(
+              (d) =>
+                  d.id.isNotValue(row.id) &
+                  d.status.equals('pending') &
+                  d.amount.equalsNullable(row.amount) &
+                  d.direction.equals(row.direction),
+            ))
+            .get();
+    String norm(String? m) =>
+        (m ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u0600-\u06ff]+'), '');
+    for (final c in candidates) {
+      final at = c.occurredAt ?? c.receivedAt;
+      if (at.isBefore(from.subtract(const Duration(days: 1))) ||
+          at.isAfter(to.add(const Duration(days: 1)))) {
+        continue;
+      }
+      if (row.merchant != null &&
+          c.merchant != null &&
+          norm(row.merchant) != norm(c.merchant)) {
+        continue;
+      }
+      return c;
     }
     return null;
   }

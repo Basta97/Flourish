@@ -97,7 +97,10 @@ class PaymentMessageParser {
       'refund' =>
         _name(text, f, Lexicon.merchantLead, after: 0) ??
             _name(text, f, Lexicon.fromLead, after: main.end),
-      _ => _merchant(text, f, main),
+      // "لشراء من FAWRY": a purchase or bill names the shop after "from".
+      _ =>
+        _merchant(text, f, main) ??
+            _name(text, f, Lexicon.fromLead, after: main.end),
     };
     final last4 = _last4(f);
     final occurredAt = _date(f, message.receivedAt);

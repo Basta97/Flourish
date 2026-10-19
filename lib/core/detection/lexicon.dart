@@ -183,7 +183,7 @@ class Lexicon {
     r'اضافه.{0,40}من',
   );
   static final transferOut = RegExp(
-    r'transferr?ed|you sent|sent to|transfer to|instapay transfer|'
+    r'transferr?ed|you sent|sent to|transfer to|transfer of .{0,30}\bto\b|instapay transfer|'
     r'تم تحويل|حولت|تحويل مبلغ|ارسال مبلغ|تم ارسال',
   );
   static final bill = RegExp(
@@ -225,7 +225,7 @@ class Lexicon {
 
   /// Where a merchant or counterparty name stops.
   static final nameEnd = RegExp(
-    r'\s(?:on|using|with|via|by|card|ending|for|in|at)\b|\s(?:successfully|succeeded|equivalent|equiv|has|have|was|is|were)\b|\s(?:في|بتاريخ|يوم|بواسطه|ببطاقه|بطاقه|باستخدام|رصيد|الرصيد|عبر|بنجاح|بما|يعادل|علي)(?=\s|$|[.,])|'
+    r'\s(?:on|using|with|via|by|card|ending|for|in|at)\b|\s(?:successfully|successful|succeeded|equivalent|equiv|has|have|was|is|were|credited|debited|charged|approved|completed|declined|bill)\b|\s(?:في|بتاريخ|يوم|بواسطه|ببطاقه|بطاقه|باستخدام|رصيد|الرصيد|عبر|بنجاح|بما|يعادل|علي)(?=\s|$|[.,])|'
     r'[,;:!(]|(?<!\b(?:st|mt|dr|co|mr|ms|jr))\.(?=\s|$)|\s\d{1,2}[/-]\d{1,2}|\s(?:avail|bal|ref|trx)',
   );
 

@@ -41,7 +41,7 @@ class GoalsScreen extends ConsumerWidget {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(title: Text(context.l10n.savingsGoals)),
+          SliverAppBar(pinned: true, title: Text(context.l10n.savingsGoals)),
           ...goalsAsync.when(
             data: (goals) {
               if (goals.isEmpty) {

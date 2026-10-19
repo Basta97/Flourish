@@ -50,7 +50,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(title: Text(context.l10n.budgets)),
+          SliverAppBar(pinned: true, title: Text(context.l10n.budgets)),
           ...budgetsAsync.when(
             data: (budgets) {
               if (budgets.isEmpty) {

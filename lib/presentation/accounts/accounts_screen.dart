@@ -39,7 +39,7 @@ class AccountsScreen extends ConsumerWidget {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(title: Text(context.l10n.navAccounts)),
+          SliverAppBar(pinned: true, title: Text(context.l10n.navAccounts)),
           CupertinoSliverRefreshControl(
             onRefresh: () async {
               ref.invalidate(accountsProvider);

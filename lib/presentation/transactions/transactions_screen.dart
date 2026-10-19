@@ -82,7 +82,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar.large(
+          SliverAppBar(
+            pinned: true,
+
             title: Text(context.l10n.navLedger),
             actions: [
               IconButton(

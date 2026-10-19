@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'parsed_payment.dart';
 
@@ -136,6 +137,7 @@ class MethodChannelDetectionBridge implements DetectionBridge {
   Future<String?> consumePendingRoute() => _call<String>('consumePendingRoute');
 
   @override
-  Stream<void> get events =>
-      _events.receiveBroadcastStream().map((_) {}).handleError((Object _) {});
+  Stream<void> get events => defaultTargetPlatform == TargetPlatform.android
+      ? _events.receiveBroadcastStream().map((_) {}).handleError((Object _) {})
+      : const Stream<void>.empty();
 }

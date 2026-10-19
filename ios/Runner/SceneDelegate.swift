@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import Vision
+import WidgetKit
 
 class SceneDelegate: FlutterSceneDelegate {
   override func scene(
@@ -11,6 +12,41 @@ class SceneDelegate: FlutterSceneDelegate {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
     configureImportChannel()
     configureDetectionChannel()
+    configureWidgetChannel()
+    for item in connectionOptions.urlContexts { captureWidgetURL(item.url) }
+  }
+
+  override func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    for item in URLContexts { captureWidgetURL(item.url) }
+    super.scene(scene, openURLContexts: URLContexts)
+  }
+
+  private func captureWidgetURL(_ url: URL) {
+    guard url.scheme == "flourish", url.host == "widget",
+      ["add", "template", "home"].contains(url.lastPathComponent) else { return }
+    UserDefaults(suiteName: SharedImportStore.appGroupIdentifier)?.set(url.lastPathComponent, forKey: "widget_action")
+    guard let controller = window?.rootViewController as? FlutterViewController else { return }
+    FlutterMethodChannel(name: "flourish/widgets", binaryMessenger: controller.binaryMessenger)
+      .invokeMethod("actionAvailable", arguments: nil)
+  }
+
+  private func configureWidgetChannel() {
+    guard let controller = window?.rootViewController as? FlutterViewController else { return }
+    FlutterMethodChannel(name: "flourish/widgets", binaryMessenger: controller.binaryMessenger).setMethodCallHandler { call, result in
+      let defaults = UserDefaults(suiteName: SharedImportStore.appGroupIdentifier)
+      switch call.method {
+      case "publish":
+        guard let json = call.arguments as? String else { result(nil); return }
+        defaults?.set(json, forKey: "widget_snapshot")
+        WidgetCenter.shared.reloadAllTimelines()
+        result(nil)
+      case "consumeAction":
+        let action = defaults?.string(forKey: "widget_action")
+        defaults?.removeObject(forKey: "widget_action")
+        result(action)
+      default: result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   /// `flourish/detection`: the payments queued by Shortcuts. iOS has no

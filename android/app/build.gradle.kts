@@ -32,7 +32,9 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.flourish.app"
+        // Hardware verification installs beside the personal app, preserving its data.
+        applicationId = if (providers.gradleProperty("flourishQa").orNull == "true")
+            "com.flourish.app.qa" else "com.flourish.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = maxOf(flutter.minSdkVersion, 24)
@@ -62,6 +64,7 @@ flutter {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     // Text recognition from Google Play services: the OCR model is downloaded
     // once instead of adding ~11 MB of native code per CPU to the APK.
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")

@@ -1,3 +1,4 @@
+import '../../core/finance/currency_catalog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -160,3 +161,12 @@ final detectionChargeProvider = FutureProvider.autoDispose
 final pendingDetectionsProvider = StreamProvider<int>(
   (ref) => ref.watch(detectionServiceProvider).watchPendingCount(),
 );
+
+final currencyCatalogProvider = Provider((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return CurrencyCatalog(
+    ref.watch(financeStoreProvider),
+    FrankfurterProvider(client),
+  );
+});

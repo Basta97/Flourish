@@ -1,3 +1,6 @@
+import '../../presentation/currencies/exchange_rates_screen.dart';
+import '../../presentation/tools/tools_screen.dart';
+import '../../presentation/templates/templates_screen.dart';
 import 'package:flourish/presentation/detection/catch_up_screen.dart';
 import 'package:flourish/presentation/detection/iphone_guide_screen.dart';
 import 'package:flourish/presentation/settings/ai_settings_screen.dart';
@@ -43,9 +46,19 @@ final appRouter = GoRouter(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => ScaffoldWithNavBar(child: child),
       routes: [
+        GoRoute(
+          path: '/wealth',
+          pageBuilder: (context, state) => _fadeThroughPage(
+            key: state.pageKey,
+            child: WealthScreen(
+              key: ValueKey(state.uri.queryParameters['tab']),
+              initialTab: state.uri.queryParameters['tab'] == 'reports' ? 2 : 0,
+            ),
+          ),
+        ),
         for (final (path, screen) in <(String, Widget)>[
           ('/transactions', const TransactionsScreen()),
-          ('/wealth', const WealthScreen()),
+
           ('/dashboard', const DashboardScreen()),
           ('/search', const SearchScreen()),
           ('/accounts', const AccountsScreen()),
@@ -73,9 +86,38 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: '/widget/add',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) =>
+          Scaffold(appBar: AppBar(), body: const AddTransactionSheet()),
+    ),
+    GoRoute(
+      path: '/widget/template',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) =>
+          Scaffold(appBar: AppBar(), body: const TemplateTransactionSheet()),
+    ),
+    GoRoute(
+      path: '/exchange-rates',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ExchangeRatesScreen(),
+    ),
+    GoRoute(
+      path: '/tools',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ToolsScreen(),
+    ),
+    GoRoute(
+      path: '/templates',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const TemplatesScreen(),
+    ),
+    GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SettingsScreen(),
+      builder: (context, state) => SettingsScreen(
+        section: state.uri.queryParameters['section'] == 'data' ? 'data' : null,
+      ),
     ),
     GoRoute(
       path: '/categories/manage',
@@ -254,6 +296,9 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
       switch (choice) {
         case null:
           break;
+        case AddChoice.template:
+          // The picker needs a WidgetRef, supplied by its small consumer host.
+          builder = (_) => const TemplateTransactionSheet();
         case AddChoice.scan:
           context.push('/smart-import');
         case AddChoice.expense || AddChoice.income || AddChoice.transfer:

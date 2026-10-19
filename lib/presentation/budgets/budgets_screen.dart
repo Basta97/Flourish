@@ -1,3 +1,4 @@
+import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/finance/transaction_classifier.dart';
@@ -32,7 +33,8 @@ import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 
 class BudgetsScreen extends ConsumerStatefulWidget {
-  const BudgetsScreen({super.key});
+  final int? recordId;
+  const BudgetsScreen({super.key, this.recordId});
 
   @override
   ConsumerState<BudgetsScreen> createState() => _BudgetsScreenState();
@@ -50,9 +52,18 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar(pinned: true, title: Text(context.l10n.budgets)),
+          SliverAppBar(
+            pinned: true,
+            title: Text(context.l10n.budgets),
+            actions: const [GlobalSearchButton()],
+          ),
           ...budgetsAsync.when(
-            data: (budgets) {
+            data: (allRecords) {
+              final budgets = allRecords
+                  .where(
+                    (r) => widget.recordId == null || r.id == widget.recordId,
+                  )
+                  .toList();
               if (budgets.isEmpty) {
                 return [
                   SliverFillRemaining(
@@ -409,6 +420,7 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
               metadata?['currency'] as String? ??
               ref.read<String>(defaultCurrencyProvider),
           options: {for (final c in AppConstants.currencies) c: c},
+          currency: true,
         ),
         FinanceField(
           'amount',

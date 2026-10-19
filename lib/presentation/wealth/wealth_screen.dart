@@ -1,3 +1,4 @@
+import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,12 +12,12 @@ import '../providers/theme_providers.dart';
 import 'holdings_view.dart';
 import 'contracts_view.dart';
 import 'reports_view.dart';
-import 'finance_tools_view.dart';
 
 /// Wealth: the compact net-worth card (shared with Home) above a sliding
-/// segmented control that drives four swipeable pages.
+/// segmented control that drives three swipeable pages.
 class WealthScreen extends ConsumerStatefulWidget {
-  const WealthScreen({super.key});
+  final int initialTab;
+  const WealthScreen({super.key, this.initialTab = 0});
 
   @override
   ConsumerState<WealthScreen> createState() => _WealthScreenState();
@@ -24,10 +25,11 @@ class WealthScreen extends ConsumerStatefulWidget {
 
 class _WealthScreenState extends ConsumerState<WealthScreen>
     with SingleTickerProviderStateMixin {
-  static const _tabCount = 4;
+  static const _tabCount = 3;
 
   late final TabController _controller = TabController(
     length: _tabCount,
+    initialIndex: widget.initialTab,
     vsync: this,
   );
   bool _refreshing = false;
@@ -69,6 +71,7 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
       appBar: AppBar(
         title: Text(context.l10n.navWealth),
         actions: [
+          const GlobalSearchButton(),
           IconButton(
             tooltip: context.l10n.refreshPrices,
             onPressed: _refreshPrices,
@@ -111,7 +114,6 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
                   context.l10n.holdings,
                   context.l10n.obligations,
                   context.l10n.reports,
-                  context.l10n.tools,
                 ],
                 selectedIndex: _controller.index,
                 onChanged: (i) => _controller.animateTo(
@@ -125,12 +127,7 @@ class _WealthScreenState extends ConsumerState<WealthScreen>
           Expanded(
             child: TabBarView(
               controller: _controller,
-              children: const [
-                HoldingsView(),
-                ContractsView(),
-                ReportsView(),
-                FinanceToolsView(),
-              ],
+              children: const [HoldingsView(), ContractsView(), ReportsView()],
             ),
           ),
         ],

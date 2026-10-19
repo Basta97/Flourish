@@ -74,7 +74,8 @@ void main() {
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
           );
           for (final t in tables) {
-            sqlite.execute('DROP TABLE "${t['name']}"');
+            // Dropping an FTS virtual table also removes its shadow tables.
+            sqlite.execute('DROP TABLE IF EXISTS "${t['name']}"');
           }
           for (final statement in File(
             'test/fixtures/schema_v6.sql',

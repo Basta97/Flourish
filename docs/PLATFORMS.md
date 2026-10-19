@@ -31,8 +31,8 @@ Flourish uses a **single Flutter UI** on both platforms. There are no separate A
 ## iOS
 
 - **Share extension:** `ios/FlourishShareExtension/` forwards shared text and images (Vision OCR, Arabic where supported) into the main app via app group storage (`SharedImportStore.swift`).
-- **Payment detection:** iOS does not let apps read SMS or notifications, so Shortcuts hands them over. `FlourishShortcuts.swift` provides *Import Transaction Text* (for a Messages automation: "Message contains EGP", Run Immediately, plus one automation each for جنيه, ج.م and any foreign currency the bank writes, e.g. USD / دولار / EUR / SAR) and *Log Card Payment* (for a Wallet "Transaction" automation, Apple Pay only). Both run without opening the app, append to a JSON-lines queue in the app group container (`SharedImportStore`, coordinated writes), and post a notification that opens the inbox. *Open Payments to Review* opens the inbox.
-- **Scene:** `SceneDelegate.swift` serves the `flourish/imports` (share drafts, OCR) and `flourish/detection` (queue peek/ack, pending route) channels. There are no URL-scheme deep links.
+- **Payment detection:** iOS does not let apps read SMS or notifications, so Shortcuts hands them over. `FlourishShortcuts.swift` provides *Import Transaction Text* (for a Messages automation: "Message contains EGP", Run Immediately, plus a separate automation for LE and one each for جنيه, ج.م and any foreign currency the bank writes, e.g. USD / دولار / EUR / SAR) and *Log Card Payment* (for a Wallet "Transaction" automation, Apple Pay only). Both run without opening the app, append to a JSON-lines queue in the app group container (`SharedImportStore`, coordinated writes), and post a notification that opens the inbox. *Open Payments to Review* opens the inbox.
+- **Scene:** `SceneDelegate.swift` serves the `flourish/imports` (share drafts, OCR) and `flourish/detection` (queue peek/ack, pending route) channels. The `flourish/widgets` channel publishes widget snapshots and consumes `flourish://widget/{home,add,template}` actions.
 - **Face ID:** Usage string in `Info.plist` for app lock.
 - **Pods:** `ios/Podfile` / `Podfile.lock` — run `pod install` after dependency changes.
 
@@ -42,7 +42,7 @@ When verifying a build on both platforms:
 
 1. Home net worth card, month stats, island nav, and add sheet from each tab
 2. Ledger filters and transaction swipe actions
-3. Wealth tabs: Holdings, Obligations, Reports, Tools
+3. Wealth tabs: Holdings, Obligations, Reports
 4. Settings: theme, backup/restore, reporting currency
 5. Import path: share text (Android intent vs iOS share sheet)
 6. Payment detection: Android notification access + a real bank SMS and bank-app alert in English and Arabic; iOS Messages and Wallet automations; notification tap opens the inbox; confirm, edit, dismiss
@@ -50,3 +50,11 @@ When verifying a build on both platforms:
 8. Device auth lock (biometric / passcode)
 
 Screenshots for manual regression live in [verification/](verification/).
+
+## Home screen widgets
+
+Android provides Monthly summary and Quick add through native RemoteViews; iPhone provides the same through the FlourishWidgets WidgetKit extension (iOS 15.5+). Add them from the phone's widget gallery. Tools includes setup instructions.
+
+The app publishes the same reporting-month totals shown on Home to a minimal native snapshot after financial/settings changes, restore, and resume. Native widgets do not open SQLite or write transactions. A period-boundary timeline/alarm stops presenting an old month's totals as current; open Flourish to calculate fresh totals. Updates follow OS scheduling, so the last-updated timestamp indicates freshness. Missing exchange rates are flagged by a refresh hint.
+
+App lock or Hide amounts omits income/spending from the shared snapshot. The widget remains masked even after an in-app unlock while app lock is enabled. Quick actions queue once, authenticate through the existing app lock, and open a reviewed transaction or template form. iOS uses the existing App Group and the `flourish://widget/{home,add,template}` URL scheme; Android uses explicit activity intents.

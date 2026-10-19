@@ -115,6 +115,7 @@ Future<void> addContract(BuildContext context, WidgetRef ref) async {
         context.l10n.currency,
         initial: ref.read(defaultCurrencyProvider),
         options: currencies,
+        currency: true,
       ),
       FinanceField('principal', context.l10n.existingPrincipal, numeric: true),
       FinanceField(

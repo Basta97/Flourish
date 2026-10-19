@@ -1,3 +1,4 @@
+import 'currency_catalog.dart';
 import 'package:drift/drift.dart' show Variable;
 import 'valuation_service.dart';
 import 'dart:convert';
@@ -17,7 +18,20 @@ abstract interface class QuoteProvider {
   Future<MarketObservation?> fetch(Holding holding);
 }
 
-class FrankfurterProvider implements FxRateProvider {
+class FrankfurterProvider implements FxRateProvider, CurrencyCatalogProvider {
+  @override
+  Future<List<CurrencyInfo>> currencies() async {
+    final response = await client
+        .get(Uri.https('api.frankfurter.dev', '/v2/currencies'))
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw StateError('Currency catalog unavailable');
+    }
+    return (jsonDecode(response.body) as List)
+        .map((j) => CurrencyInfo.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
+  }
+
   final http.Client client;
   FrankfurterProvider(this.client);
   @override
@@ -220,6 +234,54 @@ class MarketDataService {
     }
   }
 
+  final Map<String, Future<void>> _pairRequests = {};
+  Future<void> refreshPairs(
+    String base,
+    Set<String> quotes, {
+    bool force = false,
+  }) {
+    final sorted = quotes.where((q) => q != base).toList()..sort();
+    final key = '$base/${sorted.join(',')}';
+    return _pairRequests.putIfAbsent(
+      key,
+      () => _refreshPairs(base, sorted.toSet(), force).whenComplete(() {
+        _pairRequests.remove(key);
+      }),
+    );
+  }
+
+  Future<void> _refreshPairs(
+    String base,
+    Set<String> quotes,
+    bool force,
+  ) async {
+    final rows = (await store.list(
+      'fx',
+    )).map(MarketObservation.fromJson).toList();
+    final needed = quotes
+        .where(
+          (q) =>
+              force ||
+              !rows.any(
+                (r) =>
+                    r.key == '$base/$q' &&
+                    !r.manual &&
+                    !r.source.contains('historical') &&
+                    DateTime.now().difference(r.retrievedAt) <
+                        const Duration(hours: 24),
+              ),
+        )
+        .toSet();
+    if (needed.isEmpty) return;
+    final fetched = await fx.fetch(base, needed);
+    for (final r in fetched) {
+      await save('fx', r);
+    }
+    if (needed.any((q) => !fetched.any((r) => r.key == '$base/$q'))) {
+      throw StateError('Some currency pairs are unavailable');
+    }
+  }
+
   Future<void> refresh({
     required String reportingCurrency,
     bool force = false,
@@ -250,18 +312,24 @@ class MarketDataService {
             !o.source.contains('historical') &&
             now.difference(o.retrievedAt).inHours < 24,
       );
+      final requests = <String, Set<String>>{};
       for (final currency in currencies) {
-        final needed = currencies
-            .where((c) => c != currency && (force || !fresh('$currency/$c')))
-            .toSet();
-        if (needed.isEmpty) continue;
+        // Only currencies actually used by finances, never the full catalog.
+        // Keep cross-account conversions available without changing valuation semantics.
+        requests[currency] = currencies.where((c) => c != currency).toSet();
+      }
+      for (final favorite in await store.list('fxFavorites')) {
+        final parts = '${favorite['pair']}'.split('/');
+        if (parts.length == 2) {
+          requests.putIfAbsent(parts[0], () => {}).add(parts[1]);
+        }
+      }
+      for (final entry in requests.entries) {
         try {
-          for (final rate in await fx.fetch(currency, needed)) {
-            await save('fx', rate);
-          }
+          await refreshPairs(entry.key, entry.value, force: force);
         } catch (_) {
           warnings.add(
-            'Could not refresh $currency exchange rates; cached values retained.',
+            'Could not refresh ${entry.key} exchange rates; cached values retained.',
           );
         }
       }

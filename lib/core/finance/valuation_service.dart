@@ -48,6 +48,16 @@ class WealthSummary {
       .fold(Amount.zero, (s, i) => s + (i.converted ?? Amount.zero));
 }
 
+class RateResolution {
+  final Amount rate;
+  final MarketObservation? observation;
+  final bool inverse;
+  const RateResolution(this.rate, this.observation, {this.inverse = false});
+  bool get manual => observation?.manual ?? false;
+  Amount convert(Amount value) =>
+      inverse ? value / observation!.value : value * rate;
+}
+
 class ValuationService {
   final FinanceStore store;
   ValuationService(this.store);
@@ -55,12 +65,15 @@ class ValuationService {
     String collection,
     String key, {
     DateTime? at,
+    bool automaticOnly = false,
   }) async {
     final matches = (await store.list(collection))
         .map(MarketObservation.fromJson)
         .where(
           (o) =>
               o.key == key &&
+              (!automaticOnly ||
+                  (!o.manual && !o.source.contains('historical'))) &&
               (at == null || FxPolicy.usableFor(o.effectiveAt, at)),
         )
         .toList();
@@ -73,18 +86,48 @@ class ValuationService {
     return matches.firstOrNull;
   }
 
+  Future<RateResolution?> resolveRate(
+    String from,
+    String to, {
+    DateTime? at,
+    bool automaticOnly = false,
+  }) async {
+    if (from == to) return RateResolution(Amount.one, null);
+    final direct = await observation(
+      'fx',
+      '$from/$to',
+      at: at,
+      automaticOnly: automaticOnly,
+    );
+    final inverse = await observation(
+      'fx',
+      '$to/$from',
+      at: at,
+      automaticOnly: automaticOnly,
+    );
+    if (direct?.manual == true) return RateResolution(direct!.value, direct);
+    if (inverse?.manual == true) {
+      return RateResolution(
+        Amount.one / inverse!.value,
+        inverse,
+        inverse: true,
+      );
+    }
+    if (direct != null) return RateResolution(direct.value, direct);
+    return inverse == null
+        ? null
+        : RateResolution(Amount.one / inverse.value, inverse, inverse: true);
+  }
+
   Future<Amount?> convert(
     Amount amount,
     String from,
     String to, {
     DateTime? at,
   }) async {
-    if (from == to || amount == Amount.zero) return amount;
-    final direct = await observation('fx', '$from/$to', at: at);
-    if (direct != null) return amount * direct.value;
-    final inverse = await observation('fx', '$to/$from', at: at);
-    if (inverse != null) return amount / inverse.value;
-    return null;
+    if (amount == Amount.zero) return amount;
+    final resolved = await resolveRate(from, to, at: at);
+    return resolved?.convert(amount);
   }
 
   Future<Amount?> transactionValue(int id, String currency) async {

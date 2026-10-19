@@ -1,3 +1,5 @@
+import '../../domain/finance/amount.dart';
+import '../finance/currency_data.dart';
 import 'package:intl/intl.dart';
 
 class CurrencyFormatter {
@@ -15,20 +17,21 @@ class CurrencyFormatter {
 
   static String _wrap(String text) => rtl ? '\u200E$text' : text;
 
-  static const _noDecimals = {
-    'JPY', 'KRW', 'VND', 'CLP', 'ISK', 'UGX', 'PYG', 'XAF', 'XOF', 'RWF', //
-  };
-  static const _threeDecimals = {
-    'KWD', 'BHD', 'OMR', 'JOD', 'TND', 'LYD', 'IQD', //
-  };
+  /// ISO 4217 minor units, shared by input validation and display.
+  static int decimalsFor(String currency) =>
+      isoCurrencyMinorUnits[currency] ?? 2;
 
-  /// Minor-unit digits for [currency] (ISO 4217): 0 for JPY, 3 for KWD, 2 for
-  /// everything else. The single source used for input, display and rounding.
-  static int decimalsFor(String currency) => _noDecimals.contains(currency)
-      ? 0
-      : _threeDecimals.contains(currency)
-      ? 3
-      : 2;
+  static String formatAmount(Amount amount, {required String currency}) {
+    if (hidden) return _wrap('${symbolFor(currency)}$_mask');
+    final parts = amount.abs.fixed(decimalsFor(currency)).split('.');
+    final grouped = parts.first.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+    return _wrap(
+      '${amount < Amount.zero ? '-' : ''}${symbolFor(currency)}$grouped${parts.length > 1 ? '.${parts.last}' : ''}',
+    );
+  }
 
   static String format(
     double amount, {

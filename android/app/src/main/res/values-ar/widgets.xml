@@ -1,0 +1,7 @@
+<resources>
+ <string name="widget_summary">الملخص الشهري</string><string name="widget_quick">إضافة سريعة</string>
+ <string name="widget_add">إضافة معاملة</string><string name="widget_template">استخدام قالب</string>
+ <string name="widget_income">الدخل</string><string name="widget_spending">المصروفات</string>
+ <string name="widget_refresh">افتح Flourish للتحديث</string><string name="widget_updated">آخر تحديث</string>
+<string name="widget_preview_totals">الدخل: ••••\nالمصروفات: ••••</string>
+</resources>

@@ -1,3 +1,5 @@
+import '../currencies/currency_picker.dart';
+import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import '../../core/finance/backup_service.dart';
@@ -16,7 +18,6 @@ import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
 import 'package:flourish/core/constants/enums.dart';
-import 'package:flourish/core/constants/app_constants.dart';
 import 'package:flourish/presentation/providers/theme_providers.dart';
 import 'package:flourish/presentation/providers/locale_providers.dart';
 import 'package:flourish/l10n/l10n.dart';
@@ -30,7 +31,8 @@ import 'package:flourish/shared/widgets/settings_group.dart';
 import 'package:flourish/core/services/preferences_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  final String? section;
+  const SettingsScreen({super.key, this.section});
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -77,12 +79,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final locale = ref.watch(appLocaleProvider);
     final hideAmounts = ref.watch(hideAmountsProvider);
 
+    if (widget.section == 'data') {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(context.l10n.data),
+          actions: const [GlobalSearchButton()],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(Sp.xl),
+          children: [_dataGroup()],
+        ),
+      );
+    }
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.settings)),
+      appBar: AppBar(
+        title: Text(context.l10n.settings),
+        actions: const [GlobalSearchButton()],
+      ),
       body: LiquidPageBackground(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(Sp.xl, Sp.sm, Sp.xl, Sp.xxxl),
           children: [
+            SettingsGroup(
+              title: context.l10n.tools,
+              children: [
+                SettingsTile(
+                  icon: Icons.build_outlined,
+                  title: context.l10n.tools,
+                  subtitle: context.l10n.toolsSubtitle,
+                  onTap: () => context.push('/tools'),
+                ),
+              ],
+            ),
             SettingsGroup(
               title: context.l10n.appearance,
               children: [
@@ -144,27 +172,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.currency_exchange,
                   title: context.l10n.defaultCurrency,
                   subtitle: currency,
-                  trailing: DropdownButton<String>(
-                    value: currency,
-                    underline: const SizedBox.shrink(),
-                    items: AppConstants.currencies
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(
-                              c,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        ref.read(defaultCurrencyProvider.notifier).state = v;
-                        persistSettings(ref);
-                      }
-                    },
-                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    final v = await pickCurrency(context, selected: currency);
+                    if (v != null && context.mounted) {
+                      ref.read(defaultCurrencyProvider.notifier).state = v;
+                      persistSettings(ref);
+                    }
+                  },
                 ),
               ],
             ),
@@ -423,31 +438,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
 
-            SettingsGroup(
-              title: context.l10n.data,
-              children: [
-                SettingsTile(
-                  icon: Icons.file_download_outlined,
-                  title: context.l10n.exportData,
-                  subtitle: context.l10n.exportDataSubtitle,
-                  onTap: () => _exportData(ref),
-                ),
-                SettingsTile(
-                  icon: Icons.file_upload_outlined,
-                  title: context.l10n.importData,
-                  subtitle: context.l10n.importDataSubtitle,
-                  onTap: () => _importData(ref),
-                ),
-                SettingsTile(
-                  icon: Icons.delete_outline,
-                  title: context.l10n.resetAllData,
-                  subtitle: context.l10n.resetAllDataSubtitle,
-                  titleColor: AppColors.danger,
-                  tint: AppColors.danger,
-                  onTap: () => _confirmReset(context, ref),
-                ),
-              ],
-            ),
+            _dataGroup(),
 
             SettingsGroup(
               title: context.l10n.about,
@@ -469,6 +460,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
+
+  Widget _dataGroup() => SettingsGroup(
+    title: context.l10n.data,
+    children: [
+      SettingsTile(
+        icon: Icons.file_download_outlined,
+        title: context.l10n.exportData,
+        subtitle: context.l10n.exportDataSubtitle,
+        onTap: () => _exportData(ref),
+      ),
+      SettingsTile(
+        icon: Icons.file_upload_outlined,
+        title: context.l10n.importData,
+        subtitle: context.l10n.importDataSubtitle,
+        onTap: () => _importData(ref),
+      ),
+      SettingsTile(
+        icon: Icons.delete_outline,
+        title: context.l10n.resetAllData,
+        subtitle: context.l10n.resetAllDataSubtitle,
+        titleColor: AppColors.danger,
+        tint: AppColors.danger,
+        onTap: () => _confirmReset(context, ref),
+      ),
+    ],
+  );
 
   String _languageName(BuildContext context, Locale? locale) =>
       switch (locale?.languageCode) {

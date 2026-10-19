@@ -2555,7 +2555,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get iosStep2 =>
-      'Message Contains: EGP. Choose Run Immediately. Make one more automation for each word your bank uses: جنيه, ج.م, and the currencies you pay in abroad or online, such as USD, دولار, EUR, SAR.';
+      'Message Contains: EGP. Add a separate Message automation for LE. Choose Run Immediately. Make one more automation for each word your bank uses: جنيه, ج.م, and the currencies you pay in abroad or online, such as USD, دولار, EUR, SAR.';
 
   @override
   String get iosStep3 =>
@@ -3446,7 +3446,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get iosGuideMsg2 =>
-      'Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender).';
+      'Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender). Add a separate Message automation with Message Contains: LE; existing automations must be updated manually.';
 
   @override
   String get iosGuideMsg3 => 'Choose Run Immediately, then Next.';
@@ -3495,4 +3495,134 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get iosGuideCatchUpHint =>
       'Missed some days? Catch up brings in the last 7 days.';
+
+  @override
+  String get useTemplate => 'Use template';
+
+  @override
+  String get noTemplates =>
+      'No templates yet. Create one in Tools → Transaction templates.';
+
+  @override
+  String get chooseTemplateAmount => 'Choose an amount';
+
+  @override
+  String get templateCategoryMismatch =>
+      'Choose a category matching the transaction type';
+
+  @override
+  String get templatePositiveAmounts => 'Enter 1–3 positive amounts';
+
+  @override
+  String get homeScreenWidgets => 'Home screen widgets';
+
+  @override
+  String get widgetSetup =>
+      'On Android, long-press Home → Widgets → Flourish. On iPhone, long-press Home → Edit → Add Widget → Flourish. Add Monthly summary or Quick add. Amounts are hidden while app lock or Hide amounts is on. Totals show their last update; open Flourish to refresh.';
+
+  @override
+  String get widgetMonthlySummary => 'Monthly summary';
+
+  @override
+  String get widgetQuickAdd => 'Quick add';
+
+  @override
+  String get widgetOpenToRefresh => 'Open Flourish to refresh';
+
+  @override
+  String get widgetUpdated => 'Updated';
+
+  @override
+  String get toolsSubtitle => 'Templates, imports, backup, and security';
+
+  @override
+  String get globalSearch => 'Search everything';
+
+  @override
+  String get searchEverythingHint => 'Records, merchants, tools…';
+
+  @override
+  String get searchIndexing => 'Preparing search index…';
+
+  @override
+  String get searchFailed => 'Search failed. Try again.';
+
+  @override
+  String get searchFeatures => 'App features';
+
+  @override
+  String get searchObligations => 'Obligations';
+
+  @override
+  String get searchFilters => 'Transaction filters';
+
+  @override
+  String get minimumAmount => 'Minimum amount';
+
+  @override
+  String get maximumAmount => 'Maximum amount';
+
+  @override
+  String get searchRelevance => 'Most relevant';
+
+  @override
+  String get searchNewest => 'Newest first';
+
+  @override
+  String get loadMoreResults => 'More results';
+
+  @override
+  String get currencyConverter => 'Currency converter';
+
+  @override
+  String get referenceRate => 'Provider reference';
+
+  @override
+  String get effectiveRate => 'Your effective rate';
+
+  @override
+  String get rateUnavailable => 'No rate available for this pair.';
+
+  @override
+  String get cachedRateNotice => 'Cached daily reference. Pull to refresh.';
+
+  @override
+  String get rateRefreshFailed => 'Could not refresh. Cached rates retained.';
+
+  @override
+  String get rateStale => 'Last fetched over 24 hours ago';
+
+  @override
+  String get favoritePairs => 'Favorite pairs';
+
+  @override
+  String get searchCurrency => 'Search currencies';
+
+  @override
+  String get rateAsOf => 'Rate date';
+
+  @override
+  String get rateFetched => 'Last fetched';
+
+  @override
+  String get searchMissingRecord => 'This record no longer exists.';
+
+  @override
+  String get searchStart => 'Search records and app features';
+
+  @override
+  String get searchAmountCurrency =>
+      'Amount filters use the selected currency without conversion.';
+
+  @override
+  String get clearFilters => 'Clear filters';
+
+  @override
+  String get searchRetry => 'Retry';
+
+  @override
+  String get searchClear => 'Clear';
+
+  @override
+  String get searchApply => 'Apply';
 }

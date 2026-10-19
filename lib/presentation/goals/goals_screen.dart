@@ -21,7 +21,8 @@ import 'package:flourish/shared/widgets/progress.dart';
 import 'package:flourish/shared/widgets/shimmer_loading.dart';
 
 class GoalsScreen extends ConsumerWidget {
-  const GoalsScreen({super.key});
+  final int? recordId;
+  const GoalsScreen({super.key, this.recordId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +44,10 @@ class GoalsScreen extends ConsumerWidget {
         slivers: [
           SliverAppBar(pinned: true, title: Text(context.l10n.savingsGoals)),
           ...goalsAsync.when(
-            data: (goals) {
+            data: (allRecords) {
+              final goals = allRecords
+                  .where((r) => recordId == null || r.id == recordId)
+                  .toList();
               if (goals.isEmpty) {
                 return [
                   SliverFillRemaining(

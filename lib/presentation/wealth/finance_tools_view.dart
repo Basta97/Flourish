@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:csv/csv.dart' as csv;
 import '../../core/finance/payment_methods.dart';
@@ -7,7 +8,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:local_auth/local_auth.dart';
+import '../../core/auth/authentication_coordinator.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -42,6 +43,7 @@ class FinanceToolsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
+    ref.watch(financeRevisionProvider);
     final lockOn = PreferencesService.getBool('app_lock_enabled');
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -51,6 +53,29 @@ class FinanceToolsView extends ConsumerWidget {
         Sp.bottomNavClear,
       ),
       children: [
+        SettingsGroup(
+          title: l.homeScreenWidgets,
+          children: [
+            SettingsTile(
+              icon: Icons.widgets_outlined,
+              title: l.homeScreenWidgets,
+              subtitle: l.widgetQuickAdd,
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(l.homeScreenWidgets),
+                  content: SingleChildScrollView(child: Text(l.widgetSetup)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(l.close),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
         SettingsGroup(
           title: l.toolsMoney,
           children: [
@@ -171,12 +196,12 @@ class FinanceToolsView extends ConsumerWidget {
               subtitle: lockOn ? l.deviceLockOn : l.deviceLockOff,
               onTap: () async {
                 try {
-                  final auth = LocalAuthentication();
-                  if (!await auth.isDeviceSupported()) {
+                  if (!await AuthenticationCoordinator.instance
+                      .isDeviceSupported()) {
                     throw StateError(l.setUpPasscodeFirst);
                   }
-                  if (await auth.authenticate(
-                    localizedReason: l.changeAppLockReason,
+                  if (await AuthenticationCoordinator.instance.authenticate(
+                    l.changeAppLockReason,
                   )) {
                     await PreferencesService.setBool(
                       'app_lock_enabled',
@@ -288,6 +313,7 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
           context.l10n.currency,
           initial: a.currency,
           options: currencies,
+          currency: true,
         ),
       FinanceField(
         'institution',
@@ -390,245 +416,11 @@ Future<void> editAccount(BuildContext context, WidgetRef ref, Account a) async {
 }
 
 Future<void> exchangeRates(BuildContext context, WidgetRef ref) async {
-  final store = ref.read(financeStoreProvider),
-      valuation = ref.read(valuationProvider);
-  final rows = (await store.list(
-    'fx',
-  )).map(MarketObservation.fromJson).toList();
-  final keys = rows.map((r) => r.key).toSet().toList()..sort();
-  final active = <MarketObservation>[];
-  for (final key in keys) {
-    final value = await valuation.observation('fx', key);
-    if (value != null) active.add(value);
-  }
-  if (!context.mounted) return;
-  await showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(context.l10n.exchangeRates),
-      content: SizedBox(
-        width: 480,
-        height: 400,
-        child: ListView(
-          children: [
-            for (final r in active)
-              ListTile(
-                title: Text('${r.key} · ${r.value}'),
-                subtitle: Text(
-                  '${r.source}${r.manual ? ' · ${context.l10n.manualOverride}' : ''}\n${r.effectiveAt.toIso8601String().substring(0, 10)}',
-                ),
-                trailing: r.manual
-                    ? IconButton(
-                        tooltip: context.l10n.resumeAutomaticRate,
-                        icon: const Icon(Icons.clear),
-                        onPressed: () async {
-                          for (final j in await store.list('fx')) {
-                            if (j['key'] == r.key && j['manual'] == true) {
-                              await store.remove(
-                                'fx',
-                                '${j['key']}:manual:${j['effectiveAt']}',
-                              );
-                            }
-                          }
-                          if (ctx.mounted) Navigator.pop(ctx);
-                        },
-                      )
-                    : null,
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: Text(context.l10n.close),
-        ),
-        FilledButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            financeForm(
-              context,
-              title: context.l10n.manualExchangeRate,
-              fields: [
-                FinanceField(
-                  'base',
-                  context.l10n.from,
-                  initial: 'USD' == ref.read(defaultCurrencyProvider)
-                      ? 'EUR'
-                      : 'USD',
-                  options: currencies,
-                ),
-                FinanceField(
-                  'quote',
-                  context.l10n.to,
-                  initial: 'EGP',
-                  options: currencies,
-                ),
-                FinanceField(
-                  'rate',
-                  context.l10n.oneSourceUnitEquals,
-                  numeric: true,
-                ),
-                FinanceField(
-                  'date',
-                  context.l10n.effectiveDate,
-                  initial: today(),
-                  date: true,
-                ),
-              ],
-              save: (j) async {
-                if (j['base'] == j['quote']) {
-                  throw ArgumentError(currentL10n.chooseDifferentCurrencies);
-                }
-                await ref
-                    .read(marketDataProvider)
-                    .save(
-                      'fx',
-                      MarketObservation(
-                        key: '${j['base']}/${j['quote']}',
-                        currency: j['quote']!,
-                        source: 'Manual reference override',
-                        value: number(j, 'rate'),
-                        effectiveAt: DateTime.parse(j['date']!),
-                        retrievedAt: DateTime.now(),
-                        manual: true,
-                      ),
-                    );
-              },
-            );
-          },
-          child: Text(context.l10n.addOverride),
-        ),
-      ],
-    ),
-  );
+  await context.push('/exchange-rates');
 }
 
 Future<void> templates(BuildContext context, WidgetRef ref) async {
-  final store = ref.read(financeStoreProvider),
-      rows = await ref.read(financeStoreProvider).list('templates');
-  if (!context.mounted) return;
-  await showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(context.l10n.transactionTemplates),
-      content: SizedBox(
-        width: 440,
-        height: 350,
-        child: ListView(
-          children: [
-            for (final j in rows)
-              ListTile(
-                title: Text(j['name']),
-                subtitle: Text('${j['type']} · ${j['amount']}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
-                    await store.remove('templates', j['id']);
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _templateForm(context, ref, j);
-                },
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: Text(context.l10n.close),
-        ),
-        FilledButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            _templateForm(context, ref, null);
-          },
-          child: Text(context.l10n.newTemplate),
-        ),
-      ],
-    ),
-  );
-}
-
-Future<void> _templateForm(BuildContext context, WidgetRef ref, Json? j) async {
-  final accounts = ref.read(accountsProvider).valueOrNull ?? [],
-      categories = ref.read(pickableCategoriesProvider).valueOrNull ?? [];
-  await financeForm(
-    context,
-    title: j == null
-        ? context.l10n.saveTemplate
-        : context.l10n.reviewTemplateTx,
-    fields: [
-      FinanceField(
-        'name',
-        context.l10n.templateName,
-        initial: j?['name'] ?? '',
-      ),
-      FinanceField(
-        'type',
-        context.l10n.type,
-        initial: j?['type'] ?? 'expense',
-        options: {
-          'expense': context.l10n.expense,
-          'income': context.l10n.income,
-        },
-      ),
-      FinanceField(
-        'account',
-        context.l10n.account,
-        initial: j?['account'] ?? '',
-        options: {
-          for (final a in accounts) '${a.id}': '${a.name} (${a.currency})',
-        },
-      ),
-      FinanceField(
-        'category',
-        context.l10n.category,
-        initial: j?['category'] ?? '',
-        options: {
-          for (final c in categories) '${c.id}': '${c.displayName} (${c.type})',
-        },
-      ),
-      FinanceField(
-        'amount',
-        context.l10n.amountInAccountCurrency,
-        initial: j?['amount'] ?? '',
-        numeric: true,
-      ),
-      FinanceField(
-        'note',
-        context.l10n.note,
-        initial: j?['note'] ?? '',
-        required: false,
-      ),
-    ],
-    submit: j == null
-        ? context.l10n.saveTemplate
-        : context.l10n.recordTransaction,
-    save: (data) async {
-      if (j == null) {
-        ref.read(financialLedgerProvider).positive(number(data, 'amount'));
-        final id = ref.read(financialLedgerProvider).newId();
-        await ref.read(financeStoreProvider).put('templates', id, {
-          'id': id,
-          ...data,
-        });
-      } else {
-        await ref
-            .read(financialLedgerProvider)
-            .recordCash(
-              accountId: int.parse(data['account']!),
-              categoryId: int.parse(data['category']!),
-              amount: number(data, 'amount'),
-              type: data['type']!,
-              note: data['note'],
-            );
-      }
-    },
-  );
+  context.push('/templates');
 }
 
 Future<void> subcategory(BuildContext context, WidgetRef ref) async {

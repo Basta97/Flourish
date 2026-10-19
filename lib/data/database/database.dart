@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../search/search_index.dart';
 import 'dart:async';
 import '../finance/finance_store.dart';
 import '../../domain/finance/amount.dart';
@@ -56,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   final financeChanges = StreamController<void>.broadcast();
   void notifyFinanceChanged() {
@@ -155,6 +156,7 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('PRAGMA foreign_keys = ON');
         await customStatement('PRAGMA journal_mode = WAL');
         if (!details.wasCreated) await repairLegacyData();
+        await SearchIndex.create(this);
       },
     );
   }
@@ -1010,7 +1012,7 @@ LazyDatabase _openConnection() {
     if (await oldFile.exists() && !await newFile.exists()) {
       await oldFile.rename(newFile.path);
     }
-    return NativeDatabase(newFile);
+    return NativeDatabase.createInBackground(newFile);
   });
 }
 

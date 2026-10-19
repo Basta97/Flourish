@@ -1,3 +1,5 @@
+import '../currencies/currency_picker.dart';
+import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/core/utils/error_text.dart';
@@ -39,7 +41,11 @@ class AccountsScreen extends ConsumerWidget {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar(pinned: true, title: Text(context.l10n.navAccounts)),
+          SliverAppBar(
+            pinned: true,
+            title: Text(context.l10n.navAccounts),
+            actions: const [GlobalSearchButton()],
+          ),
           CupertinoSliverRefreshControl(
             onRefresh: () async {
               ref.invalidate(accountsProvider);
@@ -256,17 +262,10 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
           },
         ),
         const SizedBox(height: Sp.md),
-        DropdownButtonFormField<String>(
-          initialValue: _currency,
-          decoration: InputDecoration(labelText: context.l10n.currency),
-          items: AppConstants.currencies
-              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-              .toList(),
-          onChanged: (v) {
-            if (v != null) {
-              setState(() => _currency = v);
-            }
-          },
+        CurrencyField(
+          value: _currency,
+          label: context.l10n.currency,
+          onChanged: (v) => setState(() => _currency = v),
         ),
         if (_type == 'credit') ...[
           const SizedBox(height: Sp.md),

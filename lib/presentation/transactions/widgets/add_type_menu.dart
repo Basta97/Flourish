@@ -11,7 +11,7 @@ import '../../../l10n/l10n.dart';
 import '../../../shared/widgets/pressable.dart';
 
 /// What the Add button's picker returns.
-enum AddChoice { expense, income, transfer, scan }
+enum AddChoice { expense, income, transfer, scan, template }
 
 /// Fans the transaction types out above the island's Add button. Resolves to
 /// the chosen type, or null when dismissed.
@@ -34,6 +34,12 @@ Future<AddChoice?> showAddTypeMenu(BuildContext context) {
     pageBuilder: (context, _, _) {
       final palette = FlourishPalette.of(context);
       final options = [
+        (
+          AddChoice.template,
+          l.useTemplate,
+          Icons.bookmark_outline,
+          palette.accent,
+        ),
         (
           AddChoice.expense,
           l.expense,

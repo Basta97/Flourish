@@ -1,0 +1,8 @@
+<resources>
+ <color name="widget_surface">#F3F8F5</color><color name="widget_text">#163C32</color>
+ <string name="widget_summary">Monthly summary</string><string name="widget_quick">Quick add</string>
+ <string name="widget_add">Add transaction</string><string name="widget_template">Use template</string>
+ <string name="widget_income">Income</string><string name="widget_spending">Spending</string>
+ <string name="widget_refresh">Open Flourish to refresh</string><string name="widget_updated">Updated</string>
+<string name="widget_preview_totals">Income: ••••\nSpending: ••••</string>
+<color name="widget_accent">#167355</color><color name="widget_button_text">#FFFFFF</color></resources>

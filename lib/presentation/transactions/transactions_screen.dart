@@ -88,7 +88,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             title: Text(context.l10n.navLedger),
             actions: [
               IconButton(
-                tooltip: context.l10n.search,
+                tooltip: context.l10n.globalSearch,
                 onPressed: () {
                   Haptics.tap();
                   context.push('/search');

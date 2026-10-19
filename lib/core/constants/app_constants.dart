@@ -1,34 +1,12 @@
+import '../finance/currency_data.dart';
+
 class AppConstants {
   AppConstants._();
 
   static const String appName = 'Flourish';
   static const String defaultCurrency = 'EGP';
 
-  static const List<String> currencies = [
-    'USD',
-    'EGP',
-    'EUR',
-    'GBP',
-    'JPY',
-    'CNY',
-    'INR',
-    'IDR',
-    'MYR',
-    'SAR',
-    'AED',
-    'AUD',
-    'CAD',
-    'CHF',
-    'KWD',
-    'BHD',
-    'OMR',
-    'QAR',
-    'SGD',
-    'ZAR',
-    'TRY',
-    'KRW',
-    'THB',
-  ];
+  static List<String> get currencies => bundledCurrencyNames.keys.toList();
 
   static List<Map<String, dynamic>> defaultCategories() {
     return [

@@ -12,11 +12,22 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.flourish.app.detect.DetectionChannel
 
 class MainActivity : FlutterFragmentActivity() {
+    private var widgetAction: String? = null
+    private var widgetChannel: MethodChannel? = null
     private var pending: Map<String, Any>? = null
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         DetectionChannel.register(this, flutterEngine)
         capture(intent)
+        widgetChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "flourish/widgets").also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "publish" -> { com.flourish.app.widgets.WidgetStore.publish(this, call.arguments as String); result.success(null) }
+                    "consumeAction" -> { result.success(widgetAction); widgetAction = null }
+                    else -> result.notImplemented()
+                }
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "flourish/imports").setMethodCallHandler { call, result ->
             if (call.method == "consumePendingImport") {
                 result.success(pending)
@@ -38,6 +49,7 @@ class MainActivity : FlutterFragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         capture(intent)
+        widgetChannel?.invokeMethod("actionAvailable", null)
     }
 
     override fun onResume() {
@@ -51,6 +63,11 @@ class MainActivity : FlutterFragmentActivity() {
     }
     @Suppress("DEPRECATION")
     private fun capture(intent: Intent?) {
+        intent?.getStringExtra(com.flourish.app.widgets.WidgetStore.ACTION_EXTRA)?.let {
+            widgetAction = it
+            intent.removeExtra(com.flourish.app.widgets.WidgetStore.ACTION_EXTRA)
+            // Dart consumes this on resume; do not deliver twice via two paths.
+        }
         // Tapping a detected-payment notification opens the inbox.
         intent?.getStringExtra(DetectionChannel.ROUTE_EXTRA)?.let {
             DetectionChannel.pendingRoute = it

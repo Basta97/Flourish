@@ -22,6 +22,10 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		B62BC3C311FB4B145370E2C0 /* FlourishWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B3EE256BBF13698B1FFCC3D /* FlourishWidgets.swift */; };
+		D85ED905FA7021147A56B314 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C8A1E32FF15738D2E0D606A /* Foundation.framework */; };
+		E1AE62132692FD01830FB607 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 127740C0A293DD0D04D36250 /* Localizable.strings */; };
+		EE633208F60B8636BC6A2536 /* FlourishWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F094A782294B846B87A9E979 /* FlourishWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,6 +43,13 @@
 			remoteGlobalIDString = 4A86000D3A10000100F10A01;
 			remoteInfo = FlourishShareExtension;
 		};
+		751CF2E812CFBFAF24AE45EE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 22671842FE49AA68BD3F5E46;
+			remoteInfo = FlourishWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -49,6 +60,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				4A8600053A10000100F10A01 /* FlourishShareExtension.appex in Embed App Extensions */,
+				EE633208F60B8636BC6A2536 /* FlourishWidgets.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -66,6 +78,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		02BFCD3E802A877C583A768D /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		066737DA3FD98CD134D05F8F /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		0931F0B6AAA6B2521D33E516 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -75,6 +88,7 @@
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		3B742D4B1D65B562FF2A62C9 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		403B0E7CD3EE639E4584A17A /* FlourishWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = FlourishWidgets.entitlements; sourceTree = "<group>"; };
 		4A8601013A10000100F10A01 /* SharedImportStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedImportStore.swift; sourceTree = "<group>"; };
 		4A8601023A10000100F10A01 /* FlourishShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlourishShortcuts.swift; sourceTree = "<group>"; };
 		4A8601033A10000100F10A01 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -84,12 +98,15 @@
 		4A8601073A10000100F10A01 /* FlourishShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FlourishShareExtension.entitlements; sourceTree = "<group>"; };
 		4EA466B688FCDA3165B52AEF /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		6B1D55A9B8CE6816E8540593 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C8A1E32FF15738D2E0D606A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7CBDA890DF384EC7C1111386 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		8169D17550148E8E1CC80F44 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		83CF18B2E2CF46760C0D907A /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8B3EE256BBF13698B1FFCC3D /* FlourishWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FlourishWidgets.swift; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -97,9 +114,20 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA291CD4D0B20BE5CD665DD5 /* ar */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BC119FFD7A13ED57B8AE298A /* WidgetVersion.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = WidgetVersion.xcconfig; sourceTree = "<group>"; };
+		F094A782294B846B87A9E979 /* FlourishWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FlourishWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		25A88F2593FA341F76697106 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D85ED905FA7021147A56B314 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4A8600083A10000100F10A01 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -147,6 +175,19 @@
 			path = RunnerTests;
 			sourceTree = "<group>";
 		};
+		380F551C03D4D4B3DDC441E6 /* FlourishWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				8B3EE256BBF13698B1FFCC3D /* FlourishWidgets.swift */,
+				83CF18B2E2CF46760C0D907A /* Info.plist */,
+				403B0E7CD3EE639E4584A17A /* FlourishWidgets.entitlements */,
+				127740C0A293DD0D04D36250 /* Localizable.strings */,
+				BC119FFD7A13ED57B8AE298A /* WidgetVersion.xcconfig */,
+			);
+			name = FlourishWidgets;
+			path = FlourishWidgets;
+			sourceTree = "<group>";
+		};
 		4A8600093A10000100F10A01 /* FlourishShareExtension */ = {
 			isa = PBXGroup;
 			children = (
@@ -178,6 +219,7 @@
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				0FA7E58E4B4BFC86158CC244 /* Pods */,
 				D5BCD357C774762987A91AD4 /* Frameworks */,
+				380F551C03D4D4B3DDC441E6 /* FlourishWidgets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -187,6 +229,7 @@
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				4A8601053A10000100F10A01 /* FlourishShareExtension.appex */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				F094A782294B846B87A9E979 /* FlourishWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -215,13 +258,39 @@
 			children = (
 				6B1D55A9B8CE6816E8540593 /* Pods_Runner.framework */,
 				26920645FDA5517C0A1BE711 /* Pods_RunnerTests.framework */,
+				DFABD133872FD2D7137E11FC /* iOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DFABD133872FD2D7137E11FC /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				6C8A1E32FF15738D2E0D606A /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		22671842FE49AA68BD3F5E46 /* FlourishWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 457F2A64B966E8E4DDBC6599 /* Build configuration list for PBXNativeTarget "FlourishWidgets" */;
+			buildPhases = (
+				9EFF466A736FB287263C5C1B /* Sources */,
+				25A88F2593FA341F76697106 /* Frameworks */,
+				C2A9BECB0EA85A4437D55B48 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FlourishWidgets;
+			productName = FlourishWidgets;
+			productReference = F094A782294B846B87A9E979 /* FlourishWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -276,6 +345,7 @@
 			);
 			dependencies = (
 				4A86000C3A10000100F10A01 /* PBXTargetDependency */,
+				6E916F9B76E42C064DE39A52 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -321,6 +391,7 @@
 				4A86000D3A10000100F10A01 /* FlourishShareExtension */,
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				22671842FE49AA68BD3F5E46 /* FlourishWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -348,6 +419,14 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C2A9BECB0EA85A4437D55B48 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1AE62132692FD01830FB607 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -478,6 +557,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9EFF466A736FB287263C5C1B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B62BC3C311FB4B145370E2C0 /* FlourishWidgets.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -491,9 +578,24 @@
 			target = 4A86000D3A10000100F10A01 /* FlourishShareExtension */;
 			targetProxy = 4A8600063A10000100F10A01 /* PBXContainerItemProxy */;
 		};
+		6E916F9B76E42C064DE39A52 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = FlourishWidgets;
+			target = 22671842FE49AA68BD3F5E46 /* FlourishWidgets */;
+			targetProxy = 751CF2E812CFBFAF24AE45EE /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		127740C0A293DD0D04D36250 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				02BFCD3E802A877C583A768D /* en */,
+				AA291CD4D0B20BE5CD665DD5 /* ar */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
 		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -513,6 +615,33 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		145B3E2B94D1B148B11A4DAF /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BC119FFD7A13ED57B8AE298A /* WidgetVersion.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = FlourishWidgets/FlourishWidgets.entitlements;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = NJMCMUQVYR;
+				INFOPLIST_FILE = FlourishWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.basta.bastasaving.FlourishWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Profile;
+		};
 		249021D3217E4FDB00AE95B9 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -708,6 +837,33 @@
 			};
 			name = Profile;
 		};
+		7F85FD29F2FA448147EACBAF /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BC119FFD7A13ED57B8AE298A /* WidgetVersion.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = FlourishWidgets/FlourishWidgets.entitlements;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = NJMCMUQVYR;
+				INFOPLIST_FILE = FlourishWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.basta.bastasaving.FlourishWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		97C147031CF9000F007C117D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -867,6 +1023,32 @@
 			};
 			name = Release;
 		};
+		D1A69C060F2A7A9D5C4B47BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BC119FFD7A13ED57B8AE298A /* WidgetVersion.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = FlourishWidgets/FlourishWidgets.entitlements;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = NJMCMUQVYR;
+				INFOPLIST_FILE = FlourishWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.basta.bastasaving.FlourishWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -876,6 +1058,16 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		457F2A64B966E8E4DDBC6599 /* Build configuration list for PBXNativeTarget "FlourishWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7F85FD29F2FA448147EACBAF /* Release */,
+				D1A69C060F2A7A9D5C4B47BF /* Debug */,
+				145B3E2B94D1B148B11A4DAF /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

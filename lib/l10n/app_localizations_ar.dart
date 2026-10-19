@@ -2564,7 +2564,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get iosStep2 =>
-      'الرسالة تحتوي على: EGP. اختر التشغيل فورًا. أنشئ أتمتة أخرى لكل كلمة يستخدمها بنكك: جنيه، ج.م، والعملات التي تدفع بها في الخارج أو عبر الإنترنت مثل USD ودولار وEUR وSAR.';
+      'الرسالة تحتوي على: EGP. اختر التشغيل فورًا. أنشئ أتمتة أخرى لكل كلمة يستخدمها بنكك: جنيه، ج.م، والعملات التي تدفع بها في الخارج أو عبر الإنترنت مثل USD ودولار وEUR وSAR. أضف أتمتة رسالة منفصلة لكلمة LE.';
 
   @override
   String get iosStep3 =>
@@ -3483,7 +3483,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get iosGuideMsg2 =>
-      'اختر رسالة. في «تحتوي الرسالة على» اكتب EGP (ويمكنك أيضًا اختيار البنك في «المرسل»).';
+      'اختر رسالة. في «تحتوي الرسالة على» اكتب EGP (ويمكنك أيضًا اختيار البنك في «المرسل»). أضف أتمتة رسالة منفصلة تحتوي على LE. يجب تحديث الأتمتة الحالية يدويًا.';
 
   @override
   String get iosGuideMsg3 => 'اختر «تشغيل فورًا» ثم «التالي».';
@@ -3531,4 +3531,134 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get iosGuideCatchUpHint =>
       'فاتتك بعض الأيام؟ «مراجعة آخر 7 أيام» تُحضر مدفوعات الأسبوع الماضي.';
+
+  @override
+  String get useTemplate => 'استخدام قالب';
+
+  @override
+  String get noTemplates =>
+      'لا توجد قوالب بعد. أنشئ قالبًا من الأدوات ← قوالب المعاملات.';
+
+  @override
+  String get chooseTemplateAmount => 'اختر مبلغًا';
+
+  @override
+  String get templateCategoryMismatch => 'اختر فئة تتوافق مع نوع المعاملة';
+
+  @override
+  String get templatePositiveAmounts => 'أدخل من مبلغ واحد إلى ٣ مبالغ موجبة';
+
+  @override
+  String get homeScreenWidgets => 'أدوات الشاشة الرئيسية';
+
+  @override
+  String get widgetSetup =>
+      'على أندرويد اضغط مطولًا على الشاشة الرئيسية ← الأدوات ← Flourish. على آيفون اضغط مطولًا ← تعديل ← إضافة أداة ← Flourish. اختر الملخص الشهري أو الإضافة السريعة. تُخفى المبالغ عند تفعيل قفل التطبيق أو إخفاء المبالغ. افتح التطبيق لتحديث الملخص.';
+
+  @override
+  String get widgetMonthlySummary => 'الملخص الشهري';
+
+  @override
+  String get widgetQuickAdd => 'إضافة سريعة';
+
+  @override
+  String get widgetOpenToRefresh => 'افتح Flourish للتحديث';
+
+  @override
+  String get widgetUpdated => 'آخر تحديث';
+
+  @override
+  String get toolsSubtitle => 'القوالب والاستيراد والنسخ الاحتياطي والأمان';
+
+  @override
+  String get globalSearch => 'ابحث في التطبيق';
+
+  @override
+  String get searchEverythingHint => 'معاملات، تجار، أدوات…';
+
+  @override
+  String get searchIndexing => 'جارٍ تجهيز فهرس البحث…';
+
+  @override
+  String get searchFailed => 'تعذر البحث. حاول مرة أخرى.';
+
+  @override
+  String get searchFeatures => 'مزايا التطبيق';
+
+  @override
+  String get searchObligations => 'الالتزامات';
+
+  @override
+  String get searchFilters => 'مرشحات المعاملات';
+
+  @override
+  String get minimumAmount => 'الحد الأدنى للمبلغ';
+
+  @override
+  String get maximumAmount => 'الحد الأقصى للمبلغ';
+
+  @override
+  String get searchRelevance => 'الأكثر صلة';
+
+  @override
+  String get searchNewest => 'الأحدث أولاً';
+
+  @override
+  String get loadMoreResults => 'المزيد من النتائج';
+
+  @override
+  String get currencyConverter => 'محول العملات';
+
+  @override
+  String get referenceRate => 'سعر المزود المرجعي';
+
+  @override
+  String get effectiveRate => 'السعر الفعلي المستخدم';
+
+  @override
+  String get rateUnavailable => 'لا يتوفر سعر لهذا الزوج.';
+
+  @override
+  String get cachedRateNotice => 'سعر مرجعي يومي محفوظ. اسحب للتحديث.';
+
+  @override
+  String get rateRefreshFailed =>
+      'تعذر التحديث. تم الاحتفاظ بالأسعار المحفوظة.';
+
+  @override
+  String get rateStale => 'آخر تحديث منذ أكثر من ٢٤ ساعة';
+
+  @override
+  String get favoritePairs => 'أزواج العملات المفضلة';
+
+  @override
+  String get searchCurrency => 'البحث عن العملات';
+
+  @override
+  String get rateAsOf => 'تاريخ السعر';
+
+  @override
+  String get rateFetched => 'آخر جلب';
+
+  @override
+  String get searchMissingRecord => 'لم يعد هذا السجل موجوداً.';
+
+  @override
+  String get searchStart => 'ابحث في السجلات ومزايا التطبيق';
+
+  @override
+  String get searchAmountCurrency =>
+      'مرشحات المبلغ تستخدم العملة المحددة دون تحويل.';
+
+  @override
+  String get clearFilters => 'مسح المرشحات';
+
+  @override
+  String get searchRetry => 'إعادة المحاولة';
+
+  @override
+  String get searchClear => 'مسح';
+
+  @override
+  String get searchApply => 'تطبيق';
 }

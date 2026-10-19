@@ -1,223 +1,350 @@
-import 'package:flourish/l10n/l10n.dart';
+import '../providers/locale_providers.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flourish/shared/widgets/shimmer_loading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flourish/core/theme/app_colors.dart';
-import 'package:flourish/core/theme/app_text_styles.dart';
-import 'package:flourish/core/theme/app_spacing.dart';
-import 'package:flourish/data/database/database.dart';
-import 'package:flourish/presentation/providers/account_providers.dart';
-import 'package:flourish/presentation/providers/category_providers.dart';
-import 'package:flourish/presentation/providers/theme_providers.dart';
-import 'package:flourish/shared/widgets/empty_state.dart';
-import 'package:flourish/shared/widgets/liquid_page.dart';
-import 'package:flourish/shared/widgets/transaction_swipe_tile.dart';
+import '../../core/search/search_models.dart';
+import '../../domain/finance/amount.dart';
+import '../../core/utils/currency_formatter.dart';
+import '../../data/search/search_repository.dart';
+import '../../l10n/l10n.dart';
+import '../providers/database_provider.dart';
+import '../providers/theme_providers.dart';
+import 'search_filters.dart';
+import 'search_navigation.dart';
+
+final searchRepositoryProvider = Provider(
+  (ref) => SearchRepository(ref.watch(databaseProvider)),
+);
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
-
+  final ValueChanged<Duration>? onResultsVisible;
+  const SearchScreen({super.key, this.onResultsVisible});
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
-  List<Transaction>? _results;
-  bool _isSearching = false;
-  String _typeFilter = 'all';
-  Timer? _debounceTimer;
+  SearchFilters filters = const SearchFilters();
+  SearchPage? page;
+  List<SearchHit> hits = [];
+  bool loading = false, indexing = true;
+  String? error;
+  int generation = 0;
+  Timer? timer;
+  Stopwatch? _latency;
+  @override
+  void initState() {
+    super.initState();
+    unawaited(prepare());
+  }
+
+  Future<void> prepare() async {
+    try {
+      await ref.read(searchRepositoryProvider).prepare();
+      if (mounted) {
+        setState(() => indexing = false);
+        schedule();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          indexing = false;
+          error = context.l10n.searchFailed;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    generation++;
+    timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      _search(query);
-    });
-  }
-
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) {
-      if (mounted) setState(() => _results = null);
+  void schedule() {
+    _latency = widget.onResultsVisible == null ? null : (Stopwatch()..start());
+    timer?.cancel();
+    generation++;
+    if (_controller.text.trim().isEmpty) {
+      setState(() {
+        hits = [];
+        page = null;
+        loading = false;
+        error = null;
+      });
       return;
     }
-    if (mounted) setState(() => _isSearching = true);
-    final db = ref.read(databaseProvider);
-    final results = await db.searchTransactions(query);
-    if (mounted) {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    timer = Timer(const Duration(milliseconds: 150), () => search());
+  }
+
+  Future<void> search({bool more = false}) async {
+    if (indexing) return;
+    final request = ++generation;
+    setState(() => loading = true);
+    try {
+      final result = await ref
+          .read(searchRepositoryProvider)
+          .search(
+            SearchQuery(_controller.text, filters: filters),
+            after: more ? page?.next : null,
+          );
+      if (!mounted || request != generation) return;
       setState(() {
-        _results = _typeFilter == 'all'
-            ? results
-            : results.where((t) => t.type == _typeFilter).toList();
-        _isSearching = false;
+        hits = more ? [...hits, ...result.hits] : result.hits;
+        page = result;
+        loading = false;
+        error = null;
       });
+      final latency = _latency;
+      _latency = null;
+      if (latency != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && request == generation) {
+            latency.stop();
+            widget.onResultsVisible?.call(latency.elapsed);
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted && request == generation) {
+        setState(() {
+          loading = false;
+          error = context.l10n.searchFailed;
+        });
+      }
     }
   }
 
+  Map<String, String> labels(BuildContext context) => {
+    'transaction': context.l10n.transactions,
+    'account': context.l10n.navAccounts,
+    'category': context.l10n.manageCategories,
+    'template': context.l10n.transactionTemplates,
+    'goal': context.l10n.savingsGoals,
+    'budget': context.l10n.budgets,
+    'holding': context.l10n.holdings,
+    'obligation': context.l10n.searchObligations,
+    'feature': context.l10n.searchFeatures,
+  };
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final accountsAsync = ref.watch(accountsProvider);
+    final names = labels(context), hidden = ref.watch(hideAmountsProvider);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
           controller: _controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: context.l10n.searchTransactionsHint,
+            hintText: context.l10n.searchEverythingHint,
             border: InputBorder.none,
-            hintStyle: AppTextStyles.body.copyWith(
-              color: AppColors.textSecondary(context),
-            ),
           ),
-          style: AppTextStyles.body,
-          onChanged: (v) => _onSearchChanged(v),
+          onChanged: (_) => schedule(),
         ),
         actions: [
           if (_controller.text.isNotEmpty)
             IconButton(
+              tooltip: context.l10n.searchClear,
               icon: const Icon(Icons.clear),
               onPressed: () {
                 _controller.clear();
-                setState(() => _results = null);
+                schedule();
               },
             ),
+          IconButton(
+            tooltip: context.l10n.searchFilters,
+            icon: const Icon(Icons.tune),
+            onPressed: () async {
+              final selected = await showSearchFilters(context, ref, filters);
+              if (selected != null && mounted) {
+                setState(() => filters = selected);
+                schedule();
+              }
+            },
+          ),
         ],
       ),
-      body: LiquidPageBackground(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sp.screenH),
+      body: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  _FilterChip(
-                    label: context.l10n.all,
-                    selected: _typeFilter == 'all',
-                    onTap: () {
-                      setState(() => _typeFilter = 'all');
-                      _search(_controller.text);
+                  ChoiceChip(
+                    label: Text(context.l10n.all),
+                    selected: filters.kind == null,
+                    onSelected: (_) {
+                      setState(() => filters = const SearchFilters());
+                      schedule();
                     },
                   ),
-                  const SizedBox(width: Sp.sm),
-                  _FilterChip(
-                    label: context.l10n.income,
-                    selected: _typeFilter == 'income',
-                    color: AppColors.income,
-                    onTap: () {
-                      setState(() => _typeFilter = 'income');
-                      _search(_controller.text);
-                    },
-                  ),
-                  const SizedBox(width: Sp.sm),
-                  _FilterChip(
-                    label: context.l10n.expense,
-                    selected: _typeFilter == 'expense',
-                    color: AppColors.expense,
-                    onTap: () {
-                      setState(() => _typeFilter = 'expense');
-                      _search(_controller.text);
-                    },
-                  ),
+                  for (final e in names.entries)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 8),
+                      child: ChoiceChip(
+                        label: Text(e.value),
+                        selected: filters.kind == e.key,
+                        onSelected: (_) {
+                          setState(() => filters = SearchFilters(kind: e.key));
+                          schedule();
+                        },
+                      ),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: Sp.md),
-            Expanded(
-              child: _isSearching
-                  ? const ShimmerList()
-                  : _results == null
-                  ? EmptyState(
-                      icon: Icons.search,
-                      title: context.l10n.searchTransactions,
-                      subtitle: context.l10n.searchSubtitle,
-                    )
-                  : _results!.isEmpty
-                  ? EmptyState(
-                      icon: Icons.search_off,
-                      title: context.l10n.noResults,
-                    )
-                  : categoriesAsync.when(
-                      data: (categories) => accountsAsync.when(
-                        data: (accounts) {
-                          final catMap = {for (var c in categories) c.id: c};
-                          final accountMap = {for (var a in accounts) a.id: a};
-                          return ListView.builder(
-                            itemCount: _results!.length,
-                            itemBuilder: (ctx, i) {
-                              final t = _results![i];
-                              final cat = catMap[t.categoryId];
-                              final account = accountMap[t.accountId];
-                              return TransactionSwipeTile(
-                                transaction: t,
-                                category: cat,
-                                accountName: account?.name,
-                                currency:
-                                    account?.currency ??
-                                    ref.watch(defaultCurrencyProvider),
-                              );
-                            },
-                          );
-                        },
-                        loading: () => const SizedBox.shrink(),
-                        error: (error, stackTrace) => const SizedBox.shrink(),
-                      ),
-                      loading: () => const SizedBox.shrink(),
-                      error: (error, stackTrace) => const SizedBox.shrink(),
+          ),
+          if (filters.kind == 'transaction')
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: DropdownButton<bool>(
+                value: filters.newest,
+                items: [
+                  DropdownMenuItem(
+                    value: false,
+                    child: Text(context.l10n.searchRelevance),
+                  ),
+                  DropdownMenuItem(
+                    value: true,
+                    child: Text(context.l10n.searchNewest),
+                  ),
+                ],
+                onChanged: (v) {
+                  setState(
+                    () => filters = SearchFilters(
+                      kind: filters.kind,
+                      accountId: filters.accountId,
+                      transactionType: filters.transactionType,
+                      currency: filters.currency,
+                      from: filters.from,
+                      to: filters.to,
+                      minimum: filters.minimum,
+                      maximum: filters.maximum,
+                      newest: v ?? false,
                     ),
+                  );
+                  schedule();
+                },
+              ),
             ),
-          ],
-        ),
+          if (indexing)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(context.l10n.searchIndexing),
+            ),
+          if (loading || indexing) const LinearProgressIndicator(),
+          if (error != null)
+            ListTile(
+              title: Text(error!),
+              trailing: TextButton(
+                onPressed: () async {
+                  if (!await ref.read(searchRepositoryProvider).ready) {
+                    if (!mounted) return;
+                    setState(() {
+                      indexing = true;
+                      error = null;
+                    });
+                    await prepare();
+                  } else {
+                    await search();
+                  }
+                },
+                child: Text(context.l10n.searchRetry),
+              ),
+            ),
+          Expanded(
+            child: hits.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _controller.text.trim().isEmpty
+                            ? context.l10n.searchStart
+                            : loading || indexing
+                            ? ''
+                            : context.l10n.noResults,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 120),
+                    itemCount: hits.length + (page?.next != null ? 1 : 0),
+                    itemBuilder: (context, i) {
+                      if (i == hits.length) {
+                        return TextButton(
+                          onPressed: loading ? null : () => search(more: true),
+                          child: Text(context.l10n.loadMoreResults),
+                        );
+                      }
+                      final hit = hits[i];
+                      final amount = hit.amount.isEmpty
+                          ? ''
+                          : hidden
+                          ? '••••'
+                          : CurrencyFormatter.formatAmount(
+                              Amount(hit.amount),
+                              currency: hit.currency.isEmpty
+                                  ? ref.read(defaultCurrencyProvider)
+                                  : hit.currency,
+                            );
+                      return ListTile(
+                        key: ValueKey('${hit.kind}:${hit.id}'),
+                        leading: Icon(
+                          hit.kind == 'transaction'
+                              ? Icons.receipt_long
+                              : hit.kind == 'feature'
+                              ? Icons.apps
+                              : Icons.search,
+                        ),
+                        title: _highlight(hit.title),
+                        subtitle: Text(
+                          '${names[hit.kind]} · ${hit.subtitle}${hit.date > 0 ? ' · ${DateTime.fromMillisecondsSinceEpoch(hit.date * 1000).toIso8601String().substring(0, 10)}' : ''}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: amount.isEmpty ? null : Text(amount),
+                        onTap: () async {
+                          await openSearchHit(context, ref, hit);
+                          if (mounted) await search();
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final Color? color;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = selected ? (color ?? AppColors.primary) : Colors.transparent;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: Sp.lg, vertical: Sp.sm),
-        decoration: BoxDecoration(
-          color: selected ? c.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(Sp.xxl),
-          border: Border.all(
-            color: selected
-                ? (color ?? AppColors.primary)
-                : (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.08)),
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.bodyMedium.copyWith(
-            fontSize: 13,
-            color: selected ? (color ?? AppColors.primary) : null,
-          ),
-        ),
+  Widget _highlight(String title) {
+    final words = SearchText.normalize(
+      _controller.text,
+    ).split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (final part in title.split(RegExp(r'(?<=\s)|(?=\s)')))
+            TextSpan(
+              text: part,
+              style: words.any((w) => SearchText.normalize(part).contains(w))
+                  ? TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
+                  : null,
+            ),
+        ],
       ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

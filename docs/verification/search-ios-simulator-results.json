@@ -1,0 +1,31 @@
+{
+  "uiFlow": "passed",
+  "database": "isolated temporary file",
+  "benchmark": {
+    "transactions": 100000,
+    "otherRecords": 10000,
+    "seedMs": 7359,
+    "backfillMs": 3584,
+    "p95Ms": 176.158,
+    "maxMs": 194.008,
+    "databaseBytes": 88227840,
+    "queries": "coffee, \u0627\u062d\u0645\u062f, co, breakfast wallet, grocery, preset 9999, EGP",
+    "queryMaxMs": {
+      "coffee": 67.901,
+      "\u0627\u062d\u0645\u062f": 136.066,
+      "co": 59.014,
+      "breakfast wallet": 194.008,
+      "grocery": 62.854,
+      "preset 9999": 16.868,
+      "EGP": 160.694
+    }
+  },
+  "firstVisibleMs": 311,
+  "warmVisibleMs": [
+    267,
+    267,
+    283,
+    264,
+    264
+  ]
+}

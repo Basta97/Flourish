@@ -21,7 +21,8 @@ import 'package:flourish/shared/widgets/liquid_page.dart';
 import 'package:drift/drift.dart' hide Column;
 
 class CategoriesManagementScreen extends ConsumerWidget {
-  const CategoriesManagementScreen({super.key});
+  final int? recordId;
+  const CategoriesManagementScreen({super.key, this.recordId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +33,11 @@ class CategoriesManagementScreen extends ConsumerWidget {
       body: LiquidPageBackground(
         child: categoriesAsync.when(
           data: (all) {
-            final categories = SystemCategories.pickable(all);
+            final categories =
+                (recordId == null
+                        ? SystemCategories.pickable(all)
+                        : all.where((c) => c.id == recordId))
+                    .toList();
             if (categories.isEmpty) {
               return EmptyState(
                 icon: Icons.category,

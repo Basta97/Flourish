@@ -123,6 +123,7 @@ Future<void> addHolding(BuildContext context, WidgetRef ref) async {
         context.l10n.acquisitionCurrency,
         initial: currency,
         options: currencies,
+        currency: true,
       ),
       FinanceField(
         'cost',
@@ -228,6 +229,7 @@ Future<void> setHoldingPrice(
         context.l10n.quoteCurrency,
         initial: h.currency,
         options: currencies,
+        currency: true,
       ),
       FinanceField(
         'date',

@@ -1,5 +1,6 @@
+import '../../shared/widgets/global_search_button.dart';
 import '../../shared/widgets/app_card.dart';
-import 'package:flourish/core/finance/transaction_classifier.dart';
+import '../../core/finance/monthly_summary_service.dart';
 import '../../core/services/preferences_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -180,48 +181,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     List<Transaction> transactions,
     String currency,
   ) async {
-    final now = DateTime.now();
-    final day = PreferencesService.getInt(
-      'month_start_day',
-      defaultValue: 1,
-    ).clamp(1, 28);
-    var start = DateTime(now.year, now.month, day);
-    if (start.isAfter(now)) start = DateTime(now.year, now.month - 1, day);
-    final end = DateTime(start.year, start.month + 1, day);
-    var income = Amount.zero, expense = Amount.zero, missing = 0;
-    final store = ref.read(financeStoreProvider),
-        valuation = ref.read(valuationProvider);
-    final inRange = transactions
-        .where(
-          (t) =>
-              !t.transactionDate.isBefore(start) &&
-              t.transactionDate.isBefore(end),
-        )
-        .toList();
-    final details = await store.transactionDetailsFor(inRange.map((t) => t.id));
-    final categories = {
-      for (final c in await ref.read(databaseProvider).getAllCategories())
-        c.id: c,
-    };
-    for (final t in inRange) {
-      final flow = TransactionClassifier.classify(
-        t,
-        details[t.id],
-        categories[t.categoryId],
-      );
-      if (!flow.isCashFlow) continue;
-      final value = await valuation.transactionValue(t.id, currency);
-      if (value == null) {
-        missing++;
-      } else if (flow == FlowClass.income) {
-        income += value;
-      } else if (flow == FlowClass.refund) {
-        expense -= value;
-      } else {
-        expense += value;
-      }
-    }
-    return (income, expense, missing);
+    return MonthlySummaryService(
+      ref.read(financeStoreProvider),
+      ref.read(valuationProvider),
+    ).calculate(
+      transactions,
+      currency,
+      day: PreferencesService.getInt('month_start_day', defaultValue: 1),
+    );
   }
 }
 
@@ -266,6 +233,7 @@ class _Header extends ConsumerWidget {
               ],
             ),
           ),
+          const GlobalSearchButton(),
           IconButton(
             tooltip: hidden ? l.showAmounts : l.hideAmounts,
             onPressed: () {
@@ -458,7 +426,7 @@ class _QuickActions extends StatelessWidget {
     final palette = FlourishPalette.of(context);
     final l = context.l10n;
     final actions = [
-      (l.holdings, '/wealth', Icons.diamond_outlined),
+      (l.tools, '/tools', Icons.build_outlined),
       (l.budgets, '/budgets', Icons.track_changes_rounded),
       (l.goals, '/goals', Icons.flag_outlined),
       (l.recurring, '/recurring', Icons.repeat_rounded),

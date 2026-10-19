@@ -1,3 +1,4 @@
+import 'presentation/home_widgets/home_widget_runtime.dart';
 import 'presentation/wealth/finance_runtime.dart';
 import 'presentation/detection/detection_runtime.dart';
 import 'package:flutter/foundation.dart';
@@ -39,7 +40,7 @@ Future<void> main() async {
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db)],
       child: const FinanceRuntime(
-        child: DetectionRuntime(child: FlourishApp()),
+        child: HomeWidgetRuntime(child: DetectionRuntime(child: FlourishApp())),
       ),
     ),
   );

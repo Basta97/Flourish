@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesService {
   static SharedPreferences? _prefs;
+  static final changes = StreamController<String>.broadcast(sync: true);
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -21,7 +23,9 @@ class PreferencesService {
   }
 
   static Future<bool> setString(String key, String value) {
-    return prefs.setString(key, value);
+    final result = prefs.setString(key, value);
+    changes.add(key);
+    return result;
   }
 
   static bool getBool(String key, {bool defaultValue = false}) {
@@ -29,7 +33,9 @@ class PreferencesService {
   }
 
   static Future<bool> setBool(String key, bool value) {
-    return prefs.setBool(key, value);
+    final result = prefs.setBool(key, value);
+    changes.add(key);
+    return result;
   }
 
   static double getDouble(String key, {double defaultValue = 0.0}) {
@@ -37,7 +43,9 @@ class PreferencesService {
   }
 
   static Future<bool> setDouble(String key, double value) {
-    return prefs.setDouble(key, value);
+    final result = prefs.setDouble(key, value);
+    changes.add(key);
+    return result;
   }
 
   static int getInt(String key, {int defaultValue = 0}) {
@@ -45,10 +53,14 @@ class PreferencesService {
   }
 
   static Future<bool> setInt(String key, int value) {
-    return prefs.setInt(key, value);
+    final result = prefs.setInt(key, value);
+    changes.add(key);
+    return result;
   }
 
   static Future<bool> remove(String key) {
-    return prefs.remove(key);
+    final result = prefs.remove(key);
+    changes.add(key);
+    return result;
   }
 }

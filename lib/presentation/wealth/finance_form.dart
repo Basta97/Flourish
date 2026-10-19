@@ -1,3 +1,4 @@
+import '../currencies/currency_picker.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/error_text.dart';
@@ -5,13 +6,14 @@ import '../../core/utils/error_text.dart';
 class FinanceField {
   final String key, label, initial;
   final Map<String, String>? options;
-  final bool numeric, date, secret, required;
+  final bool numeric, date, secret, required, currency;
   const FinanceField(
     this.key,
     this.label, {
     this.initial = '',
     this.options,
     this.numeric = false,
+    this.currency = false,
     this.date = false,
     this.secret = false,
     this.required = true,
@@ -75,7 +77,15 @@ class _FinanceFormState extends State<_FinanceForm> {
             for (final f in widget.fields)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: f.options != null
+                child: f.currency
+                    ? CurrencyField(
+                        value: values[f.key]!.text,
+                        label: f.label,
+                        onChanged: saving
+                            ? null
+                            : (v) => setState(() => values[f.key]!.text = v),
+                      )
+                    : f.options != null
                     ? DropdownButtonFormField<String>(
                         key: ValueKey(f.key),
                         initialValue:

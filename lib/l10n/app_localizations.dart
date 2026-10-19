@@ -4487,7 +4487,7 @@ abstract class AppLocalizations {
   /// No description provided for @iosStep2.
   ///
   /// In en, this message translates to:
-  /// **'Message Contains: EGP. Choose Run Immediately. Make one more automation for each word your bank uses: جنيه, ج.م, and the currencies you pay in abroad or online, such as USD, دولار, EUR, SAR.'**
+  /// **'Message Contains: EGP. Add a separate Message automation for LE. Choose Run Immediately. Make one more automation for each word your bank uses: جنيه, ج.م, and the currencies you pay in abroad or online, such as USD, دولار, EUR, SAR.'**
   String get iosStep2;
 
   /// No description provided for @iosStep3.
@@ -5939,7 +5939,7 @@ abstract class AppLocalizations {
   /// No description provided for @iosGuideMsg2.
   ///
   /// In en, this message translates to:
-  /// **'Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender).'**
+  /// **'Choose Message. Under Message Contains type EGP (you can also pick your bank under Sender). Add a separate Message automation with Message Contains: LE; existing automations must be updated manually.'**
   String get iosGuideMsg2;
 
   /// No description provided for @iosGuideMsg3.
@@ -6019,6 +6019,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Missed some days? Catch up brings in the last 7 days.'**
   String get iosGuideCatchUpHint;
+
+  /// No description provided for @useTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Use template'**
+  String get useTemplate;
+
+  /// No description provided for @noTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates yet. Create one in Tools → Transaction templates.'**
+  String get noTemplates;
+
+  /// No description provided for @chooseTemplateAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an amount'**
+  String get chooseTemplateAmount;
+
+  /// No description provided for @templateCategoryMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a category matching the transaction type'**
+  String get templateCategoryMismatch;
+
+  /// No description provided for @templatePositiveAmounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 1–3 positive amounts'**
+  String get templatePositiveAmounts;
+
+  /// No description provided for @homeScreenWidgets.
+  ///
+  /// In en, this message translates to:
+  /// **'Home screen widgets'**
+  String get homeScreenWidgets;
+
+  /// No description provided for @widgetSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'On Android, long-press Home → Widgets → Flourish. On iPhone, long-press Home → Edit → Add Widget → Flourish. Add Monthly summary or Quick add. Amounts are hidden while app lock or Hide amounts is on. Totals show their last update; open Flourish to refresh.'**
+  String get widgetSetup;
+
+  /// No description provided for @widgetMonthlySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly summary'**
+  String get widgetMonthlySummary;
+
+  /// No description provided for @widgetQuickAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add'**
+  String get widgetQuickAdd;
+
+  /// No description provided for @widgetOpenToRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Flourish to refresh'**
+  String get widgetOpenToRefresh;
+
+  /// No description provided for @widgetUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get widgetUpdated;
+
+  /// No description provided for @toolsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates, imports, backup, and security'**
+  String get toolsSubtitle;
+
+  /// No description provided for @globalSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search everything'**
+  String get globalSearch;
+
+  /// No description provided for @searchEverythingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Records, merchants, tools…'**
+  String get searchEverythingHint;
+
+  /// No description provided for @searchIndexing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing search index…'**
+  String get searchIndexing;
+
+  /// No description provided for @searchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed. Try again.'**
+  String get searchFailed;
+
+  /// No description provided for @searchFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'App features'**
+  String get searchFeatures;
+
+  /// No description provided for @searchObligations.
+  ///
+  /// In en, this message translates to:
+  /// **'Obligations'**
+  String get searchObligations;
+
+  /// No description provided for @searchFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction filters'**
+  String get searchFilters;
+
+  /// No description provided for @minimumAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum amount'**
+  String get minimumAmount;
+
+  /// No description provided for @maximumAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum amount'**
+  String get maximumAmount;
+
+  /// No description provided for @searchRelevance.
+  ///
+  /// In en, this message translates to:
+  /// **'Most relevant'**
+  String get searchRelevance;
+
+  /// No description provided for @searchNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get searchNewest;
+
+  /// No description provided for @loadMoreResults.
+  ///
+  /// In en, this message translates to:
+  /// **'More results'**
+  String get loadMoreResults;
+
+  /// No description provided for @currencyConverter.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency converter'**
+  String get currencyConverter;
+
+  /// No description provided for @referenceRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider reference'**
+  String get referenceRate;
+
+  /// No description provided for @effectiveRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your effective rate'**
+  String get effectiveRate;
+
+  /// No description provided for @rateUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No rate available for this pair.'**
+  String get rateUnavailable;
+
+  /// No description provided for @cachedRateNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached daily reference. Pull to refresh.'**
+  String get cachedRateNotice;
+
+  /// No description provided for @rateRefreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not refresh. Cached rates retained.'**
+  String get rateRefreshFailed;
+
+  /// No description provided for @rateStale.
+  ///
+  /// In en, this message translates to:
+  /// **'Last fetched over 24 hours ago'**
+  String get rateStale;
+
+  /// No description provided for @favoritePairs.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite pairs'**
+  String get favoritePairs;
+
+  /// No description provided for @searchCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Search currencies'**
+  String get searchCurrency;
+
+  /// No description provided for @rateAsOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate date'**
+  String get rateAsOf;
+
+  /// No description provided for @rateFetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Last fetched'**
+  String get rateFetched;
+
+  /// No description provided for @searchMissingRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'This record no longer exists.'**
+  String get searchMissingRecord;
+
+  /// No description provided for @searchStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Search records and app features'**
+  String get searchStart;
+
+  /// No description provided for @searchAmountCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount filters use the selected currency without conversion.'**
+  String get searchAmountCurrency;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filters'**
+  String get clearFilters;
+
+  /// No description provided for @searchRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get searchRetry;
+
+  /// No description provided for @searchClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get searchClear;
+
+  /// No description provided for @searchApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get searchApply;
 }
 
 class _AppLocalizationsDelegate

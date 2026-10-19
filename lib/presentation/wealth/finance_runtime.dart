@@ -1,9 +1,10 @@
+import '../search/search_screen.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:local_auth/local_auth.dart';
+import '../../core/auth/authentication_coordinator.dart';
 import '../providers/finance_providers.dart';
 import '../providers/theme_providers.dart';
 import '../providers/database_provider.dart';
@@ -33,6 +34,11 @@ class _FinanceRuntimeState extends ConsumerState<FinanceRuntime>
   @override
   void initState() {
     super.initState();
+    unawaited(
+      ref.read(searchRepositoryProvider).prepare().catchError((Object e) {
+        debugPrint('Search index: $e');
+      }),
+    );
     WidgetsBinding.instance.addObserver(this);
     changes = ref.read(databaseProvider).financeChanges.stream.listen((_) {
       checkpoint?.cancel();
@@ -133,9 +139,14 @@ class _FinanceRuntimeState extends ConsumerState<FinanceRuntime>
   Widget build(BuildContext context) => widget.child;
 }
 
+final appUnlocked = ValueNotifier<bool>(
+  !PreferencesService.getBool('app_lock_enabled'),
+);
+
 class FinanceAppLock extends StatefulWidget {
   final Widget child;
-  const FinanceAppLock({super.key, required this.child});
+  final AuthenticationCoordinator? authentication;
+  const FinanceAppLock({super.key, required this.child, this.authentication});
   @override
   State<FinanceAppLock> createState() => _FinanceAppLockState();
 }
@@ -146,6 +157,8 @@ class _FinanceAppLockState extends State<FinanceAppLock>
       authenticating = false,
       private = false;
   String? error;
+  AuthenticationCoordinator get authentication =>
+      widget.authentication ?? AuthenticationCoordinator.instance;
   @override
   void initState() {
     super.initState();
@@ -162,15 +175,22 @@ class _FinanceAppLockState extends State<FinanceAppLock>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!PreferencesService.getBool('app_lock_enabled')) return;
-    if (state == AppLifecycleState.inactive) {
+    final promptActive = authentication.active;
+    if (state == AppLifecycleState.inactive && !promptActive) {
       setState(() => private = true);
     }
-    if (state == AppLifecycleState.paused) {
-      setState(() => locked = true);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      setState(() {
+        private = true;
+        // A native device-credential screen may pause the activity itself.
+        // Its result already decides whether the user is authenticated.
+        if (!promptActive) locked = true;
+      });
     }
     if (state == AppLifecycleState.resumed) {
       setState(() => private = false);
-      if (locked && !authenticating) unlock();
+      if (locked && !authenticating && !promptActive && error == null) unlock();
     }
   }
 
@@ -178,13 +198,15 @@ class _FinanceAppLockState extends State<FinanceAppLock>
     if (authenticating) return;
     setState(() => authenticating = true);
     try {
-      final accepted = await LocalAuthentication().authenticate(
-        localizedReason: context.l10n.unlockReason,
-        persistAcrossBackgrounding: true,
+      final accepted = await authentication.authenticate(
+        context.l10n.unlockReason,
       );
       if (mounted) {
         setState(() {
           locked = !accepted;
+          private =
+              WidgetsBinding.instance.lifecycleState !=
+              AppLifecycleState.resumed;
           error = accepted ? null : context.l10n.authCancelled;
         });
       }
@@ -200,6 +222,11 @@ class _FinanceAppLockState extends State<FinanceAppLock>
   @override
   Widget build(BuildContext context) {
     final obscured = locked || private;
+    if (appUnlocked.value == obscured) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) appUnlocked.value = !(locked || private);
+      });
+    }
     // The app stays mounted underneath so navigation and scroll positions
     // survive a lock; while obscured it is hidden from touch and from
     // screen readers, and its animations are paused.
@@ -218,7 +245,9 @@ class _FinanceAppLockState extends State<FinanceAppLock>
           child: IgnorePointer(
             ignoring: !obscured,
             child: AnimatedSwitcher(
-              duration: Motion.of(context, Motion.slow),
+              duration: obscured
+                  ? Duration.zero
+                  : Motion.of(context, Motion.slow),
               switchInCurve: Motion.enter,
               switchOutCurve: Curves.easeInCubic,
               child: !obscured

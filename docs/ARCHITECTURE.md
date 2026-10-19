@@ -58,7 +58,7 @@ flowchart TB
 
 `go_router` defines a **ShellRoute** with five tabs (see `lib/core/router/app_router.dart`):
 
-- `/dashboard`, `/transactions`, `/wealth`, `/search`, `/accounts`, `/budgets`
+- `/dashboard`, `/transactions`, `/wealth`, `/search`, `/accounts`, `/budgets`, `/tools`, `/templates`, `/exchange-rates`
 
 Modal routes (settings, categories, recurring, goals, smart import, account detail) use the root navigator so they cover the tab shell.
 
@@ -104,3 +104,9 @@ CI runs format, analyze, and `flutter test` (see `.github/workflows/flutter.yml`
 | iOS | Share extension, shortcuts, Vision OCR, entitlements |
 
 Details: [Platforms](PLATFORMS.md).
+
+### Indexed search and currency discovery
+
+`lib/data/search/` owns SQLite-derived document/FTS tables and resumable backfill. Source-table triggers update indexes atomically, including raw SQL restore/import paths. Search normalizes Arabic/English query text and safely quotes FTS input; monetary filters use exact decimal ordering rather than conversion or REAL comparisons. Matched account/category IDs expand through relationship indexes. Ranked result IDs are paginated before loading display metadata, and stale UI requests cannot replace newer results.
+
+`CurrencyCatalog` combines a bundled Frankfurter active catalog, persistent cache, and provider discovery. Searchable selectors retain existing historical codes. `MarketDataService.refreshPairs` bounds requests to selected/app-used/favorite pairs; `ValuationService.resolveRate` exposes effective or automatic-only observations to the converter. Search has no network dependency.

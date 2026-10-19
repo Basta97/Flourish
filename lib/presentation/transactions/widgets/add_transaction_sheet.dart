@@ -1,3 +1,6 @@
+import '../../currencies/currency_picker.dart';
+import '../../templates/template_picker.dart';
+import '../../../core/finance/transaction_templates.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flutter/material.dart';
@@ -17,15 +20,16 @@ import 'package:flourish/shared/widgets/segmented_pill.dart';
 import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
-import 'package:flourish/core/constants/app_constants.dart';
 import 'package:flourish/core/utils/error_text.dart';
 
 class AddTransactionSheet extends ConsumerStatefulWidget {
+  final TemplateSelection? templateSelection;
   final String? initialType;
   final int? initialAccountId;
 
   const AddTransactionSheet({
     super.key,
+    this.templateSelection,
     this.initialType,
     this.initialAccountId,
   });
@@ -40,6 +44,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   final _amountController = TextEditingController();
   final _destinationAmountController = TextEditingController();
   final _feeController = TextEditingController();
+  String? _templateId;
+  bool _confirming = false;
   String _mode = 'expense';
   int? _accountId;
   int? _toAccountId;
@@ -70,6 +76,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     _mode = widget.initialType ?? 'expense';
     _accountId = widget.initialAccountId;
     _noteController.addListener(_onNoteChanged);
+    if (widget.templateSelection case final selection?) {
+      _applyTemplate(selection);
+    }
   }
 
   @override
@@ -82,6 +91,28 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     _merchantController.dispose();
     _originalController.dispose();
     super.dispose();
+  }
+
+  void _applyTemplate(TemplateSelection selection) {
+    final t = selection.template;
+    _templateId = t.id;
+    _mode = t.type;
+    _accountId = t.accountId;
+    _categoryId = t.categoryId;
+    _amountController.text = '${selection.amount}';
+    _noteController.text = t.note ?? '';
+    _date = DateTime.now();
+    _instrumentId = null;
+    _method = null;
+    _foreign = false;
+    _refund = false;
+    _toAccountId = null;
+    _amountError = _accountError = _categoryError = null;
+  }
+
+  Future<void> _pickTemplate() async {
+    final selection = await pickTemplate(context, ref);
+    if (selection != null && mounted) setState(() => _applyTemplate(selection));
   }
 
   void _onNoteChanged() {
@@ -121,7 +152,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
     final categoriesAsync = ref.watch(pickableCategoriesProvider);
-    final allAccounts = accountsAsync.valueOrNull ?? [];
+    final details = ref.watch(accountDetailsProvider).valueOrNull ?? {};
+    final allAccounts = (accountsAsync.valueOrNull ?? <Account>[])
+        .where((a) => details[a.id]?.archived != true)
+        .toList();
     final effectiveFrom = _effectiveAccountId(allAccounts);
     final chosen = allAccounts.where((a) => a.id == effectiveFrom).firstOrNull;
     final currency =
@@ -141,6 +175,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           height: 44,
           onChanged: (i) => _selectMode(_modes[i]),
         ),
+        if (_mode != 'transfer')
+          TextButton.icon(
+            onPressed: _submitState == SubmitState.busy ? null : _pickTemplate,
+            icon: const Icon(Icons.bookmark_outline),
+            label: Text(context.l10n.useTemplate),
+          ),
         const SizedBox(height: Sp.xl),
         AmountInput(
           controller: _amountController,
@@ -314,7 +354,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     if (selected != null && accounts.any((account) => account.id == selected)) {
       return selected;
     }
-    return accounts.first.id;
+    return _templateId != null ? null : accounts.first.id;
   }
 
   int? _effectiveDestinationId(List<Account> accounts, int fromAccountId) {
@@ -337,7 +377,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         categories.any((category) => category.id == selected)) {
       return selected;
     }
-    return categories.first.id;
+    return _templateId != null ? null : categories.first.id;
   }
 
   /// Preselects the account's default card when the account changes.
@@ -369,9 +409,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final over = typed == null
         ? null
         : credit?.overAfter(typed, foreign: _foreign && !_refund);
-    final currencies = AppConstants.currencies
-        .where((c) => c != account.currency)
-        .toList();
     return [
       FormLabel(context.l10n.paidWith),
       PaidWithChips(
@@ -430,14 +467,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           children: [
             SizedBox(
               width: 110,
-              child: DropdownButtonFormField<String>(
-                initialValue: _originalCurrency,
-                isExpanded: true,
-                decoration: InputDecoration(labelText: context.l10n.currency),
-                items: [
-                  for (final c in currencies)
-                    DropdownMenuItem(value: c, child: Text(c)),
-                ],
+              child: CurrencyField(
+                value: _originalCurrency ?? 'USD',
+                label: context.l10n.currency,
+                excluded: {account.currency},
                 onChanged: (v) {
                   setState(() => _originalCurrency = v);
                   _estimateBooked(account);
@@ -543,6 +576,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _submit() async {
+    if (_submitState != SubmitState.idle || _confirming) return;
     setState(() {
       _amountError = null;
       _accountError = null;
@@ -641,7 +675,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     }
     if (hasError) return;
-    if (!await confirmFutureDate(context, _date)) return;
+    _confirming = true;
+    final confirmed = await confirmFutureDate(context, _date);
+    _confirming = false;
+    if (!mounted || !confirmed) return;
     final merchant = _mode == 'expense' ? _merchantController.text : null;
 
     setState(() => _submitState = SubmitState.busy);
@@ -670,7 +707,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           merchant: merchant,
           note: note,
           date: _date,
-          source: 'manual',
+          source: _templateId == null ? 'manual' : 'template',
+          sourceRef: _templateId,
           expectCurrency: currency,
         );
       } else if (_mode == 'expense' && original != null) {
@@ -685,7 +723,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           merchant: merchant,
           note: note,
           date: _date,
-          source: 'manual',
+          source: _templateId == null ? 'manual' : 'template',
+          sourceRef: _templateId,
           expectCurrency: currency,
         );
       } else {
@@ -700,7 +739,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           instrumentId: _mode == 'expense' ? _instrumentId : null,
           paymentMethod: _mode == 'expense' ? _method : null,
           merchant: merchant,
-          source: 'manual',
+          source: _templateId == null ? 'manual' : 'template',
+          sourceRef: _templateId,
         );
       }
 
@@ -727,4 +767,38 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     }
   }
+}
+
+/// Shared entry point for the Add menu and phone-widget action.
+class TemplateTransactionSheet extends ConsumerStatefulWidget {
+  const TemplateTransactionSheet({super.key});
+  @override
+  ConsumerState<TemplateTransactionSheet> createState() =>
+      _TemplateTransactionSheetState();
+}
+
+class _TemplateTransactionSheetState
+    extends ConsumerState<TemplateTransactionSheet> {
+  TemplateSelection? selection;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final picked = await pickTemplate(context, ref);
+      if (!mounted) return;
+      if (picked == null) {
+        Navigator.pop(context);
+        return;
+      }
+      setState(() => selection = picked);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => selection == null
+      ? const SizedBox(
+          height: 160,
+          child: Center(child: Icon(Icons.bookmark_outline)),
+        )
+      : AddTransactionSheet(templateSelection: selection);
 }

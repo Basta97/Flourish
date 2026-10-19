@@ -77,7 +77,7 @@ void main() {
       ],
     ),
     'segmented pill': SegmentedPill(
-      labels: const ['Holdings', 'Obligations', 'Reports', 'Tools'],
+      labels: const ['Holdings', 'Obligations', 'Reports'],
       selectedIndex: 1,
       onChanged: (_) {},
     ),

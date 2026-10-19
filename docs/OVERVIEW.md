@@ -2,7 +2,7 @@
 
 ## What it is
 
-**Flourish** is a **local-first personal finance app** for tracking money across multiple accounts, day-to-day spending, budgets, goals, and a fuller **wealth workspace** (holdings, obligations, reports, and tools). Data stays on the device in SQLite; backup and restore are explicit user actions.
+**Flourish** is a **local-first personal finance app** for tracking money across multiple accounts, day-to-day spending, budgets, goals, and a fuller **wealth workspace** (holdings, obligations, and reports). Data stays on the device in SQLite; backup and restore are explicit user actions.
 
 The app is built with **Flutter** so the same UI and logic run on **Android** and **iOS**. It is not a bank connector: you enter or import transactions, optionally from notification text or spreadsheets.
 
@@ -20,8 +20,10 @@ Default **reporting currency** for new installs is **EGP**; you can change repor
 |------|--------|---------|
 | **Home** | `/dashboard` | Net worth (known assets − liabilities), month cash flow, shortcuts, recent activity |
 | **Ledger** | `/transactions` | Income, expense, and transfers; calendar and filters |
-| **Wealth** | `/wealth` | Holdings, obligations, reports, tools (FX, backup, import/export) |
-| **Search** | `/search` | Find transactions and records |
+| **Tools** | `/tools` | Templates, accounts, FX, import/export, security, backup, and widget setup; accessible from Home and Settings |
+| **Wealth** | `/wealth` | Holdings, obligations, and reports |
+| **Search** | `/search` | Indexed offline search across records and app features |
+| **Exchange rates** | `/exchange-rates` | Search currencies, convert amounts, save favorite pairs and manage manual rates |
 | **Accounts** | `/accounts` | Banks, cash, wallets, credit; reconciliation |
 | **Budgets** | `/budgets` | Category limits by period |
 

@@ -1,3 +1,5 @@
+import '../../data/search/search_index.dart';
+import 'transaction_templates.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -168,6 +170,7 @@ class BackupService {
             amountOf(row.read<String>('balance'));
             amountOf(row.read<String>('opening'));
           }
+          await SearchIndex.rebuild(db);
         });
       } finally {
         await db.customStatement('PRAGMA foreign_keys=ON');
@@ -198,6 +201,9 @@ class BackupService {
   Future<void> _validateFinancialRecords() async {
     final store = FinanceStore(db);
     final accounts = {for (final a in await db.getAllAccounts()) a.id: a};
+    for (final j in await store.list('templates')) {
+      TransactionTemplate.fromJson(j);
+    }
     final holdings = <String, Holding>{};
     for (final j in await store.list('holdings')) {
       final h = Holding.fromJson(j);

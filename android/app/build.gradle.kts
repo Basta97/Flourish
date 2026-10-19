@@ -62,7 +62,9 @@ flutter {
 }
 
 dependencies {
-    implementation("com.google.mlkit:text-recognition:16.0.1")
+    // Text recognition from Google Play services: the OCR model is downloaded
+    // once instead of adding ~11 MB of native code per CPU to the APK.
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
     // NotificationCompat.MessagingStyle for reading SMS notifications.
     implementation("androidx.core:core-ktx:1.13.1")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") }

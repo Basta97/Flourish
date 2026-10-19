@@ -7,6 +7,10 @@
         android:label="Flourish"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Download the text recognition model with the app from Play services. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

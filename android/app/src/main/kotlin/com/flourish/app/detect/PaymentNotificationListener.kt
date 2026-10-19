@@ -21,8 +21,10 @@ class PaymentNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         try {
             handle(sbn)
-        } catch (_: Exception) {
-            // A malformed notification must never crash the listener.
+        } catch (e: Exception) {
+            // A malformed notification must never crash the listener. Only
+            // the error type is logged, never the notification's text.
+            android.util.Log.w("FlourishDetect", "Skipped a notification: ${e.javaClass.name}")
         }
     }
 
@@ -90,6 +92,20 @@ class PaymentNotificationListener : NotificationListenerService() {
         pm.getApplicationLabel(info).toString()
     } catch (_: Exception) {
         pkg
+    }
+
+    /**
+     * Android binds the listener a moment after access is granted, after an
+     * app update and after a reboot. Alerts still on screen from that gap are
+     * read now; the 24-hour guard keeps anything seen before from doubling.
+     */
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        try {
+            activeNotifications?.forEach { onNotificationPosted(it) }
+        } catch (e: Exception) {
+            android.util.Log.w("FlourishDetect", "Could not read current notifications: ${e.javaClass.name}")
+        }
     }
 
     override fun onListenerDisconnected() {

@@ -257,28 +257,32 @@ class _Breakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: AppTextStyles.eyebrow.copyWith(
-              fontSize: 10,
-              color: NetWorthHero._textLow,
-            ),
-          ),
-          const SizedBox(height: Sp.xs),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: AlignmentDirectional.centerStart,
-            child: Text(
-              value,
-              style: AppTextStyles.numberSmall.copyWith(
-                color: NetWorthHero._textHigh,
+      // A gap so long amounts in neighbouring columns never touch.
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(end: Sp.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: AppTextStyles.eyebrow.copyWith(
+                fontSize: 10,
+                color: NetWorthHero._textLow,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: Sp.xs),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                value,
+                style: AppTextStyles.numberSmall.copyWith(
+                  color: NetWorthHero._textHigh,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

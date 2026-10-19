@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-19
+
 ### Added
 
+- Android payment detection reads alerts already on screen when the listener connects (after install, update or reboot), so none are missed.
+- Smaller Android download: one APK per CPU type (~31 MB for arm64 instead of ~124 MB universal), with text recognition from Google Play services and obfuscated code.
+- Detection reads more bank formats: Fawry bills, refunds, 'Transfer of … to …', shop names after 'from'.
 - Cards & wallets per account (debit, credit, prepaid, mobile wallet, InstaPay, BNPL) and, on every entry, what paid, the merchant and its source.
 - Purchases in another currency with the original price and the bank's foreign-transaction fee as a separate entry; refunds that reduce spending.
 - Credit card terms and status: limit, available credit, how much of the limit is used, statement, minimum due, interest estimate, cash advances with fees, and reminders with the minimum due.

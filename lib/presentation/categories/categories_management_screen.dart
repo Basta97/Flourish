@@ -1,24 +1,22 @@
-import 'package:flourish/shared/category_label.dart';
-import 'package:flourish/l10n/l10n.dart';
-import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/core/finance/system_categories.dart';
-import 'package:flutter/material.dart';
-import 'package:flourish/shared/widgets/shimmer_loading.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flourish/core/theme/app_colors.dart';
-import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
-import 'package:flourish/core/utils/icon_utils.dart';
+import 'package:flourish/core/theme/app_text_styles.dart';
+import 'package:flourish/core/utils/error_text.dart';
 import 'package:flourish/data/database/database.dart';
+import 'package:flourish/l10n/l10n.dart';
+import 'package:flourish/presentation/categories/category_form_sheet.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
+import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/shared/widgets/animated_list_item.dart';
-import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
+import 'package:flourish/shared/widgets/app_card.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/empty_state.dart';
-import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
-import 'package:flourish/shared/widgets/app_card.dart';
 import 'package:flourish/shared/widgets/liquid_page.dart';
-import 'package:drift/drift.dart' hide Column;
+import 'package:flourish/shared/widgets/shimmer_loading.dart';
+import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CategoriesManagementScreen extends ConsumerWidget {
   final int? recordId;
@@ -33,113 +31,109 @@ class CategoriesManagementScreen extends ConsumerWidget {
       body: LiquidPageBackground(
         child: categoriesAsync.when(
           data: (all) {
-            final categories =
-                (recordId == null
-                        ? SystemCategories.pickable(all)
-                        : all.where((c) => c.id == recordId))
-                    .toList();
+            final categories = recordId == null
+                ? SystemCategories.pickable(all)
+                : all.where((c) => c.id == recordId).toList();
             if (categories.isEmpty) {
               return EmptyState(
                 icon: Icons.category,
                 title: context.l10n.noCategories,
               );
             }
-            final income = categories.where((c) => c.type == 'income').toList();
-            final expense = categories
-                .where((c) => c.type == 'expense')
-                .toList();
-            final totalItems =
-                (income.isNotEmpty ? income.length + 2 : 0) +
-                (expense.isNotEmpty ? expense.length + 2 : 0);
-            return ListView.builder(
-              padding: const EdgeInsets.all(Sp.xl),
-              itemCount: totalItems,
-              itemBuilder: (context, index) {
-                var currentIndex = 0;
-                if (income.isNotEmpty) {
-                  if (index == currentIndex) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: Sp.sm),
-                      child: Text(
-                        context.l10n.income,
-                        style: AppTextStyles.overline.copyWith(
-                          color: AppColors.income,
-                        ),
-                      ),
-                    );
-                  }
-                  currentIndex++;
-                  if (index < currentIndex + income.length) {
-                    return AnimatedListItem(
-                      index: index,
-                      child: _CategoryTile(
-                        category: income[index - currentIndex],
-                        ref: ref,
-                      ),
-                    );
-                  }
-                  currentIndex += income.length;
-                  if (index == currentIndex) {
-                    return const SizedBox(height: Sp.xxl);
-                  }
-                  currentIndex++;
-                }
-                if (expense.isNotEmpty) {
-                  if (index == currentIndex) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: Sp.sm),
-                      child: Text(
-                        context.l10n.expense,
-                        style: AppTextStyles.overline.copyWith(
-                          color: AppColors.expense,
-                        ),
-                      ),
-                    );
-                  }
-                  currentIndex++;
-                  return AnimatedListItem(
-                    index: index,
-                    child: _CategoryTile(
-                      category: expense[index - currentIndex],
-                      ref: ref,
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
+            final income = _sorted(categories.where((c) => c.type == 'income'));
+            final expense = _sorted(
+              categories.where((c) => c.type == 'expense'),
+            );
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(Sp.xl, Sp.xl, Sp.xl, 96),
+              children: [
+                if (income.isNotEmpty)
+                  ..._section(
+                    context,
+                    title: context.l10n.income,
+                    color: AppColors.income,
+                    categories: income,
+                    firstIndex: 0,
+                  ),
+                if (income.isNotEmpty && expense.isNotEmpty)
+                  const SizedBox(height: Sp.xxl),
+                if (expense.isNotEmpty)
+                  ..._section(
+                    context,
+                    title: context.l10n.expense,
+                    color: AppColors.expense,
+                    categories: expense,
+                    firstIndex: income.length,
+                  ),
+              ],
             );
           },
           loading: () => const ShimmerList(),
           error: (error, stackTrace) => EmptyState(
             icon: Icons.error,
             title: context.l10n.errorLoadingCategories,
+            subtitle: describeError(error),
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddCategorySheet(context, ref),
-        icon: const Icon(Icons.add),
-        label: Text(context.l10n.category),
-      ),
+      floatingActionButton: recordId == null
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddCategorySheet(context),
+              icon: const Icon(Icons.add),
+              label: Text(context.l10n.addCategory),
+            )
+          : null,
     );
   }
 
-  void _showAddCategorySheet(BuildContext context, WidgetRef ref) {
-    showSpringBottomSheet(
+  static List<Category> _sorted(Iterable<Category> categories) {
+    return categories.toList()..sort((a, b) {
+      final byOrder = a.sortOrder.compareTo(b.sortOrder);
+      return byOrder != 0 ? byOrder : a.id.compareTo(b.id);
+    });
+  }
+
+  /// A group heading followed by one tile per category. [firstIndex] keeps
+  /// the entry animation staggered across both groups.
+  List<Widget> _section(
+    BuildContext context, {
+    required String title,
+    required Color color,
+    required List<Category> categories,
+    required int firstIndex,
+  }) {
+    return [
+      Padding(
+        padding: const EdgeInsets.only(bottom: Sp.sm),
+        child: Text(
+          title,
+          style: AppTextStyles.overline.copyWith(color: color),
+        ),
+      ),
+      for (var i = 0; i < categories.length; i++)
+        AnimatedListItem(
+          index: firstIndex + i,
+          child: _CategoryTile(category: categories[i]),
+        ),
+    ];
+  }
+
+  void _showAddCategorySheet(BuildContext context) {
+    showSpringBottomSheet<int>(
       context: context,
-      builder: (ctx) => const _AddCategorySheet(),
+      builder: (ctx) => const CategoryFormSheet(),
     );
   }
 }
 
 class _CategoryTile extends ConsumerWidget {
   final Category category;
-  final WidgetRef ref;
 
-  const _CategoryTile({required this.category, required this.ref});
+  const _CategoryTile({required this.category});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isSystem = SystemCategories.isSystem(category);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Sp.xs),
       child: AppCard(
@@ -157,7 +151,7 @@ class _CategoryTile extends ConsumerWidget {
               color: AppColors.textSecondary(context),
             ),
           ),
-          trailing: SystemCategories.isSystem(category)
+          trailing: isSystem
               ? Tooltip(
                   message: context.l10n.systemCategoryLocked,
                   child: Icon(
@@ -168,248 +162,76 @@ class _CategoryTile extends ConsumerWidget {
                 )
               : IconButton(
                   icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: context.l10n.delete,
                   color: AppColors.danger.withValues(alpha: 0.6),
                   onPressed: () => _confirmDelete(context, ref, category),
                 ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Rad.md),
           ),
-          onTap: () => _showEditCategorySheet(context, ref, category),
+          onTap: () => showSpringBottomSheet<int>(
+            context: context,
+            builder: (ctx) => CategoryFormSheet(existing: category),
+          ),
         ),
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, Category cat) async {
-    final db = ref.read(databaseProvider);
-    final count = await db.getCategoryTransactionCount(cat.id);
-    if (context.mounted) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(context.l10n.deleteCategory),
-          content: Text(
-            count > 0
-                ? ctx.l10n.deleteCategoryWithTx(
-                    cat.displayName,
-                    count,
-                    cat.type == 'income'
-                        ? ctx.l10n.otherIncome
-                        : ctx.l10n.other,
-                  )
-                : ctx.l10n.deleteCategoryEmpty(cat.displayName),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(context.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await db.deleteCategoryAndReassignTransactions(cat.id);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(describeError(e))));
-                  }
-                }
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: Text(
-                context.l10n.delete,
-                style: TextStyle(color: AppColors.danger),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  void _showEditCategorySheet(
+  Future<void> _confirmDelete(
     BuildContext context,
     WidgetRef ref,
     Category cat,
-  ) {
-    showSpringBottomSheet(
-      context: context,
-      builder: (ctx) => _AddCategorySheet(existing: cat),
-    );
-  }
-}
-
-class _AddCategorySheet extends ConsumerStatefulWidget {
-  final Category? existing;
-  const _AddCategorySheet({this.existing});
-
-  @override
-  ConsumerState<_AddCategorySheet> createState() => _AddCategorySheetState();
-}
-
-class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
-  final _nameController = TextEditingController();
-  String _type = 'expense';
-  String _icon = 'more_horiz';
-  int _color = AppColors.fallbackColor;
-  String? _nameError;
-
-  static final _availableIcons = IconUtils.categoryIcons.keys.toList();
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.existing != null) {
-      _nameController.text = widget.existing!.name;
-      _type = widget.existing!.type;
-      _icon = widget.existing!.icon;
-      _color = widget.existing!.color;
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomSheetScaffold(
-      title: widget.existing != null
-          ? context.l10n.editCategory
-          : context.l10n.addCategory,
-      children: [
-        TextField(
-          controller: _nameController,
-          decoration: InputDecoration(
-            labelText: context.l10n.categoryName,
-            errorText: _nameError,
-          ),
-          onChanged: (_) => setState(() => _nameError = null),
-        ),
-        const SizedBox(height: Sp.md),
-        DropdownButtonFormField<String>(
-          initialValue: _type,
-          decoration: InputDecoration(labelText: context.l10n.type),
-          items: [
-            DropdownMenuItem(value: 'income', child: Text(context.l10n.income)),
-            DropdownMenuItem(
-              value: 'expense',
-              child: Text(context.l10n.expense),
-            ),
-          ],
-          onChanged: (v) {
-            if (v != null) {
-              setState(() => _type = v);
-            }
-          },
-        ),
-        const SizedBox(height: Sp.md),
-        Text(context.l10n.icon, style: AppTextStyles.overline),
-        const SizedBox(height: Sp.sm),
-        Wrap(
-          spacing: Sp.sm,
-          runSpacing: Sp.sm,
-          children: _availableIcons.map((icon) {
-            final selected = _icon == icon;
-            return GestureDetector(
-              onTap: () => setState(() => _icon = icon),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.primary.withValues(alpha: 0.15)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(Rad.md),
-                  border: Border.all(
-                    color: selected ? AppColors.primary : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  IconUtils.categoryIcon(icon),
-                  color: selected ? AppColors.primary : null,
-                  size: 22,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: Sp.md),
-        Text(context.l10n.color, style: AppTextStyles.overline),
-        const SizedBox(height: Sp.sm),
-        Wrap(
-          spacing: Sp.sm,
-          runSpacing: Sp.sm,
-          children: AppColors.categoryPalette.map((c) {
-            final color = Color(c);
-            final selected = _color == c;
-            return GestureDetector(
-              onTap: () => setState(() => _color = c),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: selected
-                      ? Border.all(color: Colors.white, width: 3)
-                      : null,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: Sp.xxl),
-        FilledButton(
-          onPressed: _submit,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: Sp.lg),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Rad.md),
-            ),
-          ),
-          child: Text(
-            widget.existing != null
-                ? context.l10n.saveChanges
-                : context.l10n.addCategory,
-            style: const TextStyle(fontSize: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _submit() async {
-    if (_nameController.text.trim().isEmpty) {
-      setState(() => _nameError = context.l10n.enterName);
+  ) async {
+    final db = ref.read(databaseProvider);
+    final int count;
+    try {
+      count = await db.getCategoryTransactionCount(cat.id);
+    } catch (e) {
+      if (context.mounted) _showError(context, e);
       return;
     }
-    final db = ref.read(databaseProvider);
-    if (widget.existing != null) {
-      await db.updateCategory(
-        widget.existing!.copyWith(
-          name: _nameController.text.trim(),
-          icon: _icon,
-          color: _color,
-          type: _type,
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.l10n.deleteCategory),
+        content: Text(
+          count > 0
+              ? ctx.l10n.deleteCategoryWithTx(
+                  cat.displayName,
+                  count,
+                  cat.type == 'income' ? ctx.l10n.otherIncome : ctx.l10n.other,
+                )
+              : ctx.l10n.deleteCategoryEmpty(cat.displayName),
         ),
-      );
-    } else {
-      final cats = await db.getAllCategories();
-      await db.insertCategory(
-        CategoriesCompanion.insert(
-          name: _nameController.text.trim(),
-          icon: _icon,
-          color: _color,
-          type: _type,
-          isDefault: const Value(false),
-          sortOrder: Value(cats.length),
-        ),
-      );
-    }
-    if (mounted) Navigator.pop(context);
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ctx.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await db.deleteCategoryAndReassignTransactions(cat.id);
+              } catch (e) {
+                if (context.mounted) _showError(context, e);
+              }
+            },
+            child: Text(
+              ctx.l10n.delete,
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showError(BuildContext context, Object error) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(describeError(error))));
   }
 }

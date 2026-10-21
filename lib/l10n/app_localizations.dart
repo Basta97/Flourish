@@ -1472,6 +1472,36 @@ abstract class AppLocalizations {
   /// **'Please enter a name'**
   String get enterName;
 
+  /// No description provided for @categoryNameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 100 characters or fewer'**
+  String get categoryNameTooLong;
+
+  /// No description provided for @categoryNameExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists'**
+  String get categoryNameExists;
+
+  /// No description provided for @categoryTypeLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This category has 1 transaction, so its type cannot change.} other{This category has {count} transactions, so its type cannot change.}}'**
+  String categoryTypeLocked(int count);
+
+  /// No description provided for @systemCategoryTypeFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic entries use this category, so its type is fixed'**
+  String get systemCategoryTypeFixed;
+
+  /// No description provided for @newCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newCategory;
+
   /// No description provided for @noAccountsYet.
   ///
   /// In en, this message translates to:

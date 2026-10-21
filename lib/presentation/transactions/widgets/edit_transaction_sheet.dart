@@ -9,6 +9,8 @@ import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
+import 'package:flourish/presentation/categories/category_form_sheet.dart';
+import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/theme_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
@@ -140,6 +142,16 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     _amountController.dispose();
     _merchantController.dispose();
     super.dispose();
+  }
+
+  /// Creates a category of [type] from the form and selects it.
+  Future<void> _createCategory(String type) async {
+    final id = await showSpringBottomSheet<int>(
+      context: context,
+      builder: (_) => CategoryFormSheet(initialType: type),
+    );
+    if (id == null || !mounted) return;
+    setState(() => _categoryId = id);
   }
 
   @override
@@ -284,6 +296,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
                   ? _categoryId
                   : (filtered.isNotEmpty ? filtered.first.id : null),
               onSelected: (v) => setState(() => _categoryId = v),
+              onAdd: () => _createCategory(_refund ? 'expense' : _type),
             );
           },
           loading: () => const SizedBox(height: 84),

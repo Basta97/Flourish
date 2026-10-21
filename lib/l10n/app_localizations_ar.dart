@@ -770,6 +770,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enterName => 'يرجى إدخال اسم';
 
   @override
+  String get categoryNameTooLong => 'استخدم 100 حرف أو أقل';
+
+  @override
+  String get categoryNameExists => 'توجد فئة بهذا الاسم بالفعل';
+
+  @override
+  String categoryTypeLocked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'هذه الفئة تحتوي على $count معاملة، لذا لا يمكن تغيير نوعها.',
+      one: 'هذه الفئة تحتوي على معاملة واحدة، لذا لا يمكن تغيير نوعها.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get systemCategoryTypeFixed =>
+      'تستخدم القيود التلقائية هذه الفئة، لذا نوعها ثابت';
+
+  @override
+  String get newCategory => 'جديد';
+
+  @override
   String get noAccountsYet => 'لا توجد حسابات بعد';
 
   @override

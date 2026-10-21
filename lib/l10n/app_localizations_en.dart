@@ -773,6 +773,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterName => 'Please enter a name';
 
   @override
+  String get categoryNameTooLong => 'Use 100 characters or fewer';
+
+  @override
+  String get categoryNameExists => 'A category with this name already exists';
+
+  @override
+  String categoryTypeLocked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'This category has $count transactions, so its type cannot change.',
+      one: 'This category has 1 transaction, so its type cannot change.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get systemCategoryTypeFixed =>
+      'Automatic entries use this category, so its type is fixed';
+
+  @override
+  String get newCategory => 'New';
+
+  @override
   String get noAccountsYet => 'No accounts yet';
 
   @override

@@ -371,6 +371,18 @@
   "color": "Color",
   "saveChanges": "Save Changes",
   "enterName": "Please enter a name",
+  "categoryNameTooLong": "Use 100 characters or fewer",
+  "categoryNameExists": "A category with this name already exists",
+  "categoryTypeLocked": "{count, plural, =1{This category has 1 transaction, so its type cannot change.} other{This category has {count} transactions, so its type cannot change.}}",
+  "@categoryTypeLocked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "systemCategoryTypeFixed": "Automatic entries use this category, so its type is fixed",
+  "newCategory": "New",
   "noAccountsYet": "No accounts yet",
   "addFirstAccount": "Add your first account to start tracking.",
   "accountCount": "{count, plural, =1{1 ACCOUNT} other{{count} ACCOUNTS}}",

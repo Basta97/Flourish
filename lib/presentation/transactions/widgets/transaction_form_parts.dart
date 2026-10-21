@@ -226,27 +226,31 @@ class AccountChips extends StatelessWidget {
 }
 
 /// Four-column category picker. Selection springs a tinted ring around the
-/// tile and nudges it up in scale.
+/// tile and nudges it up in scale. When [onAdd] is set, a trailing tile
+/// lets the person create a category without leaving the form.
 class CategoryGrid extends StatelessWidget {
   const CategoryGrid({
     super.key,
     required this.categories,
     required this.selectedId,
     required this.onSelected,
+    this.onAdd,
   });
 
   final List<Category> categories;
   final int? selectedId;
   final ValueChanged<int> onSelected;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
     final palette = FlourishPalette.of(context);
+    final addTile = onAdd;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
-      itemCount: categories.length,
+      itemCount: categories.length + (addTile == null ? 0 : 1),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         mainAxisSpacing: Sp.sm,
@@ -254,6 +258,47 @@ class CategoryGrid extends StatelessWidget {
         mainAxisExtent: 84,
       ),
       itemBuilder: (context, i) {
+        if (addTile != null && i == categories.length) {
+          return Pressable(
+            haptic: false,
+            scale: 0.92,
+            semanticLabel: context.l10n.addCategory,
+            onTap: addTile,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Rad.md),
+                border: Border.all(color: palette.stroke),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.l10n.newCategory,
+                    maxLines: 1,
+                    style: AppTextStyles.caption.copyWith(
+                      fontSize: 11,
+                      color: palette.textLow,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         final c = categories[i];
         final selected = c.id == selectedId;
         final tint = Color(c.color);

@@ -12,9 +12,9 @@
 >
 > Delete this box when you publish.
 
-**Effective date:** [DATE OF FIRST GOOGLE PLAY RELEASE]
-**Developer:** [DEVELOPER OR ORGANIZATION NAME AS SHOWN ON GOOGLE PLAY]
-**Contact:** [SUPPORT EMAIL]
+- **Effective date:** [DATE OF FIRST GOOGLE PLAY RELEASE]
+- **Developer:** [DEVELOPER OR ORGANIZATION NAME AS SHOWN ON GOOGLE PLAY]
+- **Contact:** [SUPPORT EMAIL]
 
 Flourish is a personal finance tracker for Android. It has:
 

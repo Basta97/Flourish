@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy · Flourish</title>
+<meta name="description" content="How Flourish handles your information.">
+<link rel="icon" href="../assets/icon-192.png">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body class="doc">
+<header class="bar"><a class="brand" href="../"><img src="../assets/icon-192.png" alt="" width="32" height="32">Flourish</a></header>
+<main class="prose">
+<h1>Flourish Privacy Policy</h1>
+<aside class="draft"><p><strong>DRAFT. Not published.</strong> Checked against the code for version 1.2.0 (<code>pubspec.yaml</code> <code>1.2.0+10200</code>) on 2026-10-22.</p>
+<p>Before publishing:</p>
+<ol><li>Replace every <code>[BRACKETED]</code> field.</li><li>Host this page at a public HTTPS URL, for example GitHub Pages.</li><li>Put that URL in <code>AppConstants.privacyPolicyUrl</code> (<code>lib/core/constants/app_constants.dart</code>) and in Play Console.</li><li>Re-check the policy whenever data handling changes.</li></ol>
+<p>Delete this box when you publish.</p></aside>
+<ul><li><strong>Effective date:</strong> [DATE OF FIRST GOOGLE PLAY RELEASE]</li><li><strong>Developer:</strong> [DEVELOPER OR ORGANIZATION NAME AS SHOWN ON GOOGLE PLAY]</li><li><strong>Contact:</strong> [SUPPORT EMAIL]</li></ul>
+<p>Flourish is a personal finance tracker for Android. It has:</p>
+<ul><li>no server and no user accounts;</li><li>no advertising and no analytics;</li><li>no crash-reporting service.</li></ul>
+<p>Your financial records are stored on your own phone. This policy explains when information leaves your phone, what is sent, and who receives it.</p>
+<h2>1. Information stored on your phone</h2>
+<p>Flourish keeps the following in its private app storage:</p>
+<ul><li><strong>Your finance records:</strong> accounts, balances, transactions, budgets, goals, recurring payments, holdings, loans, templates and categories. They are kept in a database on the phone.</li><li><strong>Payment alerts</strong> captured from notifications (section 3). The full text of an alert is kept for the number of days you choose (30 by default, or none).</li><li><strong>Receipt photos</strong> you attach.</li><li><strong>Seven automatic daily backups</strong>, kept so a restore or import can be undone. Since version 1.2 they are encrypted (AES-256-GCM) with a random key held in Android's secure key storage, so only this installation can read them. Older unencrypted daily backups are encrypted automatically the next time Flourish saves a backup.</li><li><strong>Your settings</strong>, and any API keys you enter (section 6).</li></ul>
+<p>The database itself relies on Android's app sandbox and your phone's storage encryption. Flourish does not add a separate layer of encryption to it. You can lock the app with your fingerprint, face or device passcode (Wealth → Tools → Device authentication lock).</p>
+<p>The developer cannot see, access or recover any of this information.</p>
+<h2>2. Backups and moving to a new phone</h2>
+<p>Flourish <strong>opts out</strong> of Android's automatic Google backup and of device-to-device transfer for all of its data. Your records are not copied to your Google account or to a new phone automatically.</p>
+<p>To keep a copy or move to a new phone, use <strong>Export encrypted backup</strong> (Settings or Wealth → Tools). It creates a file protected by a password you choose, using AES-256-GCM with a key derived from your password. You decide where the file goes. It is never sent to the developer.</p>
+<p>Flourish also offers files that are <strong>not encrypted</strong>. They are clearly labelled, and the app warns you before creating the unencrypted backup:</p>
+<ul><li><strong>Export unencrypted backup</strong> (JSON);</li><li><strong>Export transactions as CSV</strong>.</li></ul>
+<p>Anyone who obtains a copy of these files can read them.</p>
+<h2>3. Payment-alert detection (Android notification access)</h2>
+<p>If you turn on payment detection and grant <strong>notification access</strong> in Android settings, Flourish reads notifications from your messaging app and from the bank or wallet apps you choose:</p>
+<ul><li>Notifications that don't look like payment alerts are ignored and not stored.</li><li>One-time codes and declined payments are never saved.</li><li>Card numbers are reduced to their last four digits.</li><li>Detected payments wait in an inbox for you to review, unless you turn on automatic adding.</li></ul>
+<p>Flourish does not request SMS permissions and cannot read your message inbox.</p>
+<p>Alerts are read and stored on your phone. They leave it <strong>only</strong> through the optional AI assistant (section 4): when you tap <strong>Ask AI</strong>, or automatically if you separately agree to automatic reading.</p>
+<p>You can turn detection off in the app, and remove notification access in Android settings, at any time.</p>
+<h2>4. Optional AI assistant (third-party processing)</h2>
+<p>The AI assistant is <strong>off by default</strong>. To use it, you must:</p>
+<ol><li>choose a provider: Google Gemini, DeepSeek, Groq, OpenRouter, or a custom server compatible with the OpenAI API;</li><li>enter <strong>your own API key</strong> for that provider.</li></ol>
+<p>Requests then go <strong>directly from your phone to that provider</strong>, under your account with them. The developer does not operate, relay or see these requests.</p>
+<table><thead><tr><th>Feature</th><th>When information is sent</th><th>What is sent</th></tr></thead><tbody><tr><td><strong>Ask AI</strong> (payments inbox)</td><td>Only when you tap it</td><td>That alert's text and your category names</td></tr><tr><td><strong>Smart Import</strong></td><td>When you paste or share text and tap Read</td><td>Only the text you provided, and your category names</td></tr><tr><td><strong>Read unclear alerts automatically</strong></td><td>Only after you turn it on and accept a notice that names the provider. It stops when you turn it off, and must be accepted again if you change provider</td><td>Captured alerts Flourish could not read confidently, and your category names</td></tr><tr><td><strong>PDF statement reading</strong></td><td>When you choose AI reading for a statement</td><td>Statement page text. Lines that begin with name or address labels are removed</td></tr><tr><td><strong>Spreadsheet column detection</strong></td><td>When you tap it</td><td>The header row and up to five sample rows</td></tr><tr><td><strong>Screenshot reading</strong> (Android)</td><td>When you tap Read with AI, after a one-time notice</td><td>The screenshot image itself</td></tr></tbody></table>
+<p><strong>Masking.</strong> Before text is sent, Flourish masks the following:</p>
+<ul><li>card, account, IBAN and national ID numbers;</li><li>phone numbers and email addresses;</li><li>one-time codes.</li></ul>
+<p>This masking is <strong>always applied</strong> to automatic reading, PDF statements and spreadsheet samples. For Ask AI and Smart Import it is on by default. You can turn it off only for paid providers; for free tiers it is always on. Names of people and merchants are not masked.</p>
+<p>An <strong>image cannot be masked</strong>: everything visible in a screenshot is sent, and the app tells you so before you agree.</p>
+<p><strong>What the provider does with it.</strong> Each provider handles what it receives under its own terms and privacy policy. It may store it, and may process it in other countries. Some free tiers use submitted content to improve their products, and people may review it. Google, for example, says this about the free (unpaid) Gemini API. Read your provider's terms before you agree:</p>
+<ul><li>Google Gemini API: <a href="https://ai.google.dev/gemini-api/terms">https://ai.google.dev/gemini-api/terms</a></li><li>DeepSeek: <a href="https://chat.deepseek.com/downloads/DeepSeek%20Privacy%20Policy.html">https://chat.deepseek.com/downloads/DeepSeek%20Privacy%20Policy.html</a> and <a href="https://platform.deepseek.com/downloads/DeepSeek%20Open%20Platform%20Terms%20of%20Service.html">https://platform.deepseek.com/downloads/DeepSeek%20Open%20Platform%20Terms%20of%20Service.html</a></li><li>Groq: <a href="https://groq.com/privacy-policy/">https://groq.com/privacy-policy/</a></li><li>OpenRouter: <a href="https://openrouter.ai/privacy">https://openrouter.ai/privacy</a></li><li>A custom server: its operator's terms.</li></ul>
+<p>Requests use your API key and may be billed to your account with that provider. To delete what was sent, contact that provider.</p>
+<h2>5. Exchange rates and market prices</h2>
+<p>To value accounts and holdings in your chosen currency, Flourish fetches public data over HTTPS. It does this automatically when you open the app, at most about once a day per currency pair:</p>
+<ul><li><strong>Frankfurter</strong> (<code>api.frankfurter.dev</code>, European Central Bank reference rates): exchange rates and the list of currencies. Requests contain currency codes. For transactions in an account held in another currency, the request also contains the transaction's date, to look up the rate for that day.</li><li><strong>Gold API</strong> (<code>api.gold-api.com</code>): the gold price, if you track gold.</li><li><strong>Coinbase</strong> (<code>api.coinbase.com</code>): prices for the crypto symbols you hold.</li><li><strong>Alpha Vantage</strong> (<code>www.alphavantage.co</code>): stock prices for the tickers you hold, only if you add your own Alpha Vantage key. The request contains the ticker and your key.</li></ul>
+<p>These requests contain no balances, amounts, names or account details. Like any internet request, they reveal your IP address to the service.</p>
+<h2>6. API keys</h2>
+<p>Keys you enter for an AI provider or for Alpha Vantage are stored in Android's encrypted secure storage, backed by the Android Keystore. Each key is sent only to the service it belongs to. Keys are never included in backups or exports, and never sent to the developer. <strong>Reset all data</strong> deletes them.</p>
+<h2>7. Text recognition (Google ML Kit)</h2>
+<p>When you import a screenshot or shared image, Android reads its text **on your phone** using Google's ML Kit through Google Play services. The image is not sent to Google for this.</p>
+<p>ML Kit may send Google diagnostic and usage information, such as:</p>
+<ul><li>device model and Android version;</li><li>app package name and version;</li><li>performance metrics;</li><li>a per-installation identifier.</li></ul>
+<p>Google describes this at <a href="https://developers.google.com/ml-kit/android-data-disclosure">https://developers.google.com/ml-kit/android-data-disclosure</a>.</p>
+<h2>8. What Flourish does not do</h2>
+<ul><li>No advertising, and no advertising ID.</li><li>No analytics, tracking or crash-reporting libraries.</li><li>No sign-in.</li><li>No selling or renting of information.</li><li>No transfer of your financial records to the developer.</li></ul>
+<h2>9. Keeping and deleting information</h2>
+<ul><li><strong>Your records</strong> stay on your phone until you delete them.</li><li><strong>The text of captured alerts</strong> is deleted after the number of days you choose.</li><li><strong>Settings → Reset all data</strong> deletes everything Flourish keeps about your finances on this phone:</li><li>records and saved alerts;</li><li>receipt photos and daily backups;</li><li>temporary export copies and queued alerts;</li><li>AI settings and API keys.</li></ul>
+<p>It does not touch files you exported to other apps or places. It keeps your app lock and language settings.</p>
+<ul><li><strong>Uninstalling Flourish</strong> removes all of its data from your phone.</li><li><strong>Information already sent to an AI provider</strong> is governed by that provider's retention policy.</li></ul>
+<h2>10. Children</h2>
+<p>Flourish is meant for adults and is not directed to children. [OWNER: confirm the minimum age you want to state.]</p>
+<h2>11. Changes to this policy</h2>
+<p>When the way Flourish handles information changes, we will update this page and its effective date, and mention the change in the release notes.</p>
+<h2>12. Contact</h2>
+<p>Questions or requests about privacy: [SUPPORT EMAIL]</p>
+</main>
+<footer class="foot"><a href="../">Home</a> · <a href="./">Privacy policy</a></footer>
+</body>
+</html>

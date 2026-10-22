@@ -48,3 +48,11 @@ app.*.map.json
 android/key.properties
 *.jks
 *.keystore
+
+# Private business planning: kept local, never committed
+docs/company/
+docs/brand/
+docs/marketing/
+docs/research/
+store/social/
+tool/social_assets.py

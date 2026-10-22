@@ -193,13 +193,20 @@ class _NotificationImportScreenState
             source: source,
             sender: widget.initialDraft?.sender,
           ),
+          userInitiated: true,
         );
         if (row != null) added.add(row.id);
       }
       String? aiNote;
       if (added.isNotEmpty) {
         try {
-          await service.assistPending();
+          // Only what was pasted here: other pending alerts are sent only
+          // with consent to automatic reading.
+          await service.assistPending(
+            ids: added,
+            userInitiated: true,
+            unclearOnly: true,
+          );
         } catch (e) {
           aiNote = l.aiUnavailableOnDevice;
         }

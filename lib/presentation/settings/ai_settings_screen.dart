@@ -195,6 +195,27 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     value: s.enabled,
                     onChanged: (v) => _update(s.copyWith(enabled: v)),
                   ),
+                  SwitchListTile(
+                    key: const ValueKey('ai-automatic'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(context.l10n.aiAutomatic),
+                    subtitle: Text(
+                      s.automatic
+                          ? context.l10n.aiAutomaticOn(s.host)
+                          : context.l10n.aiAutomaticOff,
+                    ),
+                    value: s.automatic,
+                    onChanged: !s.enabled || s.host.isEmpty
+                        ? null
+                        : (v) async {
+                            if (v && !await confirmAutomaticAi(context, s)) {
+                              return;
+                            }
+                            await _update(
+                              s.copyWith(autoConsentHost: v ? s.host : ''),
+                            );
+                          },
+                  ),
                   const SizedBox(height: Sp.sm),
                   DropdownButtonFormField<String>(
                     initialValue: s.presetId,
@@ -272,6 +293,11 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   const SizedBox(height: Sp.xs),
                   Text(
                     context.l10n.keyStorageNote,
+                    style: AppTextStyles.caption,
+                  ),
+                  const SizedBox(height: Sp.xs),
+                  Text(
+                    context.l10n.aiProviderPolicy,
                     style: AppTextStyles.caption,
                   ),
                   const SizedBox(height: Sp.lg),

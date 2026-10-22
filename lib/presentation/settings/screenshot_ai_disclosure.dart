@@ -33,3 +33,35 @@ Future<bool> confirmScreenshotAi(
   );
   return agreed == true;
 }
+
+/// Asks before captured alerts may be sent to the AI without a tap. The
+/// answer is recorded for this provider's host only.
+Future<bool> confirmAutomaticAi(
+  BuildContext context,
+  AiSettings settings,
+) async {
+  final provider = settings.preset.label;
+  final agreed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(ctx.l10n.aiAutomaticTitle(provider)),
+      content: SingleChildScrollView(
+        child: Text(
+          '${ctx.l10n.aiAutomaticBody(provider, settings.host)}'
+          '${settings.preset.free ? '\n\n${ctx.l10n.freeTiersKeep}' : ''}',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(ctx.l10n.notNow),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(ctx.l10n.aiAutomaticAgree),
+        ),
+      ],
+    ),
+  );
+  return agreed == true;
+}

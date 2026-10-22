@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Planned as 1.2.0 (Android versionCode 10200), the first Google Play release.
+
+### Added
+
+- Settings → About links to the privacy policy.
+- Settings → Data offers encrypted backup and restore, next to the unencrypted options.
+- Adaptive and themed (Android 13+) launcher icons.
+
+### Changed
+
+- The seven daily backups kept on the phone are now encrypted with a key held in Android's secure key storage. Older unencrypted daily backups are encrypted in place the next time Flourish saves a backup; each one is replaced only after the encrypted copy reads back identical.
+- Unencrypted exports are labelled as such. Exporting an unencrypted backup asks first and offers the encrypted backup instead.
+
+- AI no longer reads captured payment alerts in the background unless you turn on "Read unclear alerts automatically" in AI settings and agree to a disclosure that names the provider. Agreement lapses when you switch provider, and you can turn it off at any time. Ask AI and Smart Import still work when you tap them.
+- Automatic AI requests always mask card, account and ID numbers, phones, emails and one-time codes, whatever the masking toggle says.
+- Smart Import sends only the text you pasted to the AI. Other pending alerts are no longer included.
+- The notification-access explanation now says when alerts can leave the phone.
+- Flourish data is excluded from Google backup and device-to-device transfer. Use the encrypted backup to move to a new phone.
+- "Reset all data" also deletes saved payment alerts, receipt photos, automatic backups, temporary export copies, queued alerts and saved API keys.
+
+### Fixed
+
+- Settings showed version 1.0.0 whatever was installed.
+- After a restore or a reset, screens such as the payments-to-review count kept showing old data until the app restarted.
+
+### Upgrade note
+
+- If you had AI turned on before this version, automatic reading of alerts stays off until you agree again in AI settings.
+
 ## [1.1.0] - 2026-10-19
 
 ### Added

@@ -93,10 +93,13 @@ class AiSettings {
     this.allowNewCategories = true,
     this.redact = true,
     this.screenshotOcr = false,
+    this.autoConsentHost = '',
   });
 
   static const apiKeyStorageKey = 'ai_api_key';
 
+  /// Lets the person ask the AI about a payment message (Ask AI, Smart
+  /// Import). Nothing is sent without a tap unless [automatic] is also on.
   final bool enabled;
   final String presetId;
   final String baseUrl;
@@ -111,7 +114,19 @@ class AiSettings {
   /// may be sent, as images, to the AI. Off until the person agrees.
   final bool screenshotOcr;
 
+  /// Host the person agreed to send unclear payment alerts to without a
+  /// tap; empty until they agree. Consent names a provider, so it lapses
+  /// when the base URL points somewhere else.
+  final String autoConsentHost;
+
   AiProviderPreset get preset => AiProviderPreset.byId(presetId);
+
+  /// Host of [baseUrl], as consent is recorded for it.
+  String get host => Uri.tryParse(baseUrl.trim())?.host ?? '';
+
+  /// Whether captured alerts may be sent to the AI in the background.
+  bool get automatic =>
+      enabled && autoConsentHost.isNotEmpty && autoConsentHost == host;
 
   /// Free providers always get redacted text, whatever the toggle says.
   bool get effectiveRedact => redact || preset.free;
@@ -127,6 +142,7 @@ class AiSettings {
     bool? allowNewCategories,
     bool? redact,
     bool? screenshotOcr,
+    String? autoConsentHost,
   }) => AiSettings(
     enabled: enabled ?? this.enabled,
     presetId: presetId ?? this.presetId,
@@ -136,12 +152,16 @@ class AiSettings {
     allowNewCategories: allowNewCategories ?? this.allowNewCategories,
     redact: redact ?? this.redact,
     screenshotOcr: screenshotOcr ?? this.screenshotOcr,
+    autoConsentHost: autoConsentHost ?? this.autoConsentHost,
   );
 
   static AiSettings load() {
     const d = AiSettings();
     try {
-      var model = PreferencesService.getString('ai_model', defaultValue: d.model);
+      var model = PreferencesService.getString(
+        'ai_model',
+        defaultValue: d.model,
+      );
       // The first Gemini default was a dated model id; follow the alias.
       if (model == 'gemini-2.5-flash' || model == 'gemini-2.0-flash') {
         model = 'gemini-flash-latest';
@@ -167,6 +187,9 @@ class AiSettings {
         ),
         redact: PreferencesService.getBool('ai_redact', defaultValue: true),
         screenshotOcr: PreferencesService.getBool('ai_screenshot_ocr'),
+        // Earlier versions sent alerts automatically once AI was on; that
+        // needs a fresh, explicit agreement, so no old key carries over.
+        autoConsentHost: PreferencesService.getString('ai_auto_consent_host'),
       );
     } on StateError {
       return d; // Preferences not initialised (tests).
@@ -182,5 +205,6 @@ class AiSettings {
     await PreferencesService.setBool('ai_new_categories', allowNewCategories);
     await PreferencesService.setBool('ai_redact', redact);
     await PreferencesService.setBool('ai_screenshot_ocr', screenshotOcr);
+    await PreferencesService.setString('ai_auto_consent_host', autoConsentHost);
   }
 }

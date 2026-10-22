@@ -659,12 +659,12 @@ Future<void> backupHistory(BuildContext context, WidgetRef ref) async {
                       if (j['confirm'] != 'RESTORE') {
                         throw ArgumentError(currentL10n.typeRestoreConfirm);
                       }
-                      final data =
-                          jsonDecode(await File(file.path).readAsString())
-                              as Json;
-                      await BackupService(
-                        ref.read(databaseProvider),
-                      ).restore(data);
+                      final service = BackupService(ref.read(databaseProvider));
+                      // Encrypted on this device, or plain from 1.1.
+                      final data = await service.openLocal(
+                        await File(file.path).readAsString(),
+                      );
+                      await service.restore(data);
                       invalidateFinance(ref);
                     },
                   );

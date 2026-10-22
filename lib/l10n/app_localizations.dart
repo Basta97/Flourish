@@ -599,25 +599,25 @@ abstract class AppLocalizations {
   /// No description provided for @exportData.
   ///
   /// In en, this message translates to:
-  /// **'Export Data'**
+  /// **'Export unencrypted backup'**
   String get exportData;
 
   /// No description provided for @exportDataSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Save your data as JSON'**
+  /// **'Plain JSON file: anyone who gets it can read it'**
   String get exportDataSubtitle;
 
   /// No description provided for @importData.
   ///
   /// In en, this message translates to:
-  /// **'Import Data'**
+  /// **'Restore unencrypted backup'**
   String get importData;
 
   /// No description provided for @importDataSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Restore from a JSON backup'**
+  /// **'From a Flourish JSON file; replaces current data'**
   String get importDataSubtitle;
 
   /// No description provided for @resetAllData.
@@ -629,7 +629,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetAllDataSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Delete all accounts, transactions, and budgets'**
+  /// **'Delete everything Flourish keeps on this phone'**
   String get resetAllDataSubtitle;
 
   /// No description provided for @about.
@@ -701,7 +701,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetAllDataWarning.
   ///
   /// In en, this message translates to:
-  /// **'This will delete all your accounts, transactions, budgets, and settings. This cannot be undone.'**
+  /// **'This deletes all accounts, transactions, budgets, goals and settings, plus saved payment alerts, receipt photos, automatic backups and saved API keys on this phone. Files you exported or shared elsewhere are not touched. This cannot be undone.'**
   String get resetAllDataWarning;
 
   /// No description provided for @allDataReset.
@@ -845,7 +845,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportCsvSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Opens in any spreadsheet app'**
+  /// **'Unencrypted · opens in any spreadsheet app'**
   String get exportCsvSubtitle;
 
   /// No description provided for @paymentReminders.
@@ -929,7 +929,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportBackupSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Includes holdings, contracts, activity, settings, and receipts'**
+  /// **'Password-protected file with everything, for safekeeping or a new phone'**
   String get exportBackupSubtitle;
 
   /// No description provided for @restoreBackup.
@@ -941,7 +941,7 @@ abstract class AppLocalizations {
   /// No description provided for @restoreBackupSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Replaces everything with a backup file'**
+  /// **'From a password-protected file; replaces current data'**
   String get restoreBackupSubtitle;
 
   /// No description provided for @backupHistory.
@@ -953,7 +953,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupHistorySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Seven local daily backups · remain on this device'**
+  /// **'Seven daily backups, encrypted and kept only on this phone'**
   String get backupHistorySubtitle;
 
   /// No description provided for @save.
@@ -1901,13 +1901,13 @@ abstract class AppLocalizations {
   /// No description provided for @useAiWhenUnsure.
   ///
   /// In en, this message translates to:
-  /// **'Use AI when unsure'**
+  /// **'Use AI for payment messages'**
   String get useAiWhenUnsure;
 
   /// No description provided for @useAiWhenUnsureSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Flourish reads alerts on your phone first. Only messages it cannot read confidently are sent to the AI.'**
+  /// **'Adds \"Ask AI\" to unclear payments and lets Smart Import ask the AI. A message is sent to your provider only when you tap.'**
   String get useAiWhenUnsureSubtitle;
 
   /// No description provided for @provider.
@@ -2021,7 +2021,7 @@ abstract class AppLocalizations {
   /// No description provided for @hidePersonalDataSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Masks account and card numbers, phones and emails before sending.'**
+  /// **'Masks account and card numbers, phones and emails before sending what you tap. Automatic reading is always masked.'**
   String get hidePersonalDataSubtitle;
 
   /// No description provided for @readArabicScreenshots.
@@ -4421,7 +4421,7 @@ abstract class AppLocalizations {
   /// No description provided for @readAlertsBody.
   ///
   /// In en, this message translates to:
-  /// **'Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, card numbers are reduced to their last 4 digits, and nothing leaves your phone. You review every payment before it is added, unless you turn on automatic adding.'**
+  /// **'Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, and card numbers are reduced to their last 4 digits. Alerts are read and stored on this phone. They are sent off it only if you set up the optional AI assistant: when you tap \"Ask AI\", or automatically if you separately agree to that in AI settings. You review every payment before it is added, unless you turn on automatic adding.'**
   String get readAlertsBody;
 
   /// No description provided for @continueAction.
@@ -6301,6 +6301,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apply'**
   String get searchApply;
+
+  /// No description provided for @aiAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Read unclear alerts automatically'**
+  String get aiAutomatic;
+
+  /// No description provided for @aiAutomaticOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off. Captured alerts stay on this phone unless you tap \"Ask AI\".'**
+  String get aiAutomaticOff;
+
+  /// No description provided for @aiAutomaticOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On for {host}. Unclear alerts are sent, masked, without asking each time. Turn off to stop.'**
+  String aiAutomaticOn(String host);
+
+  /// No description provided for @aiAutomaticTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send unclear alerts to {provider} automatically?'**
+  String aiAutomaticTitle(String provider);
+
+  /// No description provided for @aiAutomaticBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When Flourish cannot confidently read a bank or wallet alert it captured, it will send that alert\'s text to {provider} ({host}) in the background, without asking each time, so the AI can read the amount, merchant and category.\n\nWhat is sent: the alert text with card, account and ID numbers, phone numbers, emails and one-time codes masked, plus the names of your categories. Your balances, other transactions and backups are never sent.\n\n{provider} handles what it receives under its own privacy policy and may keep it. Requests use your own API key and may cost money on paid plans.\n\nYou can turn this off at any time in AI settings; alerts are then read on this phone only.'**
+  String aiAutomaticBody(String provider, String host);
+
+  /// No description provided for @aiAutomaticAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and turn on'**
+  String get aiAutomaticAgree;
+
+  /// No description provided for @aiProviderPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'What you send is handled by your provider under its own privacy policy. Flourish has no server and never sees it.'**
+  String get aiProviderPolicy;
+
+  /// No description provided for @resetFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset did not finish: {error}'**
+  String resetFailed(String error);
+
+  /// No description provided for @plainExportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export without encryption?'**
+  String get plainExportTitle;
+
+  /// No description provided for @plainExportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This file holds all your accounts, transactions and settings as plain text. Anyone who gets a copy, for example through a chat or cloud folder, can read it.\n\nAn encrypted backup protects the same data with a password.'**
+  String get plainExportBody;
+
+  /// No description provided for @exportUnencrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Export unencrypted'**
+  String get exportUnencrypted;
+
+  /// No description provided for @useEncryptedBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Use encrypted'**
+  String get useEncryptedBackup;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @privacyPolicySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What stays on your phone and what can leave it'**
+  String get privacyPolicySubtitle;
+
+  /// No description provided for @privacyPolicyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the privacy policy.'**
+  String get privacyPolicyUnavailable;
 }
 
 class _AppLocalizationsDelegate

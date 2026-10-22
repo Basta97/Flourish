@@ -74,7 +74,11 @@ void main() {
       expect(
         () => client(denied).completeJson(system: 's', user: 'u'),
         throwsA(
-          isA<AiException>().having((e) => e.message, 'm', contains('rejected')),
+          isA<AiException>().having(
+            (e) => e.message,
+            'm',
+            contains('rejected'),
+          ),
         ),
       );
     });
@@ -97,10 +101,7 @@ void main() {
     });
 
     test('accepts fenced JSON and rejects prose', () {
-      expect(
-        AiClient.parseJsonObject('Sure:\n```json\n{"a":1}\n```')['a'],
-        1,
-      );
+      expect(AiClient.parseJsonObject('Sure:\n```json\n{"a":1}\n```')['a'], 1);
       expect(
         () => AiClient.parseJsonObject('sorry, I cannot'),
         throwsA(isA<AiException>()),
@@ -154,7 +155,11 @@ void main() {
           'amount': '50',
           'category': {
             'existing_id': 777,
-            'new': {'name': '  pet supplies ', 'icon': 'nope', 'parent': 'Shopping'},
+            'new': {
+              'name': '  pet supplies ',
+              'icon': 'nope',
+              'parent': 'Shopping',
+            },
           },
         }),
         categories,
@@ -181,9 +186,18 @@ void main() {
         AiPaymentAssist.amountAppearsIn(Amount('1250.5'), 'EGP 1,250.50'),
         isTrue,
       );
-      expect(AiPaymentAssist.amountAppearsIn(Amount('1500'), 'spent 1.5k'), isTrue);
-      expect(AiPaymentAssist.amountAppearsIn(Amount('12000'), 'EGP 12 000'), isTrue);
-      expect(AiPaymentAssist.amountAppearsIn(Amount('99'), 'EGP 1,250.50'), isFalse);
+      expect(
+        AiPaymentAssist.amountAppearsIn(Amount('1500'), 'spent 1.5k'),
+        isTrue,
+      );
+      expect(
+        AiPaymentAssist.amountAppearsIn(Amount('12000'), 'EGP 12 000'),
+        isTrue,
+      );
+      expect(
+        AiPaymentAssist.amountAppearsIn(Amount('99'), 'EGP 1,250.50'),
+        isFalse,
+      );
     });
 
     test('outgoing text is redacted but keeps the amount', () {
@@ -203,24 +217,33 @@ void main() {
     late int bank;
     var calls = 0;
     late Json Function(Json body) answer;
+    final sent = <String>[];
 
-    DetectionService service({bool newCategories = true}) => DetectionService(
+    DetectionService service({
+      bool newCategories = true,
+      bool automatic = true,
+      bool redactText = true,
+    }) => DetectionService(
       ledger,
       newCategories: newCategories,
+      automaticAi: () => automatic,
       assist: () async => AiPaymentAssist(
         client(
           MockClient((req) async {
             calls++;
+            sent.add(req.body);
             final body = jsonDecode(req.body) as Json;
             return reply(answer(body));
           }),
         ),
         cache: MemoryAiCache(),
+        redactText: redactText,
       ),
     );
 
     setUp(() async {
       calls = 0;
+      sent.clear();
       db = AppDatabase.forTesting(NativeDatabase.memory());
       ledger = FinancialLedgerService(db);
       for (final a in await db.getAllAccounts()) {
@@ -251,7 +274,9 @@ void main() {
           result({'amount': '450', 'currency': 'EGP', 'merchant': 'Spinneys'}),
         ],
       };
-      final row = await service().ingest(sms('Spinneys Zayed 450 card 4521 ok'));
+      final row = await service().ingest(
+        sms('Spinneys Zayed 450 card 4521 ok'),
+      );
       expect(row, isNotNull);
       expect(row!.amount, '450');
       expect(row.merchant, 'Spinneys');
@@ -266,34 +291,40 @@ void main() {
       expect(calls, 0);
     });
 
-    test('a proposed category is created on confirm, under its parent', () async {
-      answer = (_) => {
-        'results': [
-          result({
-            'amount': '120',
-            'currency': 'EGP',
-            'merchant': 'Petsmart',
-            'category': {
-              'new': {'name': 'Pets', 'icon': 'pets', 'parent': 'Shopping'},
-            },
-          }),
-        ],
-      };
-      final s = service();
-      final row = (await s.ingest(sms('Petsmart 120 card 1234 done')))!;
-      expect(row.categoryId, isNull);
-      expect(s.proposalOf(row)!.name, 'Pets');
+    test(
+      'a proposed category is created on confirm, under its parent',
+      () async {
+        answer = (_) => {
+          'results': [
+            result({
+              'amount': '120',
+              'currency': 'EGP',
+              'merchant': 'Petsmart',
+              'category': {
+                'new': {'name': 'Pets', 'icon': 'pets', 'parent': 'Shopping'},
+              },
+            }),
+          ],
+        };
+        final s = service();
+        final row = (await s.ingest(sms('Petsmart 120 card 1234 done')))!;
+        expect(row.categoryId, isNull);
+        expect(s.proposalOf(row)!.name, 'Pets');
 
-      final result1 = await s.confirm(row.id, draft: DetectionDraft(accountId: bank));
-      final tx = await db.getTransactionById(result1.transactionId);
-      final pets = await db.getCategoryById(tx!.categoryId);
-      expect(pets!.name, 'Pets');
-      final shopping = (await db.getAllCategories()).firstWhere(
-        (c) => c.name == 'Shopping',
-      );
-      final link = await ledger.store.get('categoryParents', '${pets.id}');
-      expect(link?['parent'], shopping.id);
-    });
+        final result1 = await s.confirm(
+          row.id,
+          draft: DetectionDraft(accountId: bank),
+        );
+        final tx = await db.getTransactionById(result1.transactionId);
+        final pets = await db.getCategoryById(tx!.categoryId);
+        expect(pets!.name, 'Pets');
+        final shopping = (await db.getAllCategories()).firstWhere(
+          (c) => c.name == 'Shopping',
+        );
+        final link = await ledger.store.get('categoryParents', '${pets.id}');
+        expect(link?['parent'], shopping.id);
+      },
+    );
 
     test('proposals reuse a similar existing category', () async {
       answer = (_) => {
@@ -315,26 +346,99 @@ void main() {
       expect(row.categoryId, food.id);
     });
 
-    test('assistPending updates unclear rows and dismisses AI-ignored ones', () async {
-      final s = service();
-      answer = (_) => {'results': []};
-      final unclear = (await s.ingest(sms('EGP 75.00 Qwerty ref ok')))!;
-      expect(unclear.kind, isNull, reason: 'no kind, so worth an AI look');
+    test(
+      'assistPending updates unclear rows and dismisses AI-ignored ones',
+      () async {
+        final s = service();
+        answer = (_) => {'results': []};
+        final unclear = (await s.ingest(sms('EGP 75.00 Qwerty ref ok')))!;
+        expect(unclear.kind, isNull, reason: 'no kind, so worth an AI look');
 
-      answer = (_) => {
-        'results': [
-          {'i': 0, 'ignore': 'promo'},
-        ],
-      };
-      expect(await s.assistPending(ids: [unclear.id]), 1);
-      expect((await s.get(unclear.id))!.status, 'dismissed');
+        answer = (_) => {
+          'results': [
+            {'i': 0, 'ignore': 'promo'},
+          ],
+        };
+        expect(
+          await s.assistPending(ids: [unclear.id], userInitiated: true),
+          1,
+        );
+        expect((await s.get(unclear.id))!.status, 'dismissed');
+      },
+    );
+
+    group('consent to automatic reading', () {
+      const unreadable = 'Spinneys Zayed 450 card 4521 ok';
+      const unclearText = 'EGP 75.00 Qwerty ref ok';
+
+      test('without consent, captured alerts never reach the AI', () async {
+        answer = (_) => {
+          'results': [
+            result({'amount': '450', 'currency': 'EGP'}),
+          ],
+        };
+        final s = service(automatic: false);
+        expect(await s.ingest(sms(unreadable)), isNull);
+        final unclear = (await s.ingest(sms(unclearText)))!;
+        expect(unclear.kind, isNull);
+        expect(await s.assistPending(), 0);
+        expect(calls, 0);
+      });
+
+      test('a tap still reaches the AI without automatic consent', () async {
+        answer = (_) => {'results': []};
+        final s = service(automatic: false);
+        final unclear = (await s.ingest(sms(unclearText)))!;
+        await s.assistPending(ids: [unclear.id], userInitiated: true);
+        expect(calls, 1);
+      });
+
+      test('pasted text may use the AI; other pending alerts stay', () async {
+        answer = (_) => {'results': []};
+        final s = service(automatic: false);
+        final background = (await s.ingest(sms(unclearText)))!;
+        final pasted = (await s.ingest(
+          RawMessage(
+            text: 'EGP 90.00 Zxcvb ref ok',
+            receivedAt: at,
+            source: 'paste',
+          ),
+          userInitiated: true,
+        ))!;
+        await s.assistPending(
+          ids: [pasted.id],
+          userInitiated: true,
+          unclearOnly: true,
+        );
+        expect(calls, 1);
+        expect(sent.single, contains('Zxcvb'));
+        expect(sent.single, isNot(contains('Qwerty')));
+        expect(background.id, isNot(pasted.id));
+      });
+
+      test('automatic requests are masked even with masking off', () async {
+        answer = (_) => {'results': []};
+        const text =
+            'EGP 75.00 Qwerty acct 1234567890123 me@mail.com +20 100 123 4567';
+        final s = service(redactText: false);
+        await s.ingest(sms(text));
+        await s.assistPending();
+        expect(calls, greaterThan(0));
+        for (final body in sent) {
+          expect(body, isNot(contains('1234567890123')));
+          expect(body, isNot(contains('me@mail.com')));
+          expect(body, isNot(contains('123 4567')));
+        }
+      });
     });
 
     test('an unreachable AI keeps the on-device reading', () async {
       final s = DetectionService(
         ledger,
         assist: () async => AiPaymentAssist(
-          client(MockClient((_) async => throw http.ClientException('offline'))),
+          client(
+            MockClient((_) async => throw http.ClientException('offline')),
+          ),
         ),
       );
       final row = await s.ingest(
@@ -342,7 +446,7 @@ void main() {
       );
       expect(row, isNotNull);
       expect(
-        () => s.assistPending(ids: [row!.id]),
+        () => s.assistPending(ids: [row!.id], userInitiated: true),
         throwsA(isA<AiException>()),
       );
     });
@@ -356,6 +460,9 @@ void main() {
       colorIndex: 3,
       parentName: 'Shopping',
     );
-    expect(ProposedCategory.fromJson(p.toJson())!.label, 'Pets (under Shopping)');
+    expect(
+      ProposedCategory.fromJson(p.toJson())!.label,
+      'Pets (under Shopping)',
+    );
   });
 }

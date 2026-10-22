@@ -139,10 +139,13 @@ class AiPaymentAssist {
 
   /// Returns one result per request (null where the AI added nothing
   /// usable). Network and key errors are rethrown for the caller to show.
+  /// [forceRedact] masks personal data whatever [redactText] says; requests
+  /// nobody tapped for always use it.
   Future<List<AiPaymentResult?>> improve(
     List<AiPaymentRequest> requests,
     List<Category> categories, {
     DateTime? now,
+    bool forceRedact = false,
   }) async {
     final today = now ?? DateTime.now();
     final pickable = SystemCategories.pickable(categories);
@@ -163,11 +166,15 @@ class AiPaymentAssist {
         user: jsonEncode({
           'today': today.toIso8601String().substring(0, 10),
           'categories': [
-            for (final c in pickable) {'id': c.id, 'name': c.name, 'type': c.type},
+            for (final c in pickable)
+              {'id': c.id, 'name': c.name, 'type': c.type},
           ],
           'messages': [
             for (var k = 0; k < chunk.length; k++)
-              {'i': k, 'text': outgoing(requests[chunk[k]])},
+              {
+                'i': k,
+                'text': outgoing(requests[chunk[k]], force: forceRedact),
+              },
           ],
         }),
       );
@@ -193,9 +200,9 @@ class AiPaymentAssist {
 
   /// The text that leaves the device: the stored redaction plus emails,
   /// IBANs, phones and long account numbers masked (the amount is kept).
-  String outgoing(AiPaymentRequest r) {
+  String outgoing(AiPaymentRequest r, {bool force = false}) {
     final base = redact(r.text);
-    if (!redactText) return base;
+    if (!redactText && !force) return base;
     final amount = r.local.amount?.value.toString().split('.').first;
     return Redactor.redact(base, keepNumbers: {?amount});
   }
@@ -302,7 +309,9 @@ class AiPaymentAssist {
             ? local.counterparty
             : redact(name('counterparty')!),
         occurredAt: date ?? local.occurredAt,
-        confidence: double.parse(confidence.clamp(0.0, 0.95).toStringAsFixed(3)),
+        confidence: double.parse(
+          confidence.clamp(0.0, 0.95).toStringAsFixed(3),
+        ),
         clearIgnore: true,
         aiAssisted: true,
         proposedCategory: proposed?.toJson(),
@@ -318,7 +327,9 @@ class AiPaymentAssist {
     final cleaned = MessageNormalizer.clean(text);
     for (final m in RegExp(r'\d[\d.,\s]*\d|\d').allMatches(cleaned)) {
       final raw = m.group(0)!;
-      final k = RegExp(r'^\s?[kK](?![A-Za-z])').hasMatch(cleaned.substring(m.end));
+      final k = RegExp(
+        r'^\s?[kK](?![A-Za-z])',
+      ).hasMatch(cleaned.substring(m.end));
       for (final piece in {raw.trim(), ...raw.split(' ')}) {
         for (final currency in const ['EGP', 'KWD', 'EUR']) {
           final parsed = AmountParser.parse(

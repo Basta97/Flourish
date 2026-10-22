@@ -199,7 +199,7 @@ Future<void> askAi(BuildContext context, WidgetRef ref, List<int> ids) async {
   try {
     final changed = await ref
         .read(detectionServiceProvider)
-        .assistPending(ids: ids);
+        .assistPending(ids: ids, userInitiated: true);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(

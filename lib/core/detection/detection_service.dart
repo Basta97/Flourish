@@ -70,16 +70,29 @@ class ConfirmResult {
 
 /// Turns bank and wallet messages into pending payments, matches them to
 /// accounts, cards and categories, and books them through the ledger once
-/// confirmed. Everything stays on the device.
+/// confirmed. Parsing happens on the device; message text reaches the
+/// optional AI stage only after a tap or with the person's consent to
+/// automatic reading ([automaticAi]).
 class DetectionService {
   final FinancialLedgerService ledger;
 
   /// The optional AI stage; resolves to null when AI is off or has no key.
   final Future<AiPaymentAssist?> Function()? assist;
 
+  /// Whether messages nobody tapped for may be sent to [assist]. Off unless
+  /// the person agreed to automatic AI reading for the current provider.
+  final bool Function() automaticAi;
+
   /// Whether unmatched merchants may get a proposed new category.
   final bool newCategories;
-  DetectionService(this.ledger, {this.assist, this.newCategories = true});
+  DetectionService(
+    this.ledger, {
+    this.assist,
+    bool Function()? automaticAi,
+    this.newCategories = true,
+  }) : automaticAi = automaticAi ?? _never;
+
+  static bool _never() => false;
   AppDatabase get db => ledger.db;
   FinanceStore get store => ledger.store;
 
@@ -94,17 +107,20 @@ class DetectionService {
       store.put(receiptCollection, '$id', {'path': path}, notify: false);
 
   /// Parses and stores [message]. Returns null when it is not a payment or
-  /// was already received.
+  /// was already received. [userInitiated] marks text the person submitted
+  /// themselves (Smart Import), which may go to the AI without automatic
+  /// consent.
   Future<DetectedPayment?> ingest(
     RawMessage message, {
     bool autoConfirm = false,
+    bool userInitiated = false,
   }) async {
     final cleaned = MessageNormalizer.clean(message.text);
     var parsed = PaymentMessageParser.parse(message);
     AiPaymentResult? ai;
     if (parsed.ignored) {
       // The AI may read a payment the parser found no amount in.
-      ai = await _tryAi(cleaned, parsed);
+      ai = await _tryAi(cleaned, parsed, userInitiated: userInitiated);
       if (ai != null && !ai.payment.ignored) parsed = ai.payment;
     }
     if (parsed.ignored) {
@@ -356,8 +372,7 @@ class DetectionService {
           (p.issuerId == null || o.issuerId == null);
       // Two shops are two payments, even for the same amount.
       final a = p.merchant ?? p.counterparty, b = o.merchant ?? o.counterparty;
-      final otherShop =
-          a != null && b != null && _ruleKey(a) != _ruleKey(b);
+      final otherShop = a != null && b != null && _ruleKey(a) != _ruleKey(b);
       if (o.direction == p.direction &&
           !otherShop &&
           (sameCard || sameIssuer || unknown)) {
@@ -430,13 +445,19 @@ class DetectionService {
     );
   }
 
-  Future<AiPaymentResult?> _tryAi(String text, ParsedPayment local) async {
+  Future<AiPaymentResult?> _tryAi(
+    String text,
+    ParsedPayment local, {
+    required bool userInitiated,
+  }) async {
+    if (!userInitiated && !automaticAi()) return null;
     final ai = await assist?.call();
     if (ai == null || !ai.wants(local, text)) return null;
     try {
       final results = await ai.improve(
         [AiPaymentRequest(text, local)],
         await db.getAllCategories(),
+        forceRedact: !userInitiated,
       );
       return results.single;
     } catch (_) {
@@ -445,9 +466,19 @@ class DetectionService {
   }
 
   /// Sends pending payments the parser was unsure about (or [ids], even when
-  /// sure) to the AI and applies what passes validation. Returns how many
-  /// changed; throws when the AI could not be reached so the UI can say so.
-  Future<int> assistPending({List<int>? ids}) async {
+  /// sure, unless [unclearOnly]) to the AI and applies what passes
+  /// validation. Returns how many changed; throws when the AI could not be
+  /// reached so the UI can say so.
+  ///
+  /// Without [userInitiated] this is the background pass: it does nothing
+  /// unless the person agreed to automatic AI reading, and always masks
+  /// personal data.
+  Future<int> assistPending({
+    List<int>? ids,
+    bool userInitiated = false,
+    bool unclearOnly = false,
+  }) async {
+    if (!userInitiated && !automaticAi()) return 0;
     final ai = await assist?.call();
     if (ai == null) return 0;
     final rows = ids == null
@@ -461,13 +492,15 @@ class DetectionService {
       for (final r in rows)
         if (r.rawText != null &&
             r.status == 'pending' &&
-            (ids != null || ai.wants(parsedOf(r), r.rawText!)))
+            ((ids != null && !unclearOnly) ||
+                ai.wants(parsedOf(r), r.rawText!)))
           r,
     ];
     if (todo.isEmpty) return 0;
     final results = await ai.improve(
       [for (final r in todo) AiPaymentRequest(r.rawText!, parsedOf(r))],
       await db.getAllCategories(),
+      forceRedact: !userInitiated,
     );
     var changed = 0;
     for (var i = 0; i < todo.length; i++) {
@@ -483,14 +516,15 @@ class DetectionService {
   Future<void> _applyAi(DetectedPayment row, AiPaymentResult result) async {
     var p = result.payment;
     if (p.ignored) {
-      await (db.update(db.detectedPayments)..where((d) => d.id.equals(row.id)))
-          .write(
-            DetectedPaymentsCompanion(
-              parsed: Value(jsonEncode(p.toJson())),
-              status: const Value('dismissed'),
-              resolvedAt: Value(DateTime.now()),
-            ),
-          );
+      await (db.update(
+        db.detectedPayments,
+      )..where((d) => d.id.equals(row.id))).write(
+        DetectedPaymentsCompanion(
+          parsed: Value(jsonEncode(p.toJson())),
+          status: const Value('dismissed'),
+          resolvedAt: Value(DateTime.now()),
+        ),
+      );
       return;
     }
     final account = row.accountId == null
@@ -506,20 +540,21 @@ class DetectionService {
     p = category.proposed == null
         ? p.copyWith(clearProposal: true)
         : p.copyWith(proposedCategory: category.proposed!.toJson());
-    await (db.update(db.detectedPayments)..where((d) => d.id.equals(row.id)))
-        .write(
-          DetectedPaymentsCompanion(
-            parsed: Value(jsonEncode(p.toJson())),
-            amount: Value(p.amount?.toString()),
-            currency: Value(p.currency),
-            direction: Value(p.direction),
-            kind: Value(p.kind),
-            merchant: Value(p.merchant ?? p.counterparty),
-            occurredAt: Value(p.occurredAt ?? row.occurredAt),
-            categoryId: Value(category.categoryId),
-            confidence: Value(p.confidence),
-          ),
-        );
+    await (db.update(
+      db.detectedPayments,
+    )..where((d) => d.id.equals(row.id))).write(
+      DetectedPaymentsCompanion(
+        parsed: Value(jsonEncode(p.toJson())),
+        amount: Value(p.amount?.toString()),
+        currency: Value(p.currency),
+        direction: Value(p.direction),
+        kind: Value(p.kind),
+        merchant: Value(p.merchant ?? p.counterparty),
+        occurredAt: Value(p.occurredAt ?? row.occurredAt),
+        categoryId: Value(category.categoryId),
+        confidence: Value(p.confidence),
+      ),
+    );
   }
 
   /// The new category this payment would create on confirm, if any.
@@ -616,8 +651,9 @@ class DetectionService {
     }
     var categoryId = draft.categoryId ?? row.categoryId;
     final proposal = draft.categoryId == null ? proposalOf(row) : null;
-    if (categoryId == null && proposal != null && proposal.type ==
-        (p.kind == 'refund' ? 'expense' : p.direction)) {
+    if (categoryId == null &&
+        proposal != null &&
+        proposal.type == (p.kind == 'refund' ? 'expense' : p.direction)) {
       categoryId = await CategoryResolver.ensure(db, store, proposal);
     }
     int transactionId;

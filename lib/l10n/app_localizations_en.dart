@@ -297,23 +297,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get data => 'Data';
 
   @override
-  String get exportData => 'Export Data';
+  String get exportData => 'Export unencrypted backup';
 
   @override
-  String get exportDataSubtitle => 'Save your data as JSON';
+  String get exportDataSubtitle =>
+      'Plain JSON file: anyone who gets it can read it';
 
   @override
-  String get importData => 'Import Data';
+  String get importData => 'Restore unencrypted backup';
 
   @override
-  String get importDataSubtitle => 'Restore from a JSON backup';
+  String get importDataSubtitle =>
+      'From a Flourish JSON file; replaces current data';
 
   @override
   String get resetAllData => 'Reset All Data';
 
   @override
   String get resetAllDataSubtitle =>
-      'Delete all accounts, transactions, and budgets';
+      'Delete everything Flourish keeps on this phone';
 
   @override
   String get about => 'About';
@@ -357,7 +359,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetAllDataWarning =>
-      'This will delete all your accounts, transactions, budgets, and settings. This cannot be undone.';
+      'This deletes all accounts, transactions, budgets, goals and settings, plus saved payment alerts, receipt photos, automatic backups and saved API keys on this phone. Files you exported or shared elsewhere are not touched. This cannot be undone.';
 
   @override
   String get allDataReset => 'All data has been reset';
@@ -433,7 +435,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportCsv => 'Export transactions as CSV';
 
   @override
-  String get exportCsvSubtitle => 'Opens in any spreadsheet app';
+  String get exportCsvSubtitle => 'Unencrypted · opens in any spreadsheet app';
 
   @override
   String get paymentReminders => 'Payment reminders';
@@ -478,20 +480,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportBackupSubtitle =>
-      'Includes holdings, contracts, activity, settings, and receipts';
+      'Password-protected file with everything, for safekeeping or a new phone';
 
   @override
   String get restoreBackup => 'Restore encrypted backup';
 
   @override
-  String get restoreBackupSubtitle => 'Replaces everything with a backup file';
+  String get restoreBackupSubtitle =>
+      'From a password-protected file; replaces current data';
 
   @override
   String get backupHistory => 'Automatic backup history';
 
   @override
   String get backupHistorySubtitle =>
-      'Seven local daily backups · remain on this device';
+      'Seven daily backups, encrypted and kept only on this phone';
 
   @override
   String get save => 'Save';
@@ -1030,11 +1033,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiAssistant => 'AI Assistant';
 
   @override
-  String get useAiWhenUnsure => 'Use AI when unsure';
+  String get useAiWhenUnsure => 'Use AI for payment messages';
 
   @override
   String get useAiWhenUnsureSubtitle =>
-      'Flourish reads alerts on your phone first. Only messages it cannot read confidently are sent to the AI.';
+      'Adds \"Ask AI\" to unclear payments and lets Smart Import ask the AI. A message is sent to your provider only when you tap.';
 
   @override
   String get provider => 'Provider';
@@ -1102,7 +1105,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hidePersonalDataSubtitle =>
-      'Masks account and card numbers, phones and emails before sending.';
+      'Masks account and card numbers, phones and emails before sending what you tap. Automatic reading is always masked.';
 
   @override
   String get readArabicScreenshots => 'Read Arabic screenshots with AI';
@@ -2524,7 +2527,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readAlertsBody =>
-      'Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, card numbers are reduced to their last 4 digits, and nothing leaves your phone. You review every payment before it is added, unless you turn on automatic adding.';
+      'Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, and card numbers are reduced to their last 4 digits. Alerts are read and stored on this phone. They are sent off it only if you set up the optional AI assistant: when you tap \"Ask AI\", or automatically if you separately agree to that in AI settings. You review every payment before it is added, unless you turn on automatic adding.';
 
   @override
   String get continueAction => 'Continue';
@@ -3650,4 +3653,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchApply => 'Apply';
+
+  @override
+  String get aiAutomatic => 'Read unclear alerts automatically';
+
+  @override
+  String get aiAutomaticOff =>
+      'Off. Captured alerts stay on this phone unless you tap \"Ask AI\".';
+
+  @override
+  String aiAutomaticOn(String host) {
+    return 'On for $host. Unclear alerts are sent, masked, without asking each time. Turn off to stop.';
+  }
+
+  @override
+  String aiAutomaticTitle(String provider) {
+    return 'Send unclear alerts to $provider automatically?';
+  }
+
+  @override
+  String aiAutomaticBody(String provider, String host) {
+    return 'When Flourish cannot confidently read a bank or wallet alert it captured, it will send that alert\'s text to $provider ($host) in the background, without asking each time, so the AI can read the amount, merchant and category.\n\nWhat is sent: the alert text with card, account and ID numbers, phone numbers, emails and one-time codes masked, plus the names of your categories. Your balances, other transactions and backups are never sent.\n\n$provider handles what it receives under its own privacy policy and may keep it. Requests use your own API key and may cost money on paid plans.\n\nYou can turn this off at any time in AI settings; alerts are then read on this phone only.';
+  }
+
+  @override
+  String get aiAutomaticAgree => 'Agree and turn on';
+
+  @override
+  String get aiProviderPolicy =>
+      'What you send is handled by your provider under its own privacy policy. Flourish has no server and never sees it.';
+
+  @override
+  String resetFailed(String error) {
+    return 'Reset did not finish: $error';
+  }
+
+  @override
+  String get plainExportTitle => 'Export without encryption?';
+
+  @override
+  String get plainExportBody =>
+      'This file holds all your accounts, transactions and settings as plain text. Anyone who gets a copy, for example through a chat or cloud folder, can read it.\n\nAn encrypted backup protects the same data with a password.';
+
+  @override
+  String get exportUnencrypted => 'Export unencrypted';
+
+  @override
+  String get useEncryptedBackup => 'Use encrypted';
+
+  @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get privacyPolicySubtitle =>
+      'What stays on your phone and what can leave it';
+
+  @override
+  String get privacyPolicyUnavailable => 'Could not open the privacy policy.';
 }

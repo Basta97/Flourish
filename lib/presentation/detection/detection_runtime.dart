@@ -81,7 +81,8 @@ class _DetectionRuntimeState extends ConsumerState<DetectionRuntime>
         await bridge.ack([for (final item in batch) item.id]);
       }
       try {
-        // Unclear messages get a second reading when AI is set up.
+        // Unclear messages get a second reading only if the person agreed
+        // to automatic AI reading; otherwise this sends nothing.
         await service.assistPending();
       } catch (e) {
         debugPrint('AI detection unavailable: $e');

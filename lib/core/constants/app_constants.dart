@@ -6,6 +6,15 @@ class AppConstants {
   static const String appName = 'Flourish';
   static const String defaultCurrency = 'EGP';
 
+  /// Shown in Settings → About; kept equal to `version:` in pubspec.yaml by
+  /// test/release_config_test.dart.
+  static const String version = '1.2.0';
+
+  /// Public URL of docs/privacy-policy.md, opened from Settings → About.
+  /// OWNER: set it once the policy is published; empty until then, and
+  /// test/release_config_test.dart reports it as skipped.
+  static const String privacyPolicyUrl = '';
+
   static List<String> get currencies => bundledCurrencyNames.keys.toList();
 
   static List<Map<String, dynamic>> defaultCategories() {

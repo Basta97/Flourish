@@ -297,22 +297,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get data => 'البيانات';
 
   @override
-  String get exportData => 'تصدير البيانات';
+  String get exportData => 'تصدير نسخة احتياطية غير مشفّرة';
 
   @override
-  String get exportDataSubtitle => 'حفظ بياناتك بصيغة JSON';
+  String get exportDataSubtitle =>
+      'ملف JSON عادي: يستطيع أي شخص يحصل عليه قراءته';
 
   @override
-  String get importData => 'استيراد البيانات';
+  String get importData => 'استعادة نسخة احتياطية غير مشفّرة';
 
   @override
-  String get importDataSubtitle => 'الاستعادة من نسخة JSON الاحتياطية';
+  String get importDataSubtitle =>
+      'من ملف JSON من Flourish، ويستبدل البيانات الحالية';
 
   @override
   String get resetAllData => 'مسح كل البيانات';
 
   @override
-  String get resetAllDataSubtitle => 'حذف كل الحسابات والمعاملات والميزانيات';
+  String get resetAllDataSubtitle => 'حذف كل ما يحفظه Flourish على هذا الهاتف';
 
   @override
   String get about => 'حول التطبيق';
@@ -356,7 +358,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get resetAllDataWarning =>
-      'سيؤدي هذا إلى حذف كل حساباتك ومعاملاتك وميزانياتك وإعداداتك. لا يمكن التراجع عن ذلك.';
+      'سيؤدي هذا إلى حذف كل الحسابات والمعاملات والميزانيات والأهداف والإعدادات، بالإضافة إلى تنبيهات الدفع المحفوظة وصور الإيصالات والنسخ الاحتياطية التلقائية ومفاتيح API المحفوظة على هذا الهاتف. لا تتأثر الملفات التي صدّرتها أو شاركتها في مكان آخر. لا يمكن التراجع عن ذلك.';
 
   @override
   String get allDataReset => 'تم مسح كل البيانات';
@@ -432,7 +434,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get exportCsv => 'تصدير المعاملات بصيغة CSV';
 
   @override
-  String get exportCsvSubtitle => 'يفتح في أي تطبيق جداول';
+  String get exportCsvSubtitle => 'غير مشفّر · يُفتح في أي تطبيق جداول بيانات';
 
   @override
   String get paymentReminders => 'تذكيرات الدفع';
@@ -477,20 +479,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get exportBackupSubtitle =>
-      'تشمل الأصول والعقود والنشاط والإعدادات والإيصالات';
+      'ملف محمي بكلمة مرور يضم كل شيء، للاحتفاظ به أو للانتقال إلى هاتف جديد';
 
   @override
   String get restoreBackup => 'استعادة نسخة احتياطية مشفّرة';
 
   @override
-  String get restoreBackupSubtitle => 'تستبدل كل شيء بملف نسخة احتياطية';
+  String get restoreBackupSubtitle =>
+      'من ملف محمي بكلمة مرور، ويستبدل البيانات الحالية';
 
   @override
   String get backupHistory => 'سجل النسخ الاحتياطي التلقائي';
 
   @override
   String get backupHistorySubtitle =>
-      'سبع نسخ يومية محلية · تبقى على هذا الجهاز';
+      'سبع نسخ يومية مشفّرة ومحفوظة على هذا الهاتف فقط';
 
   @override
   String get save => 'حفظ';
@@ -1030,11 +1033,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiAssistant => 'المساعد الذكي';
 
   @override
-  String get useAiWhenUnsure => 'استخدم الذكاء الاصطناعي عند عدم التأكد';
+  String get useAiWhenUnsure => 'استخدم الذكاء الاصطناعي لرسائل الدفع';
 
   @override
   String get useAiWhenUnsureSubtitle =>
-      'يقرأ Flourish التنبيهات على هاتفك أولًا. تُرسل إلى الذكاء الاصطناعي فقط الرسائل التي لا يستطيع قراءتها بثقة.';
+      'يضيف زر \"اسأل الذكاء الاصطناعي\" للمدفوعات غير الواضحة ويتيح للاستيراد الذكي سؤاله. لا تُرسل أي رسالة إلى المزوّد إلا عندما تضغط.';
 
   @override
   String get provider => 'المزوّد';
@@ -1103,7 +1106,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get hidePersonalDataSubtitle =>
-      'يخفي أرقام الحسابات والبطاقات والهواتف والبريد الإلكتروني قبل الإرسال.';
+      'يخفي أرقام الحسابات والبطاقات والهواتف والبريد الإلكتروني قبل إرسال ما تضغط عليه. القراءة التلقائية مخفية دائمًا.';
 
   @override
   String get readArabicScreenshots =>
@@ -2533,7 +2536,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get readAlertsBody =>
-      'سيقرأ Flourish إشعارات تطبيق الرسائل وتطبيقات البنوك أو المحافظ التي تختارها للعثور على تنبيهات الدفع (المبلغ، التاجر، آخر أرقام البطاقة). تُتجاهل الإشعارات الأخرى فورًا. لا تُحفظ رموز التحقق والمدفوعات المرفوضة أبدًا، وتُختصر أرقام البطاقات إلى آخر 4 أرقام، ولا يغادر أي شيء هاتفك. تراجع كل دفعة قبل إضافتها، إلا إذا فعّلت الإضافة التلقائية.';
+      'سيقرأ Flourish إشعارات تطبيق الرسائل وتطبيقات البنوك أو المحافظ التي تختارها للعثور على تنبيهات الدفع (المبلغ، التاجر، آخر أرقام البطاقة). تُتجاهل الإشعارات الأخرى فورًا. لا تُحفظ رموز التحقق والمدفوعات المرفوضة أبدًا، وتُختصر أرقام البطاقات إلى آخر 4 أرقام. تُقرأ التنبيهات وتُحفظ على هذا الهاتف، ولا تُرسل خارجه إلا إذا أعددت مساعد الذكاء الاصطناعي الاختياري: عندما تضغط \"اسأل الذكاء الاصطناعي\"، أو تلقائيًا إذا وافقت على ذلك بشكل منفصل في إعدادات الذكاء الاصطناعي. تراجع كل دفعة قبل إضافتها، إلا إذا فعّلت الإضافة التلقائية.';
 
   @override
   String get continueAction => 'متابعة';
@@ -3685,4 +3688,60 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchApply => 'تطبيق';
+
+  @override
+  String get aiAutomatic => 'قراءة التنبيهات غير الواضحة تلقائيًا';
+
+  @override
+  String get aiAutomaticOff =>
+      'متوقف. تبقى التنبيهات الملتقطة على هذا الهاتف ما لم تضغط \"اسأل الذكاء الاصطناعي\".';
+
+  @override
+  String aiAutomaticOn(String host) {
+    return 'مفعّل لـ $host. تُرسل التنبيهات غير الواضحة بعد إخفاء البيانات الشخصية دون سؤالك في كل مرة. أوقفه لإيقاف الإرسال.';
+  }
+
+  @override
+  String aiAutomaticTitle(String provider) {
+    return 'إرسال التنبيهات غير الواضحة إلى $provider تلقائيًا؟';
+  }
+
+  @override
+  String aiAutomaticBody(String provider, String host) {
+    return 'عندما لا يستطيع Flourish قراءة تنبيه بنك أو محفظة التقطه بثقة، سيرسل نص هذا التنبيه إلى $provider ($host) في الخلفية دون سؤالك في كل مرة، ليقرأ الذكاء الاصطناعي المبلغ والتاجر والفئة.\n\nما يُرسل: نص التنبيه بعد إخفاء أرقام البطاقات والحسابات والهوية وأرقام الهواتف والبريد الإلكتروني ورموز التحقق، مع أسماء فئاتك. لا تُرسل أرصدتك أو معاملاتك الأخرى أو نسخك الاحتياطية أبدًا.\n\nيتعامل $provider مع ما يستلمه وفق سياسة الخصوصية الخاصة به وقد يحتفظ به. تستخدم الطلبات مفتاح API الخاص بك وقد تكون لها تكلفة في الخطط المدفوعة.\n\nيمكنك إيقاف ذلك في أي وقت من إعدادات الذكاء الاصطناعي، وعندها تُقرأ التنبيهات على هذا الهاتف فقط.';
+  }
+
+  @override
+  String get aiAutomaticAgree => 'موافق، فعّله';
+
+  @override
+  String get aiProviderPolicy =>
+      'يتعامل مزوّدك مع ما ترسله وفق سياسة الخصوصية الخاصة به. ليس لدى Flourish خادم ولا يطّلع عليه أبدًا.';
+
+  @override
+  String resetFailed(String error) {
+    return 'لم تكتمل إعادة التعيين: $error';
+  }
+
+  @override
+  String get plainExportTitle => 'تصدير بدون تشفير؟';
+
+  @override
+  String get plainExportBody =>
+      'يحتوي هذا الملف على كل حساباتك ومعاملاتك وإعداداتك كنص عادي. يستطيع أي شخص يحصل على نسخة منه، عبر محادثة أو مجلد سحابي مثلًا، قراءته.\n\nتحمي النسخة الاحتياطية المشفّرة البيانات نفسها بكلمة مرور.';
+
+  @override
+  String get exportUnencrypted => 'تصدير بدون تشفير';
+
+  @override
+  String get useEncryptedBackup => 'استخدم التشفير';
+
+  @override
+  String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicySubtitle => 'ما يبقى على هاتفك وما قد يغادره';
+
+  @override
+  String get privacyPolicyUnavailable => 'تعذّر فتح سياسة الخصوصية.';
 }

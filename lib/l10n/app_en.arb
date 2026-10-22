@@ -135,12 +135,12 @@
   "incomeCategory": "Income Category",
   "selectCategory": "Select category",
   "data": "Data",
-  "exportData": "Export Data",
-  "exportDataSubtitle": "Save your data as JSON",
-  "importData": "Import Data",
-  "importDataSubtitle": "Restore from a JSON backup",
+  "exportData": "Export unencrypted backup",
+  "exportDataSubtitle": "Plain JSON file: anyone who gets it can read it",
+  "importData": "Restore unencrypted backup",
+  "importDataSubtitle": "From a Flourish JSON file; replaces current data",
   "resetAllData": "Reset All Data",
-  "resetAllDataSubtitle": "Delete all accounts, transactions, and budgets",
+  "resetAllDataSubtitle": "Delete everything Flourish keeps on this phone",
   "about": "About",
   "version": "Version",
   "builtWith": "Built with",
@@ -173,7 +173,7 @@
       }
     }
   },
-  "resetAllDataWarning": "This will delete all your accounts, transactions, budgets, and settings. This cannot be undone.",
+  "resetAllDataWarning": "This deletes all accounts, transactions, budgets, goals and settings, plus saved payment alerts, receipt photos, automatic backups and saved API keys on this phone. Files you exported or shared elsewhere are not touched. This cannot be undone.",
   "allDataReset": "All data has been reset",
   "reset": "Reset",
   "toolsMoney": "Money",
@@ -204,7 +204,7 @@
   "importFromApps": "Import from other apps",
   "importFromAppsSubtitle": "Money Manager, Wallet, Monefy, Spendee, YNAB, bank CSV, OFX, QIF, Excel or PDF statements · review before anything is added",
   "exportCsv": "Export transactions as CSV",
-  "exportCsvSubtitle": "Opens in any spreadsheet app",
+  "exportCsvSubtitle": "Unencrypted · opens in any spreadsheet app",
   "paymentReminders": "Payment reminders",
   "paymentRemindersSubtitle": "Local notifications for expected payments and maturities",
   "paymentRemindersEnabled": "Payment reminders enabled",
@@ -218,11 +218,11 @@
   "alphaVantageKey": "Alpha Vantage API key",
   "personalApiKey": "Personal API key",
   "exportBackup": "Export encrypted backup",
-  "exportBackupSubtitle": "Includes holdings, contracts, activity, settings, and receipts",
+  "exportBackupSubtitle": "Password-protected file with everything, for safekeeping or a new phone",
   "restoreBackup": "Restore encrypted backup",
-  "restoreBackupSubtitle": "Replaces everything with a backup file",
+  "restoreBackupSubtitle": "From a password-protected file; replaces current data",
   "backupHistory": "Automatic backup history",
-  "backupHistorySubtitle": "Seven local daily backups · remain on this device",
+  "backupHistorySubtitle": "Seven daily backups, encrypted and kept only on this phone",
   "save": "Save",
   "enterField": "Enter {field}",
   "@enterField": {
@@ -512,8 +512,8 @@
   },
   "connectedNoJson": "Connected, but the model did not follow the JSON instruction. Try another model.",
   "aiAssistant": "AI Assistant",
-  "useAiWhenUnsure": "Use AI when unsure",
-  "useAiWhenUnsureSubtitle": "Flourish reads alerts on your phone first. Only messages it cannot read confidently are sent to the AI.",
+  "useAiWhenUnsure": "Use AI for payment messages",
+  "useAiWhenUnsureSubtitle": "Adds \"Ask AI\" to unclear payments and lets Smart Import ask the AI. A message is sent to your provider only when you tap.",
   "provider": "Provider",
   "freeTier": "{provider} · free tier",
   "@freeTier": {
@@ -553,7 +553,7 @@
   "aiSuggestCategoriesSubtitle": "New categories are shown with ✨ and only created when you save.",
   "hidePersonalData": "Hide personal data",
   "hidePersonalDataFree": "Always on for free providers, which may keep prompts.",
-  "hidePersonalDataSubtitle": "Masks account and card numbers, phones and emails before sending.",
+  "hidePersonalDataSubtitle": "Masks account and card numbers, phones and emails before sending what you tap. Automatic reading is always masked.",
   "readArabicScreenshots": "Read Arabic screenshots with AI",
   "providerNoImages": "{provider} cannot read images; choose a model that can, such as Gemini.",
   "@providerNoImages": {
@@ -1552,7 +1552,7 @@
   "noAppsFound": "No apps found.",
   "noMatchingApps": "No matching apps.",
   "readAlertsTitle": "Read payment alerts?",
-  "readAlertsBody": "Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, card numbers are reduced to their last 4 digits, and nothing leaves your phone. You review every payment before it is added, unless you turn on automatic adding.",
+  "readAlertsBody": "Flourish will read notifications from your messaging app and the bank or wallet apps you choose, to find payment alerts (amount, merchant, card ending). Other notifications are ignored on the spot. One-time codes and declined payments are never saved, and card numbers are reduced to their last 4 digits. Alerts are read and stored on this phone. They are sent off it only if you set up the optional AI assistant: when you tap \"Ask AI\", or automatically if you separately agree to that in AI settings. You review every payment before it is added, unless you turn on automatic adding.",
   "continueAction": "Continue",
   "detectFromNotifications": "Detect payments from notifications",
   "detectFromNotificationsSubtitle": "Bank SMS and bank or wallet app alerts go to your inbox",
@@ -2214,5 +2214,51 @@
   "clearFilters": "Clear filters",
   "searchRetry": "Retry",
   "searchClear": "Clear",
-  "searchApply": "Apply"
+  "searchApply": "Apply",
+  "aiAutomatic": "Read unclear alerts automatically",
+  "aiAutomaticOff": "Off. Captured alerts stay on this phone unless you tap \"Ask AI\".",
+  "aiAutomaticOn": "On for {host}. Unclear alerts are sent, masked, without asking each time. Turn off to stop.",
+  "@aiAutomaticOn": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAutomaticTitle": "Send unclear alerts to {provider} automatically?",
+  "@aiAutomaticTitle": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAutomaticBody": "When Flourish cannot confidently read a bank or wallet alert it captured, it will send that alert's text to {provider} ({host}) in the background, without asking each time, so the AI can read the amount, merchant and category.\n\nWhat is sent: the alert text with card, account and ID numbers, phone numbers, emails and one-time codes masked, plus the names of your categories. Your balances, other transactions and backups are never sent.\n\n{provider} handles what it receives under its own privacy policy and may keep it. Requests use your own API key and may cost money on paid plans.\n\nYou can turn this off at any time in AI settings; alerts are then read on this phone only.",
+  "@aiAutomaticBody": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAutomaticAgree": "Agree and turn on",
+  "aiProviderPolicy": "What you send is handled by your provider under its own privacy policy. Flourish has no server and never sees it.",
+  "resetFailed": "Reset did not finish: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "plainExportTitle": "Export without encryption?",
+  "plainExportBody": "This file holds all your accounts, transactions and settings as plain text. Anyone who gets a copy, for example through a chat or cloud folder, can read it.\n\nAn encrypted backup protects the same data with a password.",
+  "exportUnencrypted": "Export unencrypted",
+  "useEncryptedBackup": "Use encrypted",
+  "privacyPolicy": "Privacy policy",
+  "privacyPolicySubtitle": "What stays on your phone and what can leave it",
+  "privacyPolicyUnavailable": "Could not open the privacy policy."
 }

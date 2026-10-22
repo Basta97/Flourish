@@ -118,6 +118,7 @@ final detectionServiceProvider = Provider(
   (ref) => DetectionService(
     ref.watch(financialLedgerProvider),
     assist: () => ref.read(aiAssistProvider.future),
+    automaticAi: () => ref.read(aiSettingsProvider).automatic,
     newCategories: ref.watch(aiSettingsProvider).allowNewCategories,
   ),
 );

@@ -13,8 +13,9 @@ import java.time.Instant
 /**
  * Reads notifications from the messaging app (bank SMS) and from the bank
  * and wallet apps the person picked, and queues those that look like a
- * payment. Everything else is dropped on the spot; nothing leaves the
- * device.
+ * payment. Everything else is dropped on the spot. Queued text stays on
+ * the device; only the Dart side's optional AI stage may send it, with
+ * the person's consent.
  */
 class PaymentNotificationListener : NotificationListenerService() {
 

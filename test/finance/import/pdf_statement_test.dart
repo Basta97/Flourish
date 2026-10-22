@@ -1,8 +1,10 @@
+import 'dart:io';
+
 import 'package:flourish/core/finance/import/import_source.dart';
 import 'package:flourish/core/finance/import/pdf_statement.dart';
 import 'package:flourish/core/finance/import/pdf_text_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdfrx/pdfrx.dart' show pdfrxInitialize;
+import 'package:pdfrx/pdfrx.dart' show Pdfrx, pdfrxInitialize;
 
 /// Lines of `(text, left)` words; each word is 5pt per character wide.
 StatementPage page(int number, List<List<(String, double)>> lines) =>
@@ -15,8 +17,25 @@ StatementPage page(int number, List<List<(String, double)>> lines) =>
 
 Future<List<StatementPage>> readFixture(String name) => PdfTextReader.read(
   'test/fixtures/imports/$name',
-  initialize: pdfrxInitialize,
+  initialize: () {
+    // `flutter test` builds pdfium for the host under build/native_assets
+    // but does not hand it to the test runner, and pdfrx then waits forever
+    // instead of failing. Point pdfrx at the built library when present.
+    Pdfrx.pdfiumModulePath ??= _hostPdfium();
+    return pdfrxInitialize();
+  },
 );
+
+String? _hostPdfium() {
+  for (final path in const [
+    'build/native_assets/macos/libpdfium.dylib',
+    'build/native_assets/linux/libpdfium.so',
+    'build/native_assets/windows/pdfium.dll',
+  ]) {
+    if (File(path).existsSync()) return File(path).absolute.path;
+  }
+  return null;
+}
 
 void main() {
   group('text PDF fixture (pdfium)', () {

@@ -19,7 +19,7 @@ Data stays on your device in SQLite. Optional market and FX feeds refresh quotes
 - **Credit cards** — Limit, available credit, statement, minimum due, interest estimate, cash advances
 - **Payment detection** — Bank SMS and bank/wallet alerts in English and Arabic become a review inbox (Android notification access; iOS Shortcuts)
 - **Import** — Share bank SMS/notification text (Android intent / iOS share extension); review before save
-- **Privacy** — On-device storage; encrypted backup optional; biometric app lock
+- **Privacy** — On-device storage kept out of cloud backup; encrypted daily and exported backups; biometric app lock; optional AI only with your own key and consent ([privacy policy draft](docs/privacy-policy.md))
 
 Built with **Flutter**, **Riverpod**, **Drift**, and **go_router**. Default reporting currency for new installs is **EGP** (changeable in settings).
 
@@ -63,7 +63,9 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Installing a release
 
-Official builds are published on [GitHub Releases](https://github.com/Basta97/Flourish/releases). Download `app-release.apk`, allow installation from your browser/files app if prompted, and open the APK on Android 7+ (API 24).
+Official builds are published on [GitHub Releases](https://github.com/Basta97/Flourish/releases). Download the APK for your phone (`Flourish-<version>-arm64-v8a.apk` for almost every current phone, `armeabi-v7a` for older 32-bit ones), allow installation from your browser/files app if prompted, and open it on Android 7+ (API 24).
+
+Before switching to the Google Play version, export an encrypted backup (Settings → Export encrypted backup); see [Moving GitHub users to Play](docs/RELEASE.md#moving-github-users-to-play).
 
 iOS builds are distributed via TestFlight or the App Store when available (see [Releases](docs/RELEASE.md)).
 

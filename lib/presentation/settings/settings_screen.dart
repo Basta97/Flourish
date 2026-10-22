@@ -3,6 +3,10 @@ import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import '../../core/finance/backup_service.dart';
+import '../../core/finance/data_reset_service.dart';
+import '../../core/utils/error_text.dart';
+import '../providers/ai_providers.dart';
+import '../providers/finance_providers.dart';
 import '../../data/finance/finance_store.dart';
 import '../wealth/finance_tools_view.dart';
 import 'dart:convert';
@@ -13,6 +17,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants/app_constants.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
@@ -444,9 +450,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.about,
               children: [
                 SettingsTile(
+                  icon: Icons.privacy_tip_outlined,
+                  title: context.l10n.privacyPolicy,
+                  subtitle: context.l10n.privacyPolicySubtitle,
+                  onTap: _openPrivacyPolicy,
+                ),
+                SettingsTile(
                   icon: Icons.info_outline,
                   title: context.l10n.version,
-                  subtitle: '1.0.0',
+                  subtitle: AppConstants.version,
                 ),
                 SettingsTile(
                   icon: Icons.code,
@@ -464,6 +476,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _dataGroup() => SettingsGroup(
     title: context.l10n.data,
     children: [
+      SettingsTile(
+        icon: Icons.enhanced_encryption_outlined,
+        title: context.l10n.exportBackup,
+        subtitle: context.l10n.exportBackupSubtitle,
+        onTap: () => exportEncrypted(context, ref),
+      ),
+      SettingsTile(
+        icon: Icons.restore,
+        title: context.l10n.restoreBackup,
+        subtitle: context.l10n.restoreBackupSubtitle,
+        onTap: () => restoreEncrypted(context, ref),
+      ),
       SettingsTile(
         icon: Icons.file_download_outlined,
         title: context.l10n.exportData,
@@ -518,7 +542,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await ref.read(appLocaleProvider.notifier).set(choice.$1);
   }
 
+  Future<void> _openPrivacyPolicy() async {
+    final url = Uri.tryParse(AppConstants.privacyPolicyUrl);
+    final opened =
+        url != null &&
+        url.hasScheme &&
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.privacyPolicyUnavailable)),
+      );
+    }
+  }
+
   void _exportData(WidgetRef ref) async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.plainExportTitle),
+        content: Text(ctx.l10n.plainExportBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ctx.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'plain'),
+            child: Text(ctx.l10n.exportUnencrypted),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'encrypted'),
+            child: Text(ctx.l10n.useEncryptedBackup),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'encrypted') return exportEncrypted(context, ref);
     try {
       final data = await BackupService(ref.read(databaseProvider)).exportData();
       final dir = await getTemporaryDirectory();
@@ -546,7 +606,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       final file = File(result.files.single.path!);
       final content = await file.readAsString();
-      final data = jsonDecode(content) as Map<String, dynamic>;
+      var data = jsonDecode(content) as Map<String, dynamic>;
+      if (data['format'] == BackupService.localFormat) {
+        // A daily backup copied out of this installation.
+        data = await BackupService(
+          ref.read(databaseProvider),
+        ).openLocal(content);
+      }
 
       final hasData =
           data['format'] == 'flourish-finance' ||
@@ -802,25 +868,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final db = ref.read(databaseProvider);
-              await db.customStatement('DELETE FROM finance_records');
-              await db.customStatement('DELETE FROM transaction_details');
-              await db.customStatement('DELETE FROM exact_balances');
-              await db.delete(db.transactions).go();
-              await db.delete(db.budgets).go();
-              await db.delete(db.recurringTransactions).go();
-              await db.delete(db.goals).go();
-              await db.delete(db.paymentInstruments).go();
-              await db.delete(db.accounts).go();
-              await db.delete(db.categories).go();
-              for (final key in BackupService.settings) {
-                await PreferencesService.remove(key);
+              Object? failure;
+              try {
+                await DataResetService(
+                  ref.read(databaseProvider),
+                  secureStorage: ref.read(secureStorageProvider),
+                  bridge: ref.read(detectionBridgeProvider),
+                ).reset();
+              } catch (e) {
+                failure = e;
               }
+              ref.invalidate(aiSettingsProvider);
+              ref.invalidate(aiApiKeyProvider);
               invalidateFinance(ref);
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(context.l10n.allDataReset)),
+                  SnackBar(
+                    content: Text(
+                      failure == null
+                          ? context.l10n.allDataReset
+                          : context.l10n.resetFailed(describeError(failure)),
+                    ),
+                  ),
                 );
               }
             },

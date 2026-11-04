@@ -5,6 +5,7 @@ import '../../../core/finance/transaction_templates.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flourish/core/theme/app_colors.dart';
@@ -26,16 +27,20 @@ import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flourish/core/utils/currency_formatter.dart';
 import 'package:flourish/core/utils/error_text.dart';
 
+/// The one form for money entries: adds a new expense, income or transfer,
+/// or, given [editing], changes an existing one (transfers included).
 class AddTransactionSheet extends ConsumerStatefulWidget {
   final TemplateSelection? templateSelection;
   final String? initialType;
   final int? initialAccountId;
+  final Transaction? editing;
 
   const AddTransactionSheet({
     super.key,
     this.templateSelection,
     this.initialType,
     this.initialAccountId,
+    this.editing,
   });
 
   @override
@@ -77,6 +82,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   /// Payment, refund, currency, merchant and note sit behind "More details".
   bool _moreOpen = false;
 
+  bool get _editing => widget.editing != null;
+
+  /// The outgoing leg of an edited transfer, which the ledger edits by.
+  int? _editOutId;
+
+  /// How an edited foreign purchase was paid, and what moving it to an
+  /// account in another currency did to the amount.
+  String? _originalNote;
+  String? _currencyNote;
+
   @override
   void initState() {
     super.initState();
@@ -86,6 +101,117 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     if (widget.templateSelection case final selection?) {
       _applyTemplate(selection);
     }
+    if (widget.editing case final t?) _prefill(t);
+  }
+
+  /// Fills the form from [t]: what can be read at once now, the exact
+  /// amounts, refund flag and transfer legs once their details load.
+  Future<void> _prefill(Transaction t) async {
+    final transfer = t.linkedTransactionId != null;
+    _mode = transfer ? 'transfer' : t.type;
+    _accountId = t.accountId;
+    _categoryId = transfer ? null : t.categoryId;
+    _date = t.transactionDate;
+    _amountController.text = '${Amount.fromNum(t.amount)}';
+    _noteController.text = t.note ?? '';
+    _merchantController.text = t.merchant ?? '';
+    _instrumentId = t.paymentInstrumentId;
+    _method = t.paymentMethod;
+    // Keep the recorded card instead of the account's default.
+    _paymentForAccount = t.accountId;
+    _moreOpen = (t.note ?? '').isNotEmpty || (t.merchant ?? '').isNotEmpty;
+
+    final store = ref.read(financeStoreProvider);
+    if (transfer) {
+      final other = await ref
+          .read(databaseProvider)
+          .getTransactionById(t.linkedTransactionId!);
+      final out = t.type == 'expense' ? t : other ?? t;
+      final incoming = t.type == 'income' ? t : other ?? t;
+      final d = await store.transactionDetails(out.id);
+      final fee = d?['feeId'] == null
+          ? null
+          : await store.transactionDetails(d!['feeId'] as int);
+      if (!mounted) return;
+      setState(() {
+        _editOutId = out.id;
+        _accountId = out.accountId;
+        _toAccountId = incoming.accountId;
+        _amountController.text =
+            '${d?['sourceAmount'] ?? Amount.fromNum(out.amount)}';
+        _destinationAmountController.text =
+            '${d?['destinationAmount'] ?? Amount.fromNum(incoming.amount)}';
+        final feeAmount = fee?['amount'];
+        if (feeAmount != null && Amount('$feeAmount') > Amount.zero) {
+          _feeController.text = '$feeAmount';
+        }
+        _noteController.text = out.note ?? '';
+      });
+      return;
+    }
+    final d = await store.transactionDetails(t.id);
+    if (!mounted) return;
+    final original = d?['original'] as Map?;
+    setState(() {
+      // The REAL column is a rounded projection; edit the exact value.
+      if (d?['amount'] != null) _amountController.text = '${d!['amount']}';
+      if (d?['kind'] == 'refund') {
+        // A refund is income filed under the expense it reverses.
+        _refund = true;
+        _mode = 'expense';
+      }
+      if (original != null) {
+        _originalNote = d?['fxFeePercent'] != null
+            ? context.l10n.paidOriginalWithFee(
+                '${original['currency']}',
+                '${original['amount']}',
+                '${d!['fxFeePercent']}',
+              )
+            : context.l10n.paidOriginal(
+                '${original['currency']}',
+                '${original['amount']}',
+              );
+      }
+    });
+  }
+
+  /// Moving an edited entry to an account in another currency converts the
+  /// amount at the entry's date instead of silently relabelling it.
+  Future<void> _changeAccount(int id, List<Account> accounts) async {
+    final from = accounts.where((a) => a.id == _accountId).firstOrNull;
+    final to = accounts.where((a) => a.id == id).firstOrNull;
+    setState(() {
+      _accountId = id;
+      _accountError = null;
+    });
+    if (from == null || to == null || from.currency == to.currency) {
+      setState(() => _currencyNote = null);
+      return;
+    }
+    final current = AmountParser.parse(
+      _amountController.text,
+      currency: from.currency,
+    ).value;
+    final converted = current == null
+        ? null
+        : await ref
+              .read(valuationProvider)
+              .convert(current, from.currency, to.currency, at: _date);
+    if (!mounted) return;
+    setState(() {
+      if (converted == null) {
+        _amountController.clear();
+        _currencyNote = context.l10n.noRateForDate(from.currency, to.currency);
+      } else {
+        _amountController.text =
+            '${converted.rounded(CurrencyFormatter.decimalsFor(to.currency))}';
+        _currencyNote = context.l10n.convertedAtRate(
+          from.currency,
+          '${current!}',
+          to.currency,
+        );
+      }
+    });
   }
 
   @override
@@ -169,9 +295,21 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final currency =
         chosen?.currency ?? ref.watch<String>(defaultCurrencyProvider);
     final tint = modeColor(context, _mode);
+    final palette = FlourishPalette.of(context);
     return BottomSheetScaffold(
-      title: context.l10n.newTransaction,
-      headerTrailing: _mode == 'transfer'
+      title: !_editing
+          ? context.l10n.newTransaction
+          : _mode == 'transfer'
+          ? context.l10n.editLinkedTransfer
+          : context.l10n.editTransaction,
+      headerTrailing: _editing
+          ? TextButton.icon(
+              onPressed: _submitState == SubmitState.busy ? null : _delete,
+              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+              label: Text(context.l10n.delete),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            )
+          : _mode == 'transfer'
           ? null
           : Row(
               mainAxisSize: MainAxisSize.min,
@@ -197,24 +335,33 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               ],
             ),
       children: [
-        SegmentedPill(
-          labels: [
-            context.l10n.expense,
-            context.l10n.income,
-            context.l10n.transfer,
-          ],
-          selectedIndex: _modes.indexOf(_mode),
-          activeColor: tint,
-          height: 44,
-          onChanged: (i) => _selectMode(_modes[i]),
-        ),
+        // An edited transfer stays a transfer and a refund stays a refund;
+        // other entries can still switch between expense and income.
+        if (_editing && _refund)
+          Text(
+            context.l10n.refundReduces,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyMedium.copyWith(color: palette.income),
+          )
+        else if (!_editing || _mode != 'transfer')
+          SegmentedPill(
+            labels: [
+              context.l10n.expense,
+              context.l10n.income,
+              if (!_editing) context.l10n.transfer,
+            ],
+            selectedIndex: _modes.indexOf(_mode),
+            activeColor: tint,
+            height: 44,
+            onChanged: (i) => _selectMode(_modes[i]),
+          ),
         const SizedBox(height: Sp.xl),
         AmountInput(
           controller: _amountController,
           currency: currency,
           color: tint,
           errorText: _amountError,
-          autofocus: true,
+          autofocus: !_editing,
           onChanged: (_) => setState(() {
             _amountError = null;
             if (_foreign) _bookedEdited = true;
@@ -301,11 +448,25 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             accounts: allAccounts,
             selectedId: effectiveFrom,
             color: tint,
-            onSelected: (v) => setState(() {
-              _accountId = v;
-              _accountError = null;
-            }),
+            onSelected: (v) => _editing
+                ? _changeAccount(v, allAccounts)
+                : setState(() {
+                    _accountId = v;
+                    _accountError = null;
+                  }),
           ),
+          for (final (note, tone) in [
+            (_originalNote, palette.textLow),
+            (_currencyNote, palette.warning),
+          ])
+            if (note != null)
+              Padding(
+                padding: const EdgeInsets.only(top: Sp.sm),
+                child: Text(
+                  note,
+                  style: AppTextStyles.caption.copyWith(color: tone),
+                ),
+              ),
           const SizedBox(height: Sp.lg),
           FormLabel(
             _refund ? context.l10n.refundFor : context.l10n.category,
@@ -392,7 +553,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ),
         const SizedBox(height: Sp.lg),
         SubmitButton(
-          label: _mode == 'transfer'
+          label: _editing
+              ? context.l10n.saveChanges
+              : _mode == 'transfer'
               ? context.l10n.transfer
               : _mode == 'expense' && _refund
               ? context.l10n.addRefund
@@ -405,6 +568,44 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ),
       ],
     );
+  }
+
+  /// Deletes the edited entry right away and offers undo, the same as
+  /// swiping its row.
+  Future<void> _delete() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
+    final ledger = ref.read(financialLedgerProvider);
+    Haptics.warning();
+    try {
+      final deleted = await ledger.deleteWithUndo(widget.editing!.id);
+      ref.invalidate(transactionsProvider);
+      ref.invalidate(accountsProvider);
+      if (mounted) Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l.transactionDeleted),
+          action: deleted == null
+              ? null
+              : SnackBarAction(
+                  label: l.undo,
+                  onPressed: () async {
+                    try {
+                      await ledger.restore(deleted);
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(describeError(e))),
+                      );
+                    }
+                    ref.invalidate(transactionsProvider);
+                    ref.invalidate(accountsProvider);
+                  },
+                ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
+    }
   }
 
   int? _effectiveAccountId(List<Account> accounts) {
@@ -463,7 +664,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         uses[t.categoryId] = (uses[t.categoryId] ?? 0) + 1;
       }
     }
-    final order = {for (var i = 0; i < categories.length; i++) categories[i].id: i};
+    final order = {
+      for (var i = 0; i < categories.length; i++) categories[i].id: i,
+    };
     return [...categories]..sort((a, b) {
       final byUse = (uses[b.id] ?? 0).compareTo(uses[a.id] ?? 0);
       return byUse != 0 ? byUse : order[a.id]!.compareTo(order[b.id]!);
@@ -539,18 +742,21 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             style: AppTextStyles.caption.copyWith(color: AppColors.danger),
           ),
         ),
-      SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        dense: true,
-        value: _refund,
-        title: Text(context.l10n.isRefund),
-        subtitle: Text(context.l10n.isRefundSubtitle),
-        onChanged: (v) => setState(() {
-          _refund = v;
-          if (v) _foreign = false;
-        }),
-      ),
-      if (!_refund && account.type != 'cash')
+      // Whether an entry is a refund, and its original currency, are set
+      // when it is recorded.
+      if (!_editing)
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: _refund,
+          title: Text(context.l10n.isRefund),
+          subtitle: Text(context.l10n.isRefundSubtitle),
+          onChanged: (v) => setState(() {
+            _refund = v;
+            if (v) _foreign = false;
+          }),
+        ),
+      if (!_editing && !_refund && account.type != 'cash')
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           dense: true,
@@ -800,7 +1006,35 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         : _noteController.text.trim();
     try {
       final ledger = ref.read(financialLedgerProvider);
-      if (_mode == 'transfer') {
+      if (widget.editing case final t?) {
+        if (_mode == 'transfer') {
+          await ledger.transfer(
+            fromAccountId: accountId!,
+            toAccountId: toAccountId!,
+            amount: parsed.value!,
+            received: received,
+            fee: fee,
+            note: note,
+            date: _date,
+            editId: _editOutId ?? t.id,
+          );
+        } else {
+          final expenseSide = _mode == 'expense';
+          await ledger.updateCash(
+            t.id,
+            accountId: accountId!,
+            amount: parsed.value!,
+            type: _refund ? 'income' : _mode,
+            categoryId: categoryId!,
+            note: note,
+            date: _date,
+            expectCurrency: currency,
+            instrumentId: Value(expenseSide ? _instrumentId : null),
+            paymentMethod: Value(expenseSide ? _method : null),
+            merchant: Value(expenseSide ? merchant : null),
+          );
+        }
+      } else if (_mode == 'transfer') {
         await ledger.transfer(
           fromAccountId: accountId!,
           toAccountId: toAccountId!,
@@ -880,6 +1114,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       }
     }
   }
+}
+
+/// Old entry point for editing; every edit now uses [AddTransactionSheet].
+class EditTransactionSheet extends StatelessWidget {
+  final Transaction transaction;
+  const EditTransactionSheet({super.key, required this.transaction});
+
+  @override
+  Widget build(BuildContext context) =>
+      AddTransactionSheet(editing: transaction);
 }
 
 /// A row that opens the optional fields; shows what they hold when closed.

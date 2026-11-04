@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import '../currencies/currency_picker.dart';
 import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/l10n/l10n.dart';
@@ -217,6 +218,12 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         TextField(
           controller: _balanceController,
           decoration: InputDecoration(
+            suffixIcon: AmountCalculatorButton(
+              controller: _balanceController,
+              allowNegative: true,
+              decimalPlaces: CurrencyFormatter.decimalsFor(_currency),
+              onChanged: (_) => setState(() => _balanceError = null),
+            ),
             labelText: _type == 'credit'
                 ? context.l10n.amountOweNow
                 : context.l10n.currentBalance,
@@ -281,6 +288,10 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
                   ),
                   inputFormatters: [AmountInputFormatter()],
                   decoration: InputDecoration(
+                    suffixIcon: AmountCalculatorButton(
+                      controller: _limitController,
+                      decimalPlaces: CurrencyFormatter.decimalsFor(_currency),
+                    ),
                     labelText: context.l10n.creditLimit,
                   ),
                 ),
@@ -306,6 +317,10 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [AmountInputFormatter()],
             decoration: InputDecoration(
+              suffixIcon: AmountCalculatorButton(
+                controller: _intlLimitController,
+                decimalPlaces: CurrencyFormatter.decimalsFor(_currency),
+              ),
               labelText: context.l10n.intlLimitOptional,
             ),
           ),

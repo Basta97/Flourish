@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
 import 'package:flutter/material.dart';
@@ -345,6 +346,14 @@ class _GoalCardState extends ConsumerState<_GoalCard>
 
   void _showContributeSheet(BuildContext context) {
     final controller = TextEditingController();
+    final currency =
+        ref
+            .read(accountsProvider)
+            .valueOrNull
+            ?.where((a) => a.id == goal.accountId)
+            .firstOrNull
+            ?.currency ??
+        '';
     String? error;
     showSpringBottomSheet(
       context: context,
@@ -356,6 +365,13 @@ class _GoalCardState extends ConsumerState<_GoalCard>
               controller: controller,
               autofocus: true,
               decoration: InputDecoration(
+                suffixIcon: AmountCalculatorButton(
+                  controller: controller,
+                  decimalPlaces: CurrencyFormatter.decimalsFor(currency),
+                  onChanged: (_) {
+                    if (error != null) setSheetState(() => error = null);
+                  },
+                ),
                 labelText: context.l10n.amount,
                 hintText: '0.00',
                 errorText: error,
@@ -470,6 +486,13 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsProvider);
+    final accounts =
+        accountsAsync.valueOrNull?.where((a) => a.type != 'credit').toList() ??
+        <Account>[];
+    final currency =
+        accounts.where((a) => a.id == _accountId).firstOrNull?.currency ??
+        accounts.firstOrNull?.currency ??
+        '';
     return BottomSheetScaffold(
       title: context.l10n.newSavingsGoal,
       children: [
@@ -486,6 +509,11 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
         TextField(
           controller: _amountController,
           decoration: InputDecoration(
+            suffixIcon: AmountCalculatorButton(
+              controller: _amountController,
+              decimalPlaces: CurrencyFormatter.decimalsFor(currency),
+              onChanged: (_) => setState(() => _amountError = null),
+            ),
             labelText: context.l10n.targetAmount,
             hintText: '0.00',
             errorText: _amountError,

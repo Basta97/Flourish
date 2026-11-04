@@ -12,6 +12,7 @@ import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/pressable.dart';
+import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 
 /// Building blocks shared by the Add and Edit transaction sheets.
 
@@ -97,6 +98,11 @@ class AmountInput extends StatelessWidget {
             cursorColor: tint,
             style: AppTextStyles.numberHero.copyWith(color: tint),
             decoration: InputDecoration(
+              suffixIcon: AmountCalculatorButton(
+                controller: controller,
+                decimalPlaces: CurrencyFormatter.decimalsFor(currency),
+                onChanged: onChanged,
+              ),
               hintText: CurrencyFormatter.decimalsFor(currency) == 0
                   ? '0'
                   : '0.${'0' * CurrencyFormatter.decimalsFor(currency)}',

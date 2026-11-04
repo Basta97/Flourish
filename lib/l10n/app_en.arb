@@ -2260,5 +2260,12 @@
   "useEncryptedBackup": "Use encrypted",
   "privacyPolicy": "Privacy policy",
   "privacyPolicySubtitle": "What stays on your phone and what can leave it",
-  "privacyPolicyUnavailable": "Could not open the privacy policy."
+  "privacyPolicyUnavailable": "Could not open the privacy policy.",
+  "amountCalculator": "Calculator",
+  "calculatorUseTotal": "Combine costs, then press = to use the total.",
+  "calculatorCheckExpression": "Complete the calculation and check the numbers.",
+  "calculatorDivideByZero": "Cannot divide by zero.",
+  "calculatorNegativeTotal": "The total cannot be negative.",
+  "calculatorBackspace": "Delete last digit",
+  "calculatorClear": "Clear calculation"
 }

@@ -6391,6 +6391,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open the privacy policy.'**
   String get privacyPolicyUnavailable;
+
+  /// No description provided for @amountCalculator.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculator'**
+  String get amountCalculator;
+
+  /// No description provided for @calculatorUseTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine costs, then press = to use the total.'**
+  String get calculatorUseTotal;
+
+  /// No description provided for @calculatorCheckExpression.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the calculation and check the numbers.'**
+  String get calculatorCheckExpression;
+
+  /// No description provided for @calculatorDivideByZero.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot divide by zero.'**
+  String get calculatorDivideByZero;
+
+  /// No description provided for @calculatorNegativeTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'The total cannot be negative.'**
+  String get calculatorNegativeTotal;
+
+  /// No description provided for @calculatorBackspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete last digit'**
+  String get calculatorBackspace;
+
+  /// No description provided for @calculatorClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear calculation'**
+  String get calculatorClear;
 }
 
 class _AppLocalizationsDelegate

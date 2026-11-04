@@ -1048,5 +1048,12 @@
   "useEncryptedBackup": "استخدم التشفير",
   "privacyPolicy": "سياسة الخصوصية",
   "privacyPolicySubtitle": "ما يبقى على هاتفك وما قد يغادره",
-  "privacyPolicyUnavailable": "تعذّر فتح سياسة الخصوصية."
+  "privacyPolicyUnavailable": "تعذّر فتح سياسة الخصوصية.",
+  "amountCalculator": "الآلة الحاسبة",
+  "calculatorUseTotal": "اجمع التكاليف، ثم اضغط = لاستخدام الإجمالي.",
+  "calculatorCheckExpression": "أكمل العملية الحسابية وتحقق من الأرقام.",
+  "calculatorDivideByZero": "لا يمكن القسمة على صفر.",
+  "calculatorNegativeTotal": "لا يمكن أن يكون الإجمالي سالبًا.",
+  "calculatorBackspace": "حذف آخر رقم",
+  "calculatorClear": "مسح العملية الحسابية"
 }

@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import '../../shared/widgets/global_search_button.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/l10n/l10n.dart';
@@ -678,6 +679,11 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
         TextField(
           controller: _amountController,
           decoration: InputDecoration(
+            suffixIcon: AmountCalculatorButton(
+              controller: _amountController,
+              decimalPlaces: CurrencyFormatter.decimalsFor(currency),
+              onChanged: (_) => setState(() => _amountError = null),
+            ),
             labelText: context.l10n.budgetAmountTitle,
             prefixText: '${CurrencyFormatter.symbolFor(currency)} ',
             errorText: _amountError,

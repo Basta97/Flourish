@@ -3710,4 +3710,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyPolicyUnavailable => 'Could not open the privacy policy.';
+
+  @override
+  String get amountCalculator => 'Calculator';
+
+  @override
+  String get calculatorUseTotal =>
+      'Combine costs, then press = to use the total.';
+
+  @override
+  String get calculatorCheckExpression =>
+      'Complete the calculation and check the numbers.';
+
+  @override
+  String get calculatorDivideByZero => 'Cannot divide by zero.';
+
+  @override
+  String get calculatorNegativeTotal => 'The total cannot be negative.';
+
+  @override
+  String get calculatorBackspace => 'Delete last digit';
+
+  @override
+  String get calculatorClear => 'Clear calculation';
 }

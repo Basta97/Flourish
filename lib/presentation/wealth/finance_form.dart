@@ -2,6 +2,7 @@ import '../currencies/currency_picker.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/error_text.dart';
+import '../../shared/widgets/amount_calculator_button.dart';
 
 class FinanceField {
   final String key, label, initial;
@@ -124,6 +125,12 @@ class _FinanceFormState extends State<_FinanceForm> {
                           labelText: f.label,
                           suffixIcon: f.date
                               ? const Icon(Icons.calendar_today)
+                              : f.numeric
+                              ? AmountCalculatorButton(
+                                  controller: values[f.key]!,
+                                  allowNegative: true,
+                                  enabled: !saving,
+                                )
                               : null,
                         ),
                         onTap: !f.date

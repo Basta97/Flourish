@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import '../../currencies/currency_picker.dart';
 import '../../templates/template_picker.dart';
 import '../../../core/finance/transaction_templates.dart';
@@ -239,6 +240,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 ),
                 inputFormatters: [AmountInputFormatter()],
                 decoration: InputDecoration(
+                  suffixIcon: AmountCalculatorButton(
+                    controller: _destinationAmountController,
+                    decimalPlaces: CurrencyFormatter.decimalsFor(toCurrency),
+                    onChanged: (_) => setState(() => _destinationError = null),
+                  ),
                   labelText: context.l10n.amountReceivedIn(toCurrency),
                   helperText: context.l10n.whatArrived,
                   errorText: _destinationError,
@@ -254,6 +260,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               ),
               inputFormatters: [AmountInputFormatter()],
               decoration: InputDecoration(
+                suffixIcon: AmountCalculatorButton(
+                  controller: _feeController,
+                  decimalPlaces: CurrencyFormatter.decimalsFor(currency),
+                  onChanged: (_) => setState(() => _feeError = null),
+                ),
                 labelText: context.l10n.transferFeeIn(currency),
                 errorText: _feeError,
               ),
@@ -502,6 +513,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 ),
                 inputFormatters: [AmountInputFormatter()],
                 decoration: InputDecoration(
+                  suffixIcon: AmountCalculatorButton(
+                    controller: _originalController,
+                    decimalPlaces: CurrencyFormatter.decimalsFor(
+                      _originalCurrency ?? 'USD',
+                    ),
+                    onChanged: (_) {
+                      setState(() => _originalError = null);
+                      _estimateBooked(account);
+                    },
+                  ),
                   labelText: context.l10n.priceIn(_originalCurrency ?? ''),
                   errorText: _originalError,
                 ),

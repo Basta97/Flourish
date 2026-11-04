@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
@@ -126,7 +127,8 @@ class _RecurringCard extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            cat?.displayName ?? _frequencyLabel(recurring.frequency),
+                            cat?.displayName ??
+                                _frequencyLabel(recurring.frequency),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.bodyMedium.copyWith(
@@ -367,6 +369,11 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
         TextField(
           controller: _amountController,
           decoration: InputDecoration(
+            suffixIcon: AmountCalculatorButton(
+              controller: _amountController,
+              decimalPlaces: CurrencyFormatter.decimalsFor(currency),
+              onChanged: (_) => setState(() => _amountError = null),
+            ),
             labelText: context.l10n.amount,
             prefixText: '${CurrencyFormatter.symbolFor(currency)} ',
             hintText: '0.00',

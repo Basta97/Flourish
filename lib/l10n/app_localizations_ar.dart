@@ -3744,4 +3744,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get privacyPolicyUnavailable => 'تعذّر فتح سياسة الخصوصية.';
+
+  @override
+  String get amountCalculator => 'الآلة الحاسبة';
+
+  @override
+  String get calculatorUseTotal =>
+      'اجمع التكاليف، ثم اضغط = لاستخدام الإجمالي.';
+
+  @override
+  String get calculatorCheckExpression =>
+      'أكمل العملية الحسابية وتحقق من الأرقام.';
+
+  @override
+  String get calculatorDivideByZero => 'لا يمكن القسمة على صفر.';
+
+  @override
+  String get calculatorNegativeTotal => 'لا يمكن أن يكون الإجمالي سالبًا.';
+
+  @override
+  String get calculatorBackspace => 'حذف آخر رقم';
+
+  @override
+  String get calculatorClear => 'مسح العملية الحسابية';
 }

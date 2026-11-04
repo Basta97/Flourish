@@ -562,6 +562,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
               _accountId = accounts.first.id;
             }
             return DropdownButtonFormField<int>(
+              isExpanded: true,
               initialValue: _accountId >= 0 ? _accountId : null,
               decoration: InputDecoration(
                 labelText: context.l10n.linkedAccount,

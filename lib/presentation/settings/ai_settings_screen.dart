@@ -225,6 +225,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   const SizedBox(height: Sp.sm),
                   DropdownButtonFormField<String>(
                     initialValue: s.presetId,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: context.l10n.provider,
                     ),
@@ -234,6 +235,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                           value: p.id,
                           child: Text(
                             p.free ? context.l10n.freeTier(p.label) : p.label,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                     ],

@@ -1,0 +1,6 @@
+# Tests read decoded JSON loosely; the dynamic-call rule is for lib/.
+include: ../analysis_options.yaml
+
+linter:
+  rules:
+    avoid_dynamic_calls: false

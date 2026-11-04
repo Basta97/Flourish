@@ -417,6 +417,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ? accounts.first.id
                                       : null);
                             return DropdownButtonFormField<int>(
+                              isExpanded: true,
                               initialValue: validId,
                               decoration: InputDecoration(
                                 hintText: context.l10n.selectAccount,
@@ -472,6 +473,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ? incomeCats.first.id
                                       : null);
                             return DropdownButtonFormField<int>(
+                              isExpanded: true,
                               initialValue: validId,
                               decoration: InputDecoration(
                                 hintText: context.l10n.selectCategory,

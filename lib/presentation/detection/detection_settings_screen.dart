@@ -397,6 +397,7 @@ class _DetectionSettingsScreenState
             ]),
             section(context.l10n.privacy, [
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: keepDays,
                 decoration: InputDecoration(
                   labelText: context.l10n.keepMessageText,

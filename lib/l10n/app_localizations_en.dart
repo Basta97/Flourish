@@ -3939,4 +3939,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passwordMin12 => 'Password (12+ characters)';
+
+  @override
+  String get notInNetWorth => 'Excluded';
 }

@@ -414,6 +414,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               });
             }
             return DropdownButtonFormField<int>(
+              isExpanded: true,
               key: ValueKey('recurring-account-$_accountId-${accounts.length}'),
               initialValue: _accountId,
               decoration: InputDecoration(labelText: context.l10n.account),
@@ -442,6 +443,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
         if (_type == 'transfer') ...[
           const SizedBox(height: Sp.md),
           DropdownButtonFormField<int>(
+            isExpanded: true,
             key: ValueKey('recurring-to-$_accountId-$_toAccountId'),
             initialValue: _toAccountId,
             decoration: InputDecoration(labelText: context.l10n.toAccountHint),
@@ -463,6 +465,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               case final cards when cards.isNotEmpty) ...[
             const SizedBox(height: Sp.md),
             DropdownButtonFormField<int?>(
+              isExpanded: true,
               key: ValueKey('recurring-card-$_accountId-$_instrumentId'),
               initialValue: _instrumentId,
               decoration: InputDecoration(labelText: context.l10n.chargedTo),
@@ -492,6 +495,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   ? _categoryId
                   : (filtered.isNotEmpty ? filtered.first.id : null);
               return DropdownButtonFormField<int>(
+                isExpanded: true,
                 key: ValueKey('recurring-category-$_type-$effectiveCat'),
                 initialValue: effectiveCat,
                 decoration: InputDecoration(labelText: context.l10n.category),
@@ -526,6 +530,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
           ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _frequency,
           decoration: InputDecoration(labelText: context.l10n.frequency),
           items: [

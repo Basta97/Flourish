@@ -136,7 +136,10 @@ class AccountsScreen extends ConsumerWidget {
                           onTap: () => context.push('/accounts/${account.id}'),
                           child: Hero(
                             tag: accountHeroTag(account.id),
-                            child: AccountCard(account: account),
+                            child: AccountCard(
+                              account: account,
+                              excluded: details[account.id]?.included == false,
+                            ),
                           ),
                         ),
                       );
@@ -337,6 +340,7 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
         ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _type,
           decoration: InputDecoration(labelText: context.l10n.accountType),
           items: AppConstants.accountTypeOptions

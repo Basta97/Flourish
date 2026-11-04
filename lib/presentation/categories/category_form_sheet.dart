@@ -179,6 +179,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _type,
           decoration: InputDecoration(
             labelText: l10n.type,

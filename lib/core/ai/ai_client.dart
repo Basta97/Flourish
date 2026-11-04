@@ -162,7 +162,8 @@ class AiClient {
       throw const AiException('The AI service returned an unreadable reply');
     }
     final content =
-        ((body['choices'] as List?)?.firstOrNull as Map?)?['message']?['content'];
+        (((body['choices'] as List?)?.firstOrNull as Map?)?['message']
+                as Map?)?['content'];
     if (content is! String || content.trim().isEmpty) {
       throw const AiException('The AI reply was empty');
     }

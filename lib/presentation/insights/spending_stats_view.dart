@@ -1,3 +1,4 @@
+import 'package:flourish/data/database/database.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flutter/material.dart';
@@ -147,10 +148,14 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
         CurrencyFormatter.format(a.toDouble(), currency: c);
     String compact(double v) => CurrencyFormatter.formatCompact(v, currency: c);
     final accounts = {
-      for (final a in ref.watch(accountsProvider).valueOrNull ?? []) a.id: a,
+      for (final a
+          in ref.watch(accountsProvider).valueOrNull ?? const <Account>[])
+        a.id: a,
     };
     final instruments = {
-      for (final i in ref.watch(paymentInstrumentsProvider).valueOrNull ?? [])
+      for (final i
+          in ref.watch(paymentInstrumentsProvider).valueOrNull ??
+              const <PaymentInstrument>[])
         i.id: i,
     };
     Color colorOf(CategorySpend s, int i) => s.category != null

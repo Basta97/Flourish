@@ -6733,6 +6733,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password (12+ characters)'**
   String get passwordMin12;
+
+  /// No description provided for @notInNetWorth.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded'**
+  String get notInNetWorth;
 }
 
 class _AppLocalizationsDelegate

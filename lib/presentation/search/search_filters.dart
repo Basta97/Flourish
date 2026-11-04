@@ -37,6 +37,7 @@ Future<SearchFilters?> showSearchFilters(
                 children: [
                   Text(context.l10n.searchAmountCurrency),
                   DropdownButtonFormField<int>(
+                    isExpanded: true,
                     initialValue: account,
                     decoration: InputDecoration(
                       labelText: context.l10n.navAccounts,
@@ -60,6 +61,7 @@ Future<SearchFilters?> showSearchFilters(
                     }),
                   ),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: type,
                     decoration: InputDecoration(labelText: context.l10n.type),
                     items: [

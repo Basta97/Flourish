@@ -52,17 +52,17 @@ class FrankfurterProvider implements FxRateProvider, CurrencyCatalogProvider {
     if (response.statusCode != 200) {
       throw StateError('FX provider unavailable (${response.statusCode})');
     }
-    final rows = jsonDecode(response.body) as List;
+    final rows = (jsonDecode(response.body) as List).cast<Json>();
     return rows
         .map(
           (r) => MarketObservation(
             key: '${r['base']}/${r['quote']}',
-            currency: r['quote'],
+            currency: r['quote'] as String,
             source: at == null
                 ? 'Frankfurter reference'
                 : 'Frankfurter historical reference',
             value: amountOf(r['rate']),
-            effectiveAt: DateTime.parse(r['date']).toUtc(),
+            effectiveAt: DateTime.parse(r['date'] as String).toUtc(),
             retrievedAt: DateTime.now().toUtc(),
           ),
         )
@@ -121,7 +121,8 @@ class PublicQuoteProvider implements QuoteProvider {
           throw StateError('Instrument metadata unavailable');
         }
         final matches =
-            (jsonDecode(response.body)['bestMatches'] as List? ?? [])
+            ((jsonDecode(response.body) as Json)['bestMatches'] as List? ??
+                    const [])
                 .cast<Json>();
         final match = matches
             .where(

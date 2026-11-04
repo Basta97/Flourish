@@ -16,9 +16,18 @@ String accountHeroTag(int id) => 'account-card-$id';
 /// The same widget renders in the list and in the detail header, so the Hero
 /// flight between them morphs one card instead of cross-fading two.
 class AccountCard extends StatelessWidget {
-  const AccountCard({super.key, required this.account, this.large = false});
+  const AccountCard({
+    super.key,
+    required this.account,
+    this.large = false,
+    this.excluded = false,
+  });
 
   final Account account;
+
+  /// Left out of net worth by the user; says so, since the totals elsewhere
+  /// would otherwise look wrong next to this balance.
+  final bool excluded;
 
   /// Taller card with a bigger balance, for the detail header.
   final bool large;
@@ -126,6 +135,29 @@ class AccountCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
+                        if (excluded) ...[
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(Rad.full),
+                              ),
+                              child: Text(
+                                context.l10n.notInNetWorth,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: _onCard,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: Sp.xs),
+                        ],
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,

@@ -122,9 +122,9 @@ class BackupService {
     final dir = await getApplicationDocumentsDirectory();
     try {
       final attachments = payload['attachments'] as Json? ?? {};
-      for (final row in (tables['finance_records'] as List)) {
+      for (final row in (tables['finance_records'] as List).cast<Json>()) {
         if (row['collection'] != 'attachments') continue;
-        final data = jsonDecode(row['payload']) as Json;
+        final data = jsonDecode(row['payload'] as String) as Json;
         final bytes = attachments[data['id']];
         if (bytes == null) continue;
         final file = File(

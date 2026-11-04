@@ -660,6 +660,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
           data: (cats) {
             final expenseCats = cats.where((c) => c.type == 'expense').toList();
             return DropdownButtonFormField<int>(
+              isExpanded: true,
               initialValue: _categoryId,
               decoration: InputDecoration(
                 labelText: context.l10n.category,
@@ -715,6 +716,7 @@ class AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
         ),
         const SizedBox(height: Sp.md),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _period,
           decoration: InputDecoration(labelText: context.l10n.period),
           items: [

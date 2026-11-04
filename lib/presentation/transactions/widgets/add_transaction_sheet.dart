@@ -659,7 +659,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   List<Category> _byRecentUse(List<Category> categories) {
     final since = DateTime.now().subtract(const Duration(days: 90));
     final uses = <int, int>{};
-    for (final t in ref.read(transactionsProvider).valueOrNull ?? const []) {
+    for (final t
+        in ref.read(transactionsProvider).valueOrNull ??
+            const <Transaction>[]) {
       if (t.transactionDate.isAfter(since)) {
         uses[t.categoryId] = (uses[t.categoryId] ?? 0) + 1;
       }

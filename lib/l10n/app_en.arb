@@ -2414,5 +2414,6 @@
   "setupDetection": "Catch payments from bank alerts (optional)",
   "setupDone": "Done",
   "aiHttpsRequired": "Use an https:// address. Plain http works only for this device or your home network.",
-  "passwordMin12": "Password (12+ characters)"
+  "passwordMin12": "Password (12+ characters)",
+  "notInNetWorth": "Excluded"
 }

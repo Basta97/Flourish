@@ -3972,4 +3972,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get passwordMin12 => 'كلمة المرور (12 حرفًا أو أكثر)';
+
+  @override
+  String get notInNetWorth => 'مستبعد';
 }

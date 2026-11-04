@@ -11,6 +11,7 @@ import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
+import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
 import 'package:flourish/presentation/providers/category_providers.dart';
 import 'package:flourish/shared/widgets/empty_state.dart';
@@ -79,7 +80,16 @@ class AccountDetailScreen extends ConsumerWidget {
                 sliver: SliverToBoxAdapter(
                   child: Hero(
                     tag: accountHeroTag(account.id),
-                    child: AccountCard(account: account, large: true),
+                    child: AccountCard(
+                      account: account,
+                      large: true,
+                      excluded:
+                          ref
+                              .watch(accountDetailsProvider)
+                              .valueOrNull?[account.id]
+                              ?.included ==
+                          false,
+                    ),
                   ),
                 ),
               ),

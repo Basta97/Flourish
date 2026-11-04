@@ -114,6 +114,20 @@ void main() {
       );
     });
     await show(tester, AddTransactionSheet(initialAccountId: bank));
+    await tester.enterText(find.byType(TextField).first, '1000');
+    await settle(tester);
+
+    // No category is picked for you; choose one.
+    await tester.ensureVisible(find.text('Food & Drinks'));
+    await settle(tester);
+    await tester.tap(find.text('Food & Drinks'));
+    await settle(tester);
+
+    // Card, currency and merchant sit behind "More details".
+    await tester.ensureVisible(find.text('More details'));
+    await settle(tester);
+    await tester.tap(find.text('More details'));
+    await settle(tester);
 
     // The default card is preselected.
     expect(
@@ -124,13 +138,11 @@ void main() {
           .selected,
       isTrue,
     );
-    await tester.enterText(find.byType(TextField).first, '1000');
-    await tester.scrollUntilVisible(
-      find.text('Paid in another currency'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(find.text('Paid in another currency'));
+    await settle(tester);
     await tester.tap(find.text('Paid in another currency'));
+    await settle(tester);
+    await tester.ensureVisible(find.widgetWithText(TextField, 'Price in USD'));
     await settle(tester);
     await tester.enterText(
       find.widgetWithText(TextField, 'Price in USD'),

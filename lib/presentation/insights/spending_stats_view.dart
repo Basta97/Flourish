@@ -354,8 +354,9 @@ class _Hero extends StatelessWidget {
     final budget = p.budget;
     final used = budget == null || budget <= Amount.zero
         ? null
-        : (p.spending.toDouble() / budget.toDouble());
-    final overPace = budget != null && projected > budget;
+        : (p.budgetSpent.toDouble() / budget.toDouble());
+    final overPace =
+        budget != null && projected > p.spending + budget - p.budgetSpent;
     return AppCard(
       padding: const EdgeInsets.all(Sp.lg),
       child: Column(
@@ -429,13 +430,15 @@ class _Hero extends StatelessWidget {
             ),
             const SizedBox(height: Sp.sm),
             Text(
-              p.spending > budget!
-                  ? l.budgetOver(money(p.spending - budget))
-                  : l.budgetLeft(money(budget - p.spending), money(budget)),
+              p.budgetSpent > budget!
+                  ? l.budgetOver(money(p.budgetSpent - budget))
+                  : l.budgetLeft(money(budget - p.budgetSpent), money(budget)),
               style: AppTextStyles.caption.copyWith(color: palette.textLow),
             ),
           ],
-          if (isCurrent && p.elapsedDays(now) < p.days) ...[
+          if (isCurrent &&
+              p.spending > Amount.zero &&
+              p.elapsedDays(now) < p.days) ...[
             const SizedBox(height: Sp.xs),
             Text(
               l.projectedSpend(money(projected.rounded(0))),
@@ -512,6 +515,10 @@ class _Trend extends ConsumerWidget {
       subtitle: context.l10n.monthlyTrendNote,
       child: series == null
           ? ShimmerLoading.card(height: 160)
+          : series.every(
+              (s) => s.spending <= Amount.zero && s.income <= Amount.zero,
+            )
+          ? MutedText(context.l10n.chartAppearsLater)
           : SpendingBarChart(
               values: [for (final s in series) s.spending.toDouble()],
               secondary: [for (final s in series) s.income.toDouble()],

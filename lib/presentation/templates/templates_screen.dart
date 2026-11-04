@@ -2,6 +2,7 @@ import '../../shared/category_label.dart';
 import '../providers/database_provider.dart';
 import '../../core/finance/system_categories.dart';
 import 'package:flutter/material.dart';
+import 'package:flourish/shared/widgets/empty_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/finance/transaction_templates.dart';
 import '../../core/utils/amount_parser.dart';
@@ -32,7 +33,14 @@ class TemplatesScreen extends ConsumerWidget {
       ),
       body: rows.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => EmptyState(
+          icon: Icons.error_outline_rounded,
+          title: context.l10n.somethingWentWrong,
+          action: TextButton(
+            onPressed: () => ref.invalidate(templatesProvider),
+            child: Text(context.l10n.retry),
+          ),
+        ),
         data: (allTemplates) {
           final templates = allTemplates
               .where((t) => recordId == null || t.id == recordId)
@@ -85,10 +93,28 @@ class TemplatesScreen extends ConsumerWidget {
                                     tooltip: context.l10n.delete,
                                     icon: const Icon(Icons.delete_outline),
                                     onPressed: () async {
-                                      await TransactionTemplateRepository(
-                                        ref.read(financeStoreProvider),
-                                      ).delete(t.id);
+                                      final repository =
+                                          TransactionTemplateRepository(
+                                            ref.read(financeStoreProvider),
+                                          );
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
+                                      final l = context.l10n;
+                                      await repository.delete(t.id);
                                       ref.invalidate(templatesProvider);
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: Text(l.templateDeleted),
+                                          action: SnackBarAction(
+                                            label: l.undo,
+                                            onPressed: () async {
+                                              await repository.save(t);
+                                              ref.invalidate(templatesProvider);
+                                            },
+                                          ),
+                                        ),
+                                      );
                                     },
                                   ),
                                 ],

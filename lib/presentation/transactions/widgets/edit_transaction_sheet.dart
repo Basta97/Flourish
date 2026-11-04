@@ -186,7 +186,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
           ),
           const SizedBox(height: Sp.sm),
           TextButton(
-            onPressed: _confirmDelete,
+            onPressed: _delete,
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: Text(context.l10n.deleteTransfer),
           ),
@@ -199,7 +199,7 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     return BottomSheetScaffold(
       title: context.l10n.editTransaction,
       headerTrailing: TextButton.icon(
-        onPressed: _confirmDelete,
+        onPressed: _delete,
         icon: const Icon(Icons.delete_outline_rounded, size: 18),
         label: Text(context.l10n.delete),
         style: TextButton.styleFrom(foregroundColor: AppColors.danger),
@@ -424,46 +424,41 @@ class _EditTransactionSheetState extends ConsumerState<EditTransactionSheet> {
     if (saved == true && mounted) Navigator.pop(context);
   }
 
-  void _confirmDelete() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.deleteTransactionTitle2),
-        content: Text(context.l10n.deleteTransactionConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(context.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await ref
-                    .read(financialLedgerProvider)
-                    .deleteTransactionAndUpdateBalance(widget.transaction.id);
-                ref.invalidate(transactionsProvider);
-                ref.invalidate(accountsProvider);
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  Navigator.pop(context);
-                }
-              } catch (e) {
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(describeError(e))));
-                }
-              }
-            },
-            child: Text(
-              context.l10n.delete,
-              style: TextStyle(color: AppColors.danger),
-            ),
-          ),
-        ],
-      ),
-    );
+  /// Deletes right away and offers undo, the same as swiping a row.
+  Future<void> _delete() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
+    final ledger = ref.read(financialLedgerProvider);
+    Haptics.warning();
+    try {
+      final deleted = await ledger.deleteWithUndo(widget.transaction.id);
+      ref.invalidate(transactionsProvider);
+      ref.invalidate(accountsProvider);
+      if (mounted) Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l.transactionDeleted),
+          action: deleted == null
+              ? null
+              : SnackBarAction(
+                  label: l.undo,
+                  onPressed: () async {
+                    try {
+                      await ledger.restore(deleted);
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(describeError(e))),
+                      );
+                    }
+                    ref.invalidate(transactionsProvider);
+                    ref.invalidate(accountsProvider);
+                  },
+                ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
+    }
   }
 
   Future<void> _submit() async {

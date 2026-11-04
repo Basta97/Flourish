@@ -65,13 +65,14 @@ void main() {
       }
 
       await tap(find.bySemanticsLabel('Accounts'));
-      await tap(find.bySemanticsLabel('Add'));
+      await tap(find.byTooltip('Add Account'));
       await tester.enterText(find.byType(TextField).at(0), cashName);
       await tester.enterText(find.byType(TextField).at(1), '10000');
       await tap(find.widgetWithText(FilledButton, 'Add Account'));
       expect(find.text(cashName), findsOneWidget);
 
-      await tap(find.bySemanticsLabel('Wealth'));
+      await tap(find.bySemanticsLabel('Insights'));
+      await tap(find.text('Holdings'));
       await tap(find.widgetWithText(FilledButton, 'Add holding'));
       await field('name', goldName);
       await field('quantity', '2');
@@ -121,11 +122,11 @@ void main() {
       expect(await store.balance(cash.id), Amount('6402'));
       await tester.pageBack();
       await tester.pumpAndSettle();
-      await tap(find.text('Reports'));
+      await tap(find.text('Spending'));
       expect(find.text('Spending by category'), findsOneWidget);
       await tap(find.bySemanticsLabel('Home'));
       await tap(find.bySemanticsLabel('Budgets'));
-      await tap(find.bySemanticsLabel('Add'));
+      await tap(find.widgetWithText(FloatingActionButton, 'Budget'));
       await tap(find.byType(DropdownButtonFormField<int>));
       await tap(find.text('Food & Drinks').last);
       await tester.enterText(find.byType(TextField).first, '1000');

@@ -65,6 +65,21 @@ class ReminderService {
     await PreferencesService.setBool('reminders_enabled', true);
   }
 
+  static bool get enabled => PreferencesService.getBool('reminders_enabled');
+
+  /// Stops reminders and removes the ones already scheduled.
+  Future<void> disable() async {
+    await PreferencesService.setBool('reminders_enabled', false);
+    await init();
+    await plugin.cancelAllPendingNotifications();
+  }
+
+  /// Amounts stay out of the text when the app is locked or amounts are
+  /// hidden, since reminders show on the lock screen.
+  static bool get _private =>
+      PreferencesService.getBool('app_lock_enabled') ||
+      PreferencesService.getBool('hide_amounts');
+
   Future<void> schedule(FinanceStore store) async {
     if (!PreferencesService.getBool('reminders_enabled')) return;
     await init();
@@ -90,7 +105,9 @@ class ReminderService {
           continue;
         }
         final digits = CurrencyFormatter.decimalsFor(c.currency);
-        final body = status.terms == null
+        final body = _private
+            ? '${c.name}: a card payment is due.'
+            : status.terms == null
             ? '${c.name}: ${c.currency} ${status.statementRemaining.fixed(digits)} '
                   'of the last statement is unpaid.'
             : '${c.name}: pay at least ${c.currency} '
@@ -144,6 +161,8 @@ class ReminderService {
             'finance_due',
             'Financial due dates',
             channelDescription: 'Contract payments and maturities',
+            // A secure lock screen shows only that a reminder arrived.
+            visibility: NotificationVisibility.private,
           ),
           iOS: DarwinNotificationDetails(),
         ),

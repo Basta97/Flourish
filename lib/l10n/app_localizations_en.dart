@@ -3840,4 +3840,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get budget => 'Budget';
+
+  @override
+  String get moreDetails => 'More details';
+
+  @override
+  String get moreDetailsHint => 'Card, refund, currency, merchant, note';
+
+  @override
+  String archivedAccounts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count archived accounts',
+      one: '1 archived account',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unarchive => 'Unarchive';
+
+  @override
+  String accountUnarchived(String name) {
+    return '$name is active again';
+  }
+
+  @override
+  String get settingsGeneral => 'General';
+
+  @override
+  String get settingsAutomation => 'Automation';
+
+  @override
+  String get settingsSecurity => 'Security & privacy';
+
+  @override
+  String get reviewInbox => 'Review inbox';
+
+  @override
+  String get reviewInboxSubtitle =>
+      'Payments detected from alerts, waiting for you';
+
+  @override
+  String get appLockSubtitle =>
+      'Ask for Face ID, fingerprint or passcode when opening';
+
+  @override
+  String get paymentRemindersOff => 'Payment reminders turned off';
+
+  @override
+  String get backupHistoryShort => 'Automatic backups';
+
+  @override
+  String get templateDeleted => 'Template deleted';
+
+  @override
+  String get deleteRecurringTitle => 'Delete this recurring entry?';
+
+  @override
+  String get deleteRecurringBody =>
+      'Entries it already added stay in your ledger. Pause it instead if you may need it again.';
+
+  @override
+  String get resetConfirmWord => 'RESET';
+
+  @override
+  String resetTypeToConfirm(String word) {
+    return 'Type $word to confirm';
+  }
+
+  @override
+  String get setupTitle => 'Set up Flourish';
+
+  @override
+  String get setupSubtitle => 'Three quick steps and you\'re ready';
+
+  @override
+  String setupCurrency(String currency) {
+    return 'Main currency: $currency';
+  }
+
+  @override
+  String get setupAccount => 'Add the account you spend from';
+
+  @override
+  String get setupLock => 'Lock the app with Face ID or passcode';
+
+  @override
+  String get setupDetection => 'Catch payments from bank alerts (optional)';
+
+  @override
+  String get setupDone => 'Done';
 }

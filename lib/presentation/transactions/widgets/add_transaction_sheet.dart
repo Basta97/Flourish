@@ -6,6 +6,7 @@ import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/presentation/providers/finance_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_text_styles.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
@@ -73,6 +74,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   bool _refund = false;
   String? _originalError;
 
+  /// Payment, refund, currency, merchant and note sit behind "More details".
+  bool _moreOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +108,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     _categoryId = t.categoryId;
     _amountController.text = '${selection.amount}';
     _noteController.text = t.note ?? '';
+    if (_noteController.text.isNotEmpty) _moreOpen = true;
     _date = DateTime.now();
     _instrumentId = null;
     _method = null;
@@ -166,6 +171,31 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final tint = modeColor(context, _mode);
     return BottomSheetScaffold(
       title: context.l10n.newTransaction,
+      headerTrailing: _mode == 'transfer'
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: context.l10n.useTemplate,
+                  onPressed: _submitState == SubmitState.busy
+                      ? null
+                      : _pickTemplate,
+                  icon: const Icon(Icons.bookmark_outline),
+                ),
+                IconButton(
+                  tooltip: context.l10n.scanOrImport,
+                  onPressed: _submitState == SubmitState.busy
+                      ? null
+                      : () {
+                          final router = GoRouter.of(context);
+                          Navigator.pop(context);
+                          router.push('/smart-import');
+                        },
+                  icon: const Icon(Icons.document_scanner_outlined),
+                ),
+              ],
+            ),
       children: [
         SegmentedPill(
           labels: [
@@ -178,12 +208,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           height: 44,
           onChanged: (i) => _selectMode(_modes[i]),
         ),
-        if (_mode != 'transfer')
-          TextButton.icon(
-            onPressed: _submitState == SubmitState.busy ? null : _pickTemplate,
-            icon: const Icon(Icons.bookmark_outline),
-            label: Text(context.l10n.useTemplate),
-          ),
         const SizedBox(height: Sp.xl),
         AmountInput(
           controller: _amountController,
@@ -282,10 +306,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               _accountError = null;
             }),
           ),
-          if (_mode == 'expense' && chosen != null) ...[
-            const SizedBox(height: Sp.lg),
-            ..._paymentFields(chosen, tint),
-          ],
           const SizedBox(height: Sp.lg),
           FormLabel(
             _refund ? context.l10n.refundFor : context.l10n.category,
@@ -300,7 +320,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           ),
           categoriesAsync.when(
             data: (cats) {
-              final filtered = cats.where((c) => c.type == _mode).toList();
+              final filtered = _byRecentUse(
+                cats.where((c) => c.type == _mode).toList(),
+              );
               return CategoryGrid(
                 categories: filtered,
                 selectedId: _effectiveCategoryId(filtered),
@@ -311,8 +333,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 onAdd: () => _createCategory(_mode),
               );
             },
-            loading: () => const SizedBox(height: 84),
-            error: (error, stackTrace) => const SizedBox(height: 84),
+            loading: () => const SizedBox(
+              height: 84,
+              child: Center(child: CircularProgressIndicator.adaptive()),
+            ),
+            error: (error, stackTrace) => SizedBox(
+              height: 84,
+              child: Center(
+                child: TextButton.icon(
+                  onPressed: () => ref.invalidate(categoriesProvider),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(context.l10n.retry),
+                ),
+              ),
+            ),
           ),
         ],
         if (_accountError != null) ...[
@@ -322,30 +356,41 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             style: AppTextStyles.caption.copyWith(color: AppColors.danger),
           ),
         ],
-        if (_mode == 'expense') ...[
-          const SizedBox(height: Sp.lg),
-          TextField(
-            controller: _merchantController,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintText: context.l10n.merchantOptional,
-              prefixIcon: Icon(Icons.storefront_outlined, size: 20),
-            ),
-          ),
-        ],
         const SizedBox(height: Sp.lg),
-        TextField(
-          controller: _noteController,
-          decoration: InputDecoration(
-            hintText: context.l10n.addNote,
-            prefixIcon: Icon(Icons.notes_rounded, size: 20),
-          ),
-          minLines: 1,
-          maxLines: 2,
-        ),
-        const SizedBox(height: Sp.md),
         DatePills(value: _date, onChanged: (d) => setState(() => _date = d)),
-        const SizedBox(height: Sp.xl),
+        const SizedBox(height: Sp.sm),
+        _MoreDetails(
+          open: _moreOpen,
+          summary: _detailsSummary(context),
+          onToggle: () => setState(() => _moreOpen = !_moreOpen),
+          children: [
+            if (_mode == 'expense' && chosen != null) ...[
+              ..._paymentFields(chosen, tint),
+              const SizedBox(height: Sp.md),
+            ],
+            if (_mode == 'expense') ...[
+              TextField(
+                controller: _merchantController,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  hintText: context.l10n.merchantOptional,
+                  prefixIcon: const Icon(Icons.storefront_outlined, size: 20),
+                ),
+              ),
+              const SizedBox(height: Sp.md),
+            ],
+            TextField(
+              controller: _noteController,
+              decoration: InputDecoration(
+                hintText: context.l10n.addNote,
+                prefixIcon: const Icon(Icons.notes_rounded, size: 20),
+              ),
+              minLines: 1,
+              maxLines: 2,
+            ),
+          ],
+        ),
+        const SizedBox(height: Sp.lg),
         SubmitButton(
           label: _mode == 'transfer'
               ? context.l10n.transfer
@@ -397,14 +442,44 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     });
   }
 
+  /// Only a category the person picked, or one suggested from the note;
+  /// never a silent first-in-list default.
   int? _effectiveCategoryId(List<Category> categories) {
-    if (categories.isEmpty) return null;
     final selected = _categoryId;
     if (selected != null &&
         categories.any((category) => category.id == selected)) {
       return selected;
     }
-    return _templateId != null ? null : categories.first.id;
+    return null;
+  }
+
+  /// Categories used in the last 90 days first, most used leading; the
+  /// rest keep their usual order.
+  List<Category> _byRecentUse(List<Category> categories) {
+    final since = DateTime.now().subtract(const Duration(days: 90));
+    final uses = <int, int>{};
+    for (final t in ref.read(transactionsProvider).valueOrNull ?? const []) {
+      if (t.transactionDate.isAfter(since)) {
+        uses[t.categoryId] = (uses[t.categoryId] ?? 0) + 1;
+      }
+    }
+    final order = {for (var i = 0; i < categories.length; i++) categories[i].id: i};
+    return [...categories]..sort((a, b) {
+      final byUse = (uses[b.id] ?? 0).compareTo(uses[a.id] ?? 0);
+      return byUse != 0 ? byUse : order[a.id]!.compareTo(order[b.id]!);
+    });
+  }
+
+  /// What "More details" already holds, shown while it is closed.
+  String? _detailsSummary(BuildContext context) {
+    final parts = [
+      if (_refund) context.l10n.isRefund,
+      if (_foreign && _originalCurrency != null) _originalCurrency!,
+      if (_merchantController.text.trim().isNotEmpty)
+        _merchantController.text.trim(),
+      if (_noteController.text.trim().isNotEmpty) _noteController.text.trim(),
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   /// Preselects the account's default card when the account changes.
@@ -703,9 +778,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         currency: _originalCurrency ?? '',
       );
       if (!result.isValid || _originalCurrency == null) {
-        setState(
-          () => _originalError = result.error ?? context.l10n.chooseCurrency,
-        );
+        setState(() {
+          _originalError = result.error ?? context.l10n.chooseCurrency;
+          _moreOpen = true;
+        });
         hasError = true;
       } else {
         original = Money('${result.value}', _originalCurrency!);
@@ -803,6 +879,88 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ).showSnackBar(SnackBar(content: Text(describeError(e))));
       }
     }
+  }
+}
+
+/// A row that opens the optional fields; shows what they hold when closed.
+class _MoreDetails extends StatelessWidget {
+  const _MoreDetails({
+    required this.open,
+    required this.summary,
+    required this.onToggle,
+    required this.children,
+  });
+
+  final bool open;
+  final String? summary;
+  final VoidCallback onToggle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = FlourishPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(Rad.md),
+          onTap: () {
+            Haptics.select();
+            onToggle();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: Sp.sm),
+            child: Row(
+              children: [
+                Icon(Icons.tune_rounded, size: 18, color: palette.textLow),
+                const SizedBox(width: Sp.sm),
+                Text(
+                  context.l10n.moreDetails,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: palette.textHigh,
+                  ),
+                ),
+                const SizedBox(width: Sp.sm),
+                Expanded(
+                  child: Text(
+                    open ? '' : summary ?? context.l10n.moreDetailsHint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                      color: palette.textLow,
+                    ),
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: open ? 0.5 : 0,
+                  duration: Motion.of(context, Motion.base),
+                  child: Icon(
+                    Icons.expand_more_rounded,
+                    color: palette.textLow,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: Motion.reduced(context)
+              ? const Duration(milliseconds: 1)
+              : Motion.base,
+          curve: Motion.morph,
+          alignment: Alignment.topCenter,
+          child: open
+              ? Padding(
+                  padding: const EdgeInsets.only(top: Sp.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: children,
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
+    );
   }
 }
 

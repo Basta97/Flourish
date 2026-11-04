@@ -15,7 +15,7 @@ import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('Home → Tools → template presets → reviewed transaction → edit', (
+  testWidgets('Settings → template presets → reviewed transaction → edit', (
     tester,
   ) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
@@ -83,8 +83,12 @@ void main() {
       await tap(find.text(text).last);
     }
 
-    await tap(find.bySemanticsLabel('Tools'));
-    expect(find.text('Tools'), findsOneWidget);
+    await tap(find.byTooltip('Settings'));
+    await tester.scrollUntilVisible(
+      find.text('Saved transaction templates'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tap(find.text('Saved transaction templates'));
     await tap(find.text('New template'));
     await field('name', 'QA coffee $stamp');
@@ -136,26 +140,18 @@ void main() {
     expect((await db.getTransactionById(row.id))!.amount, 65);
     expect(await store.balance(accountId), Amount('935'));
     // Leave the emulator on Home for visual/widget inspection, retaining the QA fixture.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Tools'), findsOneWidget);
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, 1000));
-    await tester.pumpAndSettle();
-    await tap(find.byTooltip('Settings'));
-    await tap(find.text('Tools').last);
-    expect(find.text('Saved transaction templates'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tap(find.bySemanticsLabel('Wealth'));
+    // Back through Templates and Settings to Home.
+    for (var i = 0; i < 3; i++) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+    // Tools now live in Settings; Insights opens on spending.
+    await tap(find.bySemanticsLabel('Insights'));
     expect(find.text('Tools'), findsNothing);
-    expect(find.text('Reports'), findsOneWidget);
+    expect(find.text('Spending by category'), findsOneWidget);
     await tap(find.bySemanticsLabel('Home'));
     await tap(find.bySemanticsLabel('Add'));
-    await tap(find.text('Use template'));
+    await tap(find.byTooltip('Use template'));
     await tap(find.text('QA coffee $stamp'));
     await tap(find.text('25'));
     expect(

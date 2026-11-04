@@ -142,7 +142,8 @@ void main() {
     expect((await db.getTransactionById(transaction.id))!.amount, 275);
     expect(await store.balance(accountId), Amount('725'));
 
-    await tap(find.bySemanticsLabel('Wealth'));
+    await tap(find.bySemanticsLabel('Insights'));
+    await tap(find.text('Holdings'));
     await tap(find.widgetWithText(FilledButton, 'Add holding'));
     await tester.enterText(find.byKey(const ValueKey('name')), holdingName);
     await tap(calculator(find.byKey(const ValueKey('cost'))));

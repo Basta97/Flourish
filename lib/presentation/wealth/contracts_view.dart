@@ -1,6 +1,8 @@
 import 'package:flourish/l10n/l10n.dart';
 import '../accounts/widgets/credit_card_panel.dart' show payCard;
 import 'package:flutter/material.dart';
+import 'package:flourish/core/utils/error_text.dart';
+import 'package:flourish/shared/widgets/empty_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/finance_providers.dart';
 import '../providers/account_providers.dart';
@@ -88,7 +90,16 @@ class ContractsView extends ConsumerWidget {
             loading: () => [
               for (var i = 0; i < 3; i++) ShimmerLoading.listItem(),
             ],
-            error: (e, _) => [Text('$e')],
+            error: (e, _) => [
+              EmptyState(
+                icon: Icons.error_outline_rounded,
+                title: context.l10n.somethingWentWrong,
+                action: TextButton(
+                  onPressed: () => ref.invalidate(contractsProvider),
+                  child: Text(context.l10n.retry),
+                ),
+              ),
+            ],
           ),
     ],
   );
@@ -392,7 +403,7 @@ class ContractDetailScreen extends ConsumerWidget {
                                 } catch (e) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('$e')),
+                                      SnackBar(content: Text(describeError(e))),
                                     );
                                   }
                                 }

@@ -2359,5 +2359,58 @@
       }
     }
   },
-  "budget": "Budget"
+  "budget": "Budget",
+  "moreDetails": "More details",
+  "moreDetailsHint": "Card, refund, currency, merchant, note",
+  "archivedAccounts": "{count, plural, =1{1 archived account} other{{count} archived accounts}}",
+  "@archivedAccounts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unarchive": "Unarchive",
+  "accountUnarchived": "{name} is active again",
+  "@accountUnarchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsGeneral": "General",
+  "settingsAutomation": "Automation",
+  "settingsSecurity": "Security & privacy",
+  "reviewInbox": "Review inbox",
+  "reviewInboxSubtitle": "Payments detected from alerts, waiting for you",
+  "appLockSubtitle": "Ask for Face ID, fingerprint or passcode when opening",
+  "paymentRemindersOff": "Payment reminders turned off",
+  "backupHistoryShort": "Automatic backups",
+  "templateDeleted": "Template deleted",
+  "deleteRecurringTitle": "Delete this recurring entry?",
+  "deleteRecurringBody": "Entries it already added stay in your ledger. Pause it instead if you may need it again.",
+  "resetConfirmWord": "RESET",
+  "resetTypeToConfirm": "Type {word} to confirm",
+  "@resetTypeToConfirm": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "setupTitle": "Set up Flourish",
+  "setupSubtitle": "Three quick steps and you're ready",
+  "setupCurrency": "Main currency: {currency}",
+  "@setupCurrency": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "setupAccount": "Add the account you spend from",
+  "setupLock": "Lock the app with Face ID or passcode",
+  "setupDetection": "Catch payments from bank alerts (optional)",
+  "setupDone": "Done"
 }

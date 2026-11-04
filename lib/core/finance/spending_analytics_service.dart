@@ -69,6 +69,10 @@ class SpendingPeriod {
   /// Sum of monthly budget limits, or null when no budget is set.
   final Amount? budget;
 
+  /// Spending in the categories those budgets cover, so the comparison
+  /// leaves out categories without a budget.
+  final Amount budgetSpent;
+
   const SpendingPeriod({
     required this.start,
     required this.end,
@@ -89,6 +93,7 @@ class SpendingPeriod {
     required this.fees,
     required this.upcoming,
     required this.budget,
+    required this.budgetSpent,
   });
 
   int get days => daily.length;
@@ -111,14 +116,21 @@ class SpendingPeriod {
     return elapsed == 0 ? Amount.zero : spending / Amount.fromNum(elapsed);
   }
 
-  /// Expected spending by the period's end: today's pace carried forward,
-  /// but never less than what is already committed.
+  /// Expected spending by the period's end. With a previous month, adds
+  /// what was spent in the same remaining days then (so a rent paid on the
+  /// 1st is not extrapolated across the month); otherwise carries today's
+  /// pace forward. Never less than the recurring expenses still due.
   Amount projected(DateTime now) {
-    final remaining = days - elapsedDays(now);
+    final elapsed = elapsedDays(now);
+    final remaining = days - elapsed;
     if (remaining <= 0) return spending;
-    final pace = spending + averageDaily(now) * Amount.fromNum(remaining);
-    final committed = spending + upcoming;
-    return pace > committed ? pace : committed;
+    final Amount rest;
+    if (previousSpending > Amount.zero) {
+      rest = previousDaily.skip(elapsed).fold(Amount.zero, (a, b) => a + b);
+    } else {
+      rest = averageDaily(now) * Amount.fromNum(remaining);
+    }
+    return spending + (rest > upcoming ? rest : upcoming);
   }
 
   /// Percent change against the previous period, or null without history.
@@ -241,6 +253,19 @@ class SpendingAnalyticsService {
     void add<K>(Map<K, Amount> to, K key, Amount value) =>
         to[key] = (to[key] ?? Amount.zero) + value;
     final accounts = {for (final a in await db.getAllAccounts()) a.id: a};
+    final budgets = (await db.getAllBudgets())
+        .where((b) => b.period == 'monthly')
+        .toList();
+    final budgeted = {for (final b in budgets) b.categoryId};
+    bool isBudgeted(int id) {
+      final seen = <int>{};
+      for (int? c = id; c != null && seen.add(c); c = parents[c]) {
+        if (budgeted.contains(c)) return true;
+      }
+      return false;
+    }
+
+    var budgetSpent = Amount.zero;
     for (final (t, flow, value, d) in flows) {
       if (value == null) {
         if (!t.transactionDate.isBefore(start)) missing++;
@@ -266,6 +291,7 @@ class SpendingAnalyticsService {
         continue;
       }
       spending += value;
+      if (isBudgeted(t.categoryId)) budgetSpent += value;
       final i = date.difference(start).inHours ~/ 24;
       if (i >= 0 && i < days) daily[i] += value;
       final (sum, n) = byCategory[root] ?? (Amount.zero, 0);
@@ -323,7 +349,8 @@ class SpendingAnalyticsService {
       byCurrency: byCurrency,
       fees: fees,
       upcoming: await _upcoming(now, start, end, currency, accounts),
-      budget: await _monthlyBudget(currency, parents),
+      budget: await _monthlyBudget(budgets, currency, parents),
+      budgetSpent: budgetSpent,
     );
   }
 
@@ -411,10 +438,11 @@ class SpendingAnalyticsService {
 
   /// Sum of monthly budget limits in [currency]. Budgets on a subcategory of
   /// another budgeted category are already covered by the parent's limit.
-  Future<Amount?> _monthlyBudget(String currency, Map<int, int> parents) async {
-    final budgets = (await db.getAllBudgets())
-        .where((b) => b.period == 'monthly')
-        .toList();
+  Future<Amount?> _monthlyBudget(
+    List<Budget> budgets,
+    String currency,
+    Map<int, int> parents,
+  ) async {
     if (budgets.isEmpty) return null;
     final budgeted = {for (final b in budgets) b.categoryId};
     final versions = await store.list('budgetVersions');

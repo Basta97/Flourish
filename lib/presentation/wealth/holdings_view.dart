@@ -1,6 +1,7 @@
 import 'package:flourish/l10n/l10n.dart';
 import '../../core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:flourish/shared/widgets/empty_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/finance_providers.dart';
 import '../providers/account_providers.dart';
@@ -90,7 +91,16 @@ class HoldingsView extends ConsumerWidget {
           loading: () => [
             for (var i = 0; i < 3; i++) ShimmerLoading.listItem(),
           ],
-          error: (e, _) => [Text('$e')],
+          error: (e, _) => [
+            EmptyState(
+              icon: Icons.error_outline_rounded,
+              title: context.l10n.somethingWentWrong,
+              action: TextButton(
+                onPressed: () => ref.invalidate(holdingsProvider),
+                child: Text(context.l10n.retry),
+              ),
+            ),
+          ],
         ),
         const WealthReport(),
       ],

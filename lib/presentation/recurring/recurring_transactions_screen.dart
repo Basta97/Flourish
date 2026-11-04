@@ -196,7 +196,27 @@ class _RecurringCard extends ConsumerWidget {
                   } else if (action == 'toggle') {
                     await service.setActive(recurring, !recurring.isActive);
                   } else if (action == 'delete') {
-                    await service.delete(recurring.id);
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(ctx.l10n.deleteRecurringTitle),
+                        content: Text(ctx.l10n.deleteRecurringBody),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(ctx.l10n.cancel),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.danger,
+                            ),
+                            child: Text(ctx.l10n.delete),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) await service.delete(recurring.id);
                   }
                 },
                 itemBuilder: (ctx) => [

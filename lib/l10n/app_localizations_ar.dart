@@ -3873,4 +3873,96 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get budget => 'ميزانية';
+
+  @override
+  String get moreDetails => 'تفاصيل إضافية';
+
+  @override
+  String get moreDetailsHint => 'البطاقة، الاسترداد، العملة، التاجر، الملاحظة';
+
+  @override
+  String archivedAccounts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حسابات مؤرشفة',
+      one: 'حساب مؤرشف واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unarchive => 'إلغاء الأرشفة';
+
+  @override
+  String accountUnarchived(String name) {
+    return 'أصبح $name نشطًا مرة أخرى';
+  }
+
+  @override
+  String get settingsGeneral => 'عام';
+
+  @override
+  String get settingsAutomation => 'الأتمتة';
+
+  @override
+  String get settingsSecurity => 'الأمان والخصوصية';
+
+  @override
+  String get reviewInbox => 'مراجعة المدفوعات';
+
+  @override
+  String get reviewInboxSubtitle =>
+      'مدفوعات مكتشفة من التنبيهات بانتظار مراجعتك';
+
+  @override
+  String get appLockSubtitle =>
+      'اطلب بصمة الوجه أو الإصبع أو رمز المرور عند الفتح';
+
+  @override
+  String get paymentRemindersOff => 'تم إيقاف تذكيرات الدفع';
+
+  @override
+  String get backupHistoryShort => 'النسخ الاحتياطية التلقائية';
+
+  @override
+  String get templateDeleted => 'تم حذف القالب';
+
+  @override
+  String get deleteRecurringTitle => 'حذف هذا القيد المتكرر؟';
+
+  @override
+  String get deleteRecurringBody =>
+      'القيود التي أضافها تبقى في سجلك. يمكنك إيقافه مؤقتًا بدلاً من ذلك إذا قد تحتاجه لاحقًا.';
+
+  @override
+  String get resetConfirmWord => 'حذف';
+
+  @override
+  String resetTypeToConfirm(String word) {
+    return 'اكتب $word للتأكيد';
+  }
+
+  @override
+  String get setupTitle => 'إعداد Flourish';
+
+  @override
+  String get setupSubtitle => 'ثلاث خطوات سريعة وتكون جاهزًا';
+
+  @override
+  String setupCurrency(String currency) {
+    return 'العملة الأساسية: $currency';
+  }
+
+  @override
+  String get setupAccount => 'أضف الحساب الذي تنفق منه';
+
+  @override
+  String get setupLock => 'اقفل التطبيق ببصمة الوجه أو رمز المرور';
+
+  @override
+  String get setupDetection => 'التقط المدفوعات من تنبيهات البنك (اختياري)';
+
+  @override
+  String get setupDone => 'تم';
 }

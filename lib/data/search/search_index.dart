@@ -5,7 +5,6 @@ import '../../core/search/search_models.dart';
 /// Derived data only. Source tables and ledger records remain authoritative.
 abstract final class SearchIndex {
   static const features = <(String, String, String)>[
-    ('Tools · الأدوات', 'tools utilities ادوات', '/tools'),
     ('Templates · القوالب', 'transaction templates قالب قوالب', '/templates'),
     (
       'Exchange rates · أسعار الصرف',
@@ -20,7 +19,7 @@ abstract final class SearchIndex {
     (
       'Security · الأمان',
       'authentication biometric privacy قفل بصمة خصوصية',
-      '/tools',
+      '/settings',
     ),
     ('Settings · الإعدادات', 'settings اعدادات', '/settings'),
     (
@@ -37,7 +36,7 @@ abstract final class SearchIndex {
     (
       'Home widgets · أدوات الشاشة الرئيسية',
       'widgets home screen ويدجت شاشة رئيسية',
-      '/tools',
+      '/settings',
     ),
     (
       'Recurring · المعاملات المتكررة',

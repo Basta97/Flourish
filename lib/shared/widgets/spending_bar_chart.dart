@@ -67,7 +67,12 @@ class SpendingBarChart extends StatelessWidget {
                   reservedSize: 22,
                   getTitlesWidget: (value, meta) {
                     final i = value.toInt();
-                    if (i % labelEvery != 0 && i != values.length - 1) {
+                    final last = values.length - 1;
+                    // The last slot gets a label unless one sits too close.
+                    final shown = i % labelEvery == 0
+                        ? i == last || last - i >= labelEvery / 2
+                        : i == last && last % labelEvery >= labelEvery / 2;
+                    if (!shown) {
                       return const SizedBox.shrink();
                     }
                     return SideTitleWidget(

@@ -124,8 +124,37 @@ void main() {
     final p = await period(DateTime(2026, 10), now: DateTime(2026, 10, 10, 12));
     expect(p.elapsedDays(DateTime(2026, 10, 10, 12)), 10);
     expect(p.averageDaily(DateTime(2026, 10, 10, 12)), Amount('20'));
-    expect(p.projected(DateTime(2026, 10, 10, 12)), Amount('620'));
+    // Last month's spending fell before day 10, so nothing more is expected.
+    expect(p.projected(DateTime(2026, 10, 10, 12)), Amount('200'));
     expect(p.changeVsPrevious(), 0);
+  });
+
+  test('projects from pace without a previous month', () async {
+    final bank = await account('Bank');
+    await spend(bank, '100', DateTime(2026, 10, 1));
+    final p = await period(DateTime(2026, 10), now: DateTime(2026, 10, 5, 9));
+    // 20 a day for the remaining 26 days.
+    expect(p.projected(DateTime(2026, 10, 5, 9)), Amount('620'));
+  });
+
+  test('budget compares only budgeted categories', () async {
+    final bank = await account('Bank');
+    final food = await category('Food & Drinks');
+    final id = await db.insertBudget(
+      BudgetsCompanion.insert(
+        categoryId: food,
+        amount: 500,
+        period: 'monthly',
+        startDate: DateTime(2026, 10, 1),
+      ),
+    );
+    await ledger.store.put('budgetCurrencies', '$id', {'currency': 'EGP'});
+    await spend(bank, '300', DateTime(2026, 10, 2));
+    await spend(bank, '900', DateTime(2026, 10, 3), categoryName: 'Shopping');
+    final p = await period(DateTime(2026, 10));
+    expect(p.budget, Amount('500'));
+    expect(p.budgetSpent, Amount('300'));
+    expect(p.spending, Amount('1200'));
   });
 
   test('series buckets each month once', () async {

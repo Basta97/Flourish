@@ -9,6 +9,11 @@ import '../providers/ai_providers.dart';
 import '../providers/finance_providers.dart';
 import '../../data/finance/finance_store.dart';
 import '../wealth/finance_tools_view.dart';
+import '../wealth/finance_form.dart';
+import '../wealth/finance_runtime.dart' show remindersProvider;
+import '../providers/insights_providers.dart';
+import '../../core/auth/authentication_coordinator.dart';
+import '../../core/finance/reminder_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -107,18 +112,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           padding: const EdgeInsets.fromLTRB(Sp.xl, Sp.sm, Sp.xl, Sp.xxxl),
           children: [
             SettingsGroup(
-              title: context.l10n.tools,
-              children: [
-                SettingsTile(
-                  icon: Icons.build_outlined,
-                  title: context.l10n.tools,
-                  subtitle: context.l10n.toolsSubtitle,
-                  onTap: () => context.push('/tools'),
-                ),
-              ],
-            ),
-            SettingsGroup(
-              title: context.l10n.appearance,
+              title: context.l10n.settingsGeneral,
               children: [
                 SettingsTile(
                   icon: Icons.dark_mode_outlined,
@@ -187,6 +181,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     }
                   },
                 ),
+                SettingsTile(
+                  icon: Icons.calendar_month,
+                  tint: const Color(0xFFEF8A47),
+                  title: context.l10n.reportingMonthStarts,
+                  subtitle: context.l10n.dayNumber(
+                    ref.watch(monthStartDayProvider),
+                  ),
+                  onTap: _pickMonthStart,
+                ),
+                SettingsTile(
+                  icon: Icons.currency_exchange,
+                  tint: const Color(0xFF3CC8C0),
+                  title: context.l10n.exchangeRates,
+                  subtitle: context.l10n.exchangeRatesSubtitle,
+                  onTap: () => context.push('/exchange-rates'),
+                ),
               ],
             ),
 
@@ -194,27 +204,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.manage,
               children: [
                 SettingsTile(
-                  icon: Icons.track_changes_rounded,
-                  tint: const Color(0xFFF5B547),
-                  title: context.l10n.budgets,
-                  subtitle: context.l10n.budgetsSubtitle,
-                  // /budgets lives inside the tab shell; pushing it from
-                  // here would build a second shell, so switch to it.
-                  onTap: () => context.go('/insights?tab=budgets'),
+                  icon: Icons.account_balance,
+                  tint: const Color(0xFF5B9DF5),
+                  title: context.l10n.manageAccounts,
+                  subtitle: context.l10n.manageAccountsSubtitle,
+                  onTap: () => manageAccounts(context, ref),
                 ),
                 SettingsTile(
-                  icon: Icons.flag_outlined,
-                  tint: const Color(0xFF8B7CF6),
-                  title: context.l10n.savingsGoals,
-                  subtitle: context.l10n.savingsGoalsSubtitle,
-                  onTap: () => context.go('/insights?tab=goals'),
+                  icon: Icons.category_outlined,
+                  title: context.l10n.categories,
+                  subtitle: context.l10n.categoriesSubtitle,
+                  onTap: () => context.push('/categories/manage'),
                 ),
                 SettingsTile(
-                  icon: Icons.repeat_rounded,
+                  icon: Icons.account_tree_outlined,
                   tint: const Color(0xFF3CC8C0),
-                  title: context.l10n.recurring,
-                  subtitle: context.l10n.recurringSubtitle,
-                  onTap: () => context.push('/recurring'),
+                  title: context.l10n.subcategories,
+                  subtitle: context.l10n.subcategoriesSubtitle,
+                  onTap: () => subcategory(context, ref),
                 ),
                 SettingsTile(
                   icon: Icons.credit_card_rounded,
@@ -224,10 +231,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/payment-methods'),
                 ),
                 SettingsTile(
-                  icon: Icons.category_outlined,
-                  title: context.l10n.categories,
-                  subtitle: context.l10n.categoriesSubtitle,
-                  onTap: () => context.push('/categories/manage'),
+                  icon: Icons.bookmark_outline,
+                  tint: const Color(0xFFF5B547),
+                  title: context.l10n.savedTemplates,
+                  subtitle: context.l10n.savedTemplatesSubtitle,
+                  onTap: () => context.push('/templates'),
+                ),
+                SettingsTile(
+                  icon: Icons.receipt_long,
+                  tint: const Color(0xFF8B7CF6),
+                  title: context.l10n.receiptAttachments,
+                  subtitle: context.l10n.receiptAttachmentsSubtitle,
+                  onTap: () => receipts(context, ref),
+                ),
+              ],
+            ),
+
+            SettingsGroup(
+              title: context.l10n.settingsAutomation,
+              children: [
+                SettingsTile(
+                  icon: Icons.repeat_rounded,
+                  tint: const Color(0xFF3CC8C0),
+                  title: context.l10n.recurring,
+                  subtitle: context.l10n.recurringSubtitle,
+                  onTap: () => context.push('/recurring'),
                 ),
                 SettingsTile(
                   icon: Icons.mark_email_unread_outlined,
@@ -237,10 +265,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/settings/detection'),
                 ),
                 SettingsTile(
+                  icon: Icons.inbox_outlined,
+                  title: context.l10n.reviewInbox,
+                  subtitle: context.l10n.reviewInboxSubtitle,
+                  onTap: () => context.push('/inbox'),
+                ),
+                SettingsTile(
+                  icon: Icons.notifications_outlined,
+                  tint: const Color(0xFFF5B547),
+                  title: context.l10n.paymentReminders,
+                  subtitle: context.l10n.paymentRemindersSubtitle,
+                  trailing: Switch(
+                    value: ReminderService.enabled,
+                    onChanged: _setReminders,
+                  ),
+                ),
+                SettingsTile(
                   icon: Icons.auto_awesome_outlined,
+                  tint: const Color(0xFF8B7CF6),
+                  title: context.l10n.aiSettings,
+                  subtitle: context.l10n.aiAssistant,
+                  onTap: () => context.push('/settings/ai'),
+                ),
+              ],
+            ),
+
+            SettingsGroup(
+              title: context.l10n.toolsImportExport,
+              children: [
+                SettingsTile(
+                  icon: Icons.document_scanner_outlined,
                   title: context.l10n.smartImport,
                   subtitle: context.l10n.smartImportSubtitle,
                   onTap: () => context.push('/smart-import'),
+                ),
+                SettingsTile(
+                  icon: Icons.history_toggle_off_rounded,
+                  tint: const Color(0xFF3CC8C0),
+                  title: context.l10n.catchUpTitle,
+                  subtitle: context.l10n.catchUpSubtitle,
+                  onTap: () => context.push('/catch-up'),
+                ),
+                SettingsTile(
+                  icon: Icons.table_chart_outlined,
+                  tint: const Color(0xFFF5B547),
+                  title: context.l10n.importFromApps,
+                  subtitle: context.l10n.importFromAppsSubtitle,
+                  onTap: () => importSpreadsheet(context, ref),
+                ),
+                SettingsTile(
+                  icon: Icons.file_download_outlined,
+                  tint: const Color(0xFF5B9DF5),
+                  title: context.l10n.exportCsv,
+                  subtitle: context.l10n.exportCsvSubtitle,
+                  onTap: () => exportCsv(context, ref),
                 ),
               ],
             ),
@@ -447,14 +525,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _dataGroup(),
 
             SettingsGroup(
-              title: context.l10n.about,
+              title: context.l10n.settingsSecurity,
               children: [
+                SettingsTile(
+                  icon: Icons.lock_outline,
+                  tint: const Color(0xFF8B7CF6),
+                  title: context.l10n.deviceLock,
+                  subtitle: context.l10n.appLockSubtitle,
+                  trailing: Switch(
+                    value: PreferencesService.getBool('app_lock_enabled'),
+                    onChanged: (_) => _toggleAppLock(),
+                  ),
+                ),
+                SettingsTile(
+                  icon: Icons.vpn_key_outlined,
+                  tint: const Color(0xFF3CC8C0),
+                  title: context.l10n.stockApiKey,
+                  subtitle: context.l10n.stockApiKeySubtitle,
+                  onTap: () => financeForm(
+                    context,
+                    title: context.l10n.alphaVantageKey,
+                    fields: [
+                      FinanceField(
+                        'key',
+                        context.l10n.personalApiKey,
+                        secret: true,
+                      ),
+                    ],
+                    save: (j) => ref
+                        .read(secureStorageProvider)
+                        .write(key: 'alpha_vantage_key', value: j['key']),
+                  ),
+                ),
+                SettingsTile(
+                  icon: Icons.widgets_outlined,
+                  title: context.l10n.homeScreenWidgets,
+                  subtitle: context.l10n.widgetQuickAdd,
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(ctx.l10n.homeScreenWidgets),
+                      content: SingleChildScrollView(
+                        child: Text(ctx.l10n.widgetSetup),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(ctx.l10n.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: context.l10n.privacyPolicy,
                   subtitle: context.l10n.privacyPolicySubtitle,
                   onTap: _openPrivacyPolicy,
                 ),
+              ],
+            ),
+
+            SettingsGroup(
+              title: context.l10n.about,
+              children: [
                 SettingsTile(
                   icon: Icons.info_outline,
                   title: context.l10n.version,
@@ -489,6 +623,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         onTap: () => restoreEncrypted(context, ref),
       ),
       SettingsTile(
+        icon: Icons.history,
+        tint: const Color(0xFFF5B547),
+        title: context.l10n.backupHistory,
+        subtitle: context.l10n.backupHistorySubtitle,
+        onTap: () => backupHistory(context, ref),
+      ),
+      SettingsTile(
         icon: Icons.file_download_outlined,
         title: context.l10n.exportData,
         subtitle: context.l10n.exportDataSubtitle,
@@ -510,6 +651,103 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     ],
   );
+
+  Future<void> _pickMonthStart() async {
+    final current = ref.read(monthStartDayProvider);
+    final day = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(ctx.l10n.reportingMonth),
+        children: [
+          SizedBox(
+            width: 300,
+            height: 280,
+            child: GridView.count(
+              crossAxisCount: 7,
+              padding: const EdgeInsets.all(Sp.md),
+              children: [
+                for (var d = 1; d <= 28; d++)
+                  InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.pop(ctx, d),
+                    child: CircleAvatar(
+                      backgroundColor: d == current
+                          ? FlourishPalette.of(ctx).accent
+                          : Colors.transparent,
+                      child: Text(
+                        '$d',
+                        style: TextStyle(
+                          color: d == current
+                              ? AppColors.backgroundDark
+                              : FlourishPalette.of(ctx).textHigh,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (day == null || day == current) return;
+    Haptics.select();
+    await PreferencesService.setInt('month_start_day', day);
+    ref.read(databaseProvider).notifyFinanceChanged();
+  }
+
+  Future<void> _setReminders(bool on) async {
+    final reminders = ref.read(remindersProvider);
+    try {
+      if (on) {
+        await reminders.enable();
+        await reminders.schedule(ref.read(financeStoreProvider));
+      } else {
+        await reminders.disable();
+      }
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            on
+                ? context.l10n.paymentRemindersEnabled
+                : context.l10n.paymentRemindersOff,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
+      }
+    }
+  }
+
+  Future<void> _toggleAppLock() async {
+    final l = context.l10n;
+    try {
+      final auth = AuthenticationCoordinator.instance;
+      if (!await auth.isDeviceSupported()) {
+        throw StateError(l.setUpPasscodeFirst);
+      }
+      if (await auth.authenticate(l.changeAppLockReason)) {
+        await PreferencesService.setBool(
+          'app_lock_enabled',
+          !PreferencesService.getBool('app_lock_enabled'),
+        );
+        ref.read(databaseProvider).notifyFinanceChanged();
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(describeError(e))));
+      }
+    }
+  }
 
   String _languageName(BuildContext context, Locale? locale) =>
       switch (locale?.languageCode) {
@@ -855,53 +1093,88 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  /// Erasing everything asks for a typed word, and the button stays
+  /// disabled while the reset runs so it cannot fire twice.
   void _confirmReset(BuildContext context, WidgetRef ref) {
+    final typed = TextEditingController();
+    var running = false;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.resetAllData),
-        content: Text(context.l10n.resetAllDataWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(context.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Object? failure;
-              try {
-                await DataResetService(
-                  ref.read(databaseProvider),
-                  secureStorage: ref.read(secureStorageProvider),
-                  bridge: ref.read(detectionBridgeProvider),
-                ).reset();
-              } catch (e) {
-                failure = e;
-              }
-              ref.invalidate(aiSettingsProvider);
-              ref.invalidate(aiApiKeyProvider);
-              invalidateFinance(ref);
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      failure == null
-                          ? context.l10n.allDataReset
-                          : context.l10n.resetFailed(describeError(failure)),
-                    ),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final word = ctx.l10n.resetConfirmWord;
+          final ready = typed.text.trim() == word && !running;
+          return AlertDialog(
+            title: Text(ctx.l10n.resetAllData),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(ctx.l10n.resetAllDataWarning),
+                const SizedBox(height: Sp.lg),
+                TextField(
+                  controller: typed,
+                  autofocus: true,
+                  enabled: !running,
+                  decoration: InputDecoration(
+                    labelText: ctx.l10n.resetTypeToConfirm(word),
                   ),
-                );
-              }
-            },
-            child: Text(
-              context.l10n.reset,
-              style: TextStyle(color: AppColors.danger),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              ],
             ),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: running ? null : () => Navigator.pop(ctx),
+                child: Text(ctx.l10n.cancel),
+              ),
+              TextButton(
+                onPressed: !ready
+                    ? null
+                    : () async {
+                        setDialogState(() => running = true);
+                        Object? failure;
+                        try {
+                          await DataResetService(
+                            ref.read(databaseProvider),
+                            secureStorage: ref.read(secureStorageProvider),
+                            bridge: ref.read(detectionBridgeProvider),
+                          ).reset();
+                        } catch (e) {
+                          failure = e;
+                        }
+                        ref.invalidate(aiSettingsProvider);
+                        ref.invalidate(aiApiKeyProvider);
+                        invalidateFinance(ref);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                failure == null
+                                    ? context.l10n.allDataReset
+                                    : context.l10n.resetFailed(
+                                        describeError(failure),
+                                      ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                child: running
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(ctx.l10n.reset),
+              ),
+            ],
+          );
+        },
       ),
-    );
+    ).whenComplete(typed.dispose);
   }
 
   Value<DateTime> _dateValue(Object? value) {

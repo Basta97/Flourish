@@ -45,7 +45,21 @@ class AccountsScreen extends ConsumerWidget {
           SliverAppBar(
             pinned: true,
             title: Text(context.l10n.navAccounts),
-            actions: const [GlobalSearchButton()],
+            actions: [
+              const GlobalSearchButton(),
+              IconButton(
+                tooltip: context.l10n.addAccount,
+                onPressed: () {
+                  Haptics.tap();
+                  showSpringBottomSheet(
+                    context: context,
+                    builder: (_) => const AddAccountSheet(),
+                  );
+                },
+                icon: const Icon(Icons.add_rounded),
+              ),
+              const SizedBox(width: Sp.xs),
+            ],
           ),
           CupertinoSliverRefreshControl(
             onRefresh: () async {
@@ -61,7 +75,10 @@ class AccountsScreen extends ConsumerWidget {
               final accounts = allAccounts
                   .where((a) => details[a.id]?.archived != true)
                   .toList();
-              if (accounts.isEmpty) {
+              final archived = allAccounts
+                  .where((a) => details[a.id]?.archived == true)
+                  .toList();
+              if (accounts.isEmpty && archived.isEmpty) {
                 return [
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -99,11 +116,11 @@ class AccountsScreen extends ConsumerWidget {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     Sp.screenH,
                     0,
                     Sp.screenH,
-                    Sp.bottomNavClear + Sp.lg,
+                    archived.isEmpty ? Sp.bottomNavClear + Sp.lg : Sp.lg,
                   ),
                   sliver: SliverList.separated(
                     itemCount: accounts.length,
@@ -126,6 +143,21 @@ class AccountsScreen extends ConsumerWidget {
                     },
                   ),
                 ),
+                if (archived.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      Sp.screenH,
+                      0,
+                      Sp.screenH,
+                      Sp.bottomNavClear + Sp.lg,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _ArchivedAccounts(
+                        accounts: archived,
+                        details: details,
+                      ),
+                    ),
+                  ),
               ];
             },
             loading: () => [
@@ -152,6 +184,68 @@ class AccountsScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Archived accounts stay out of the list and totals but can be brought
+/// back from here.
+class _ArchivedAccounts extends ConsumerWidget {
+  const _ArchivedAccounts({required this.accounts, required this.details});
+
+  final List<Account> accounts;
+  final Map<int, AccountDetails> details;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = FlourishPalette.of(context);
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        leading: Icon(Icons.inventory_2_outlined, color: palette.textLow),
+        title: Text(
+          context.l10n.archivedAccounts(accounts.length),
+          style: AppTextStyles.bodyMedium.copyWith(color: palette.textLow),
+        ),
+        children: [
+          for (final a in accounts)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(a.name),
+              subtitle: Text(
+                CurrencyFormatter.format(a.balance, currency: a.currency),
+              ),
+              onTap: () => context.push('/accounts/${a.id}'),
+              trailing: TextButton(
+                onPressed: () async {
+                  final current = details[a.id] ?? AccountDetails(a.id);
+                  await ref
+                      .read(financeStoreProvider)
+                      .put(
+                        'accountDetails',
+                        '${a.id}',
+                        AccountDetails(
+                          a.id,
+                          institution: current.institution,
+                          group: current.group,
+                          included: current.included,
+                        ).toJson(),
+                      );
+                  Haptics.success();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.l10n.accountUnarchived(a.name)),
+                    ),
+                  );
+                },
+                child: Text(context.l10n.unarchive),
+              ),
+            ),
         ],
       ),
     );

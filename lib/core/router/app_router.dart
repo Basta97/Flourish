@@ -1,5 +1,4 @@
 import '../../presentation/currencies/exchange_rates_screen.dart';
-import '../../presentation/tools/tools_screen.dart';
 import '../../presentation/templates/templates_screen.dart';
 import 'package:flourish/presentation/detection/catch_up_screen.dart';
 import 'package:flourish/presentation/detection/iphone_guide_screen.dart';
@@ -27,7 +26,6 @@ import '../../shared/widgets/spring_bottom_sheet.dart';
 import '../../shared/widgets/pressable.dart';
 import '../motion/motion.dart';
 import '../../l10n/l10n.dart';
-import '../../presentation/transactions/widgets/add_type_menu.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
@@ -110,11 +108,8 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const ExchangeRatesScreen(),
     ),
-    GoRoute(
-      path: '/tools',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ToolsScreen(),
-    ),
+    // Tools were folded into Settings.
+    GoRoute(path: '/tools', redirect: (_, _) => '/settings'),
     GoRoute(
       path: '/templates',
       parentNavigatorKey: _rootNavigatorKey,
@@ -245,16 +240,6 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     return 0;
   }
 
-  String _currentRoute(BuildContext context) {
-    // Read the router's live location: the inherited GoRouterState can lag a
-    // frame behind a tab switch, which made Add open the wrong sheet.
-    // `state` is the top-most route, including pushed ones like /budgets.
-    final location = GoRouter.of(context).state.matchedLocation;
-    if (location.startsWith('/accounts')) return '/accounts';
-    if (location.startsWith('/search')) return '/search';
-    return '/dashboard';
-  }
-
   @override
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
@@ -297,33 +282,16 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     );
   }
 
+  /// The centre button always does one thing: a new expense. Income,
+  /// transfers, templates and scanning are one tap away inside the sheet;
+  /// accounts, budgets and goals are added from their own screens.
   Future<void> _showAddSheet(BuildContext context) async {
-    final route = _currentRoute(context);
+    Haptics.tap();
     setState(() => _addOpen = true);
-    WidgetBuilder? builder = switch (route) {
-      '/accounts' => (_) => const AddAccountSheet(),
-      _ => null,
-    };
-    if (builder == null) {
-      // Home and Ledger: pick the kind of entry first.
-      Haptics.tap();
-      final choice = await showAddTypeMenu(context);
-      if (!context.mounted) return;
-      switch (choice) {
-        case null:
-          break;
-        case AddChoice.template:
-          // The picker needs a WidgetRef, supplied by its small consumer host.
-          builder = (_) => const TemplateTransactionSheet();
-        case AddChoice.scan:
-          context.push('/smart-import');
-        case AddChoice.expense || AddChoice.income || AddChoice.transfer:
-          builder = (_) => AddTransactionSheet(initialType: choice.name);
-      }
-    }
-    if (builder != null) {
-      await showSpringBottomSheet(context: context, builder: builder);
-    }
+    await showSpringBottomSheet(
+      context: context,
+      builder: (_) => const AddTransactionSheet(initialType: 'expense'),
+    );
     if (mounted) setState(() => _addOpen = false);
   }
 }
@@ -433,7 +401,7 @@ class _IslandNavBar extends StatelessWidget {
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(Rad.full),
+                            borderRadius: BorderRadius.circular(Rad.lg),
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.08),
                             ),
@@ -490,25 +458,47 @@ class _NavItem extends StatelessWidget {
         child: SizedBox(
           width: 48,
           height: 48,
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: reduced ? Duration.zero : Motion.base,
-              switchInCurve: Motion.settle,
-              switchOutCurve: Curves.easeIn,
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: Tween<double>(begin: 0.6, end: 1).animate(animation),
-                child: FadeTransition(opacity: animation, child: child),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: reduced ? Duration.zero : Motion.base,
+                switchInCurve: Motion.settle,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: Tween<double>(begin: 0.6, end: 1).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Icon(
+                  selected ? item.selectedIcon : item.icon,
+                  key: ValueKey(selected),
+                  semanticLabel: item.label,
+                  size: 22,
+                  color: selected
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.55),
+                ),
               ),
-              child: Icon(
-                selected ? item.selectedIcon : item.icon,
-                key: ValueKey(selected),
-                semanticLabel: item.label,
-                size: selected ? 25 : 23,
-                color: selected
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.48),
+              const SizedBox(height: 2),
+              // Visible names: the icons alone were hard to tell apart.
+              ExcludeSemantics(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    item.label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 10,
+                      height: 1.1,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: selected
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

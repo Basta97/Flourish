@@ -28,6 +28,7 @@ import '../providers/theme_providers.dart';
 import '../transactions/widgets/add_transaction_sheet.dart';
 import 'widgets/motivation_card.dart';
 import 'widgets/net_worth_hero.dart';
+import 'widgets/setup_checklist.dart';
 import '../../l10n/l10n.dart';
 import '../providers/goals_provider.dart';
 import '../providers/locale_providers.dart';
@@ -108,6 +109,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: Sp.lg),
       ],
+      const SetupChecklist(),
       const NetWorthHero(),
       const SizedBox(height: Sp.lg),
       _Motivation(month: month, currency: currency),
@@ -394,16 +396,16 @@ class _MonthSummary extends ConsumerWidget {
                         ),
                         if (budget != null && p != null)
                           Text(
-                            p.spending > budget
+                            p.budgetSpent > budget
                                 ? l.budgetOver(
-                                    fmt((p.spending - budget).toDouble()),
+                                    fmt((p.budgetSpent - budget).toDouble()),
                                   )
                                 : l.budgetLeft(
-                                    fmt((budget - p.spending).toDouble()),
+                                    fmt((budget - p.budgetSpent).toDouble()),
                                     fmt(budget.toDouble()),
                                   ),
                             style: AppTextStyles.caption.copyWith(
-                              color: p.spending > budget
+                              color: p.budgetSpent > budget
                                   ? palette.expense
                                   : palette.textLow,
                             ),
@@ -418,7 +420,7 @@ class _MonthSummary extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (cumulative.length > 1)
+                  if (cumulative.length > 1 && cumulative.last > 0)
                     SizedBox(
                       width: 110,
                       child: Sparkline(
@@ -478,7 +480,6 @@ class _QuickActions extends StatelessWidget {
     final palette = FlourishPalette.of(context);
     final l = context.l10n;
     final actions = [
-      (l.tools, '/tools', Icons.build_outlined),
       (l.budgets, '/insights?tab=budgets', Icons.track_changes_rounded),
       (l.goals, '/insights?tab=goals', Icons.flag_outlined),
       (l.recurring, '/recurring', Icons.repeat_rounded),

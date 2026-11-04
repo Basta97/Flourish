@@ -6571,6 +6571,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Budget'**
   String get budget;
+
+  /// No description provided for @moreDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'More details'**
+  String get moreDetails;
+
+  /// No description provided for @moreDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Card, refund, currency, merchant, note'**
+  String get moreDetailsHint;
+
+  /// No description provided for @archivedAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 archived account} other{{count} archived accounts}}'**
+  String archivedAccounts(int count);
+
+  /// No description provided for @unarchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get unarchive;
+
+  /// No description provided for @accountUnarchived.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is active again'**
+  String accountUnarchived(String name);
+
+  /// No description provided for @settingsGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsGeneral;
+
+  /// No description provided for @settingsAutomation.
+  ///
+  /// In en, this message translates to:
+  /// **'Automation'**
+  String get settingsAutomation;
+
+  /// No description provided for @settingsSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security & privacy'**
+  String get settingsSecurity;
+
+  /// No description provided for @reviewInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Review inbox'**
+  String get reviewInbox;
+
+  /// No description provided for @reviewInboxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments detected from alerts, waiting for you'**
+  String get reviewInboxSubtitle;
+
+  /// No description provided for @appLockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for Face ID, fingerprint or passcode when opening'**
+  String get appLockSubtitle;
+
+  /// No description provided for @paymentRemindersOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment reminders turned off'**
+  String get paymentRemindersOff;
+
+  /// No description provided for @backupHistoryShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic backups'**
+  String get backupHistoryShort;
+
+  /// No description provided for @templateDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Template deleted'**
+  String get templateDeleted;
+
+  /// No description provided for @deleteRecurringTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this recurring entry?'**
+  String get deleteRecurringTitle;
+
+  /// No description provided for @deleteRecurringBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Entries it already added stay in your ledger. Pause it instead if you may need it again.'**
+  String get deleteRecurringBody;
+
+  /// No description provided for @resetConfirmWord.
+  ///
+  /// In en, this message translates to:
+  /// **'RESET'**
+  String get resetConfirmWord;
+
+  /// No description provided for @resetTypeToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {word} to confirm'**
+  String resetTypeToConfirm(String word);
+
+  /// No description provided for @setupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up Flourish'**
+  String get setupTitle;
+
+  /// No description provided for @setupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Three quick steps and you\'re ready'**
+  String get setupSubtitle;
+
+  /// No description provided for @setupCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Main currency: {currency}'**
+  String setupCurrency(String currency);
+
+  /// No description provided for @setupAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the account you spend from'**
+  String get setupAccount;
+
+  /// No description provided for @setupLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock the app with Face ID or passcode'**
+  String get setupLock;
+
+  /// No description provided for @setupDetection.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch payments from bank alerts (optional)'**
+  String get setupDetection;
+
+  /// No description provided for @setupDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get setupDone;
 }
 
 class _AppLocalizationsDelegate

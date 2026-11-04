@@ -17,7 +17,6 @@ import 'package:flourish/data/database/database.dart';
 import 'package:flourish/presentation/providers/account_providers.dart';
 import 'package:flourish/presentation/providers/transaction_providers.dart';
 import 'package:flourish/presentation/transactions/widgets/edit_transaction_sheet.dart';
-import 'package:flourish/shared/widgets/bottom_sheet_scaffold.dart';
 import 'package:flourish/shared/widgets/category_icon_widget.dart';
 import 'package:flourish/shared/widgets/pressable.dart';
 import 'package:flourish/shared/widgets/spring_bottom_sheet.dart';
@@ -251,7 +250,10 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                   ),
                 ),
                 CustomSlidableAction(
-                  onPressed: (_) => _confirmDelete(),
+                  onPressed: (_) {
+                    Haptics.warning();
+                    _delete();
+                  },
                   padding: const EdgeInsets.symmetric(
                     horizontal: Sp.xs,
                     vertical: Sp.sm,
@@ -285,48 +287,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
     );
   }
 
-  void _confirmDelete() {
-    Haptics.warning();
-    final palette = FlourishPalette.of(context);
-    showSpringBottomSheet(
-      context: context,
-      builder: (sheetContext) => BottomSheetScaffold(
-        title: context.l10n.deleteTransactionTitle,
-        children: [
-          Text(
-            context.l10n.deleteTransactionBody,
-            style: AppTextStyles.body.copyWith(color: palette.textLow),
-          ),
-          const SizedBox(height: Sp.xl),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(sheetContext),
-                  child: Text(context.l10n.keep),
-                ),
-              ),
-              const SizedBox(width: Sp.md),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.pop(sheetContext);
-                    _delete();
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.danger,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(context.l10n.delete),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
+  /// Deleting needs no confirmation: the snackbar offers undo instead.
   Future<void> _delete() async {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;

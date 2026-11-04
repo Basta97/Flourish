@@ -19,7 +19,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
-    SharedPreferences.setMockInitialValues({'default_currency': 'EGP'});
+    SharedPreferences.setMockInitialValues({
+      'default_currency': 'EGP',
+      // The first-run checklist is covered on its own.
+      'setup_done': true,
+    });
     await PreferencesService.init();
   });
 
@@ -139,8 +143,9 @@ void main() {
     );
   });
 
-  testWidgets('the Add button asks which kind of entry to add', (tester) async {
+  testWidgets('the Add button opens a new expense directly', (tester) async {
     phone(tester);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
     final router = GoRouter(
       initialLocation: '/dashboard',
       routes: [
@@ -156,17 +161,22 @@ void main() {
       ],
     );
     await tester.pumpWidget(
-      MaterialApp.router(theme: AppTheme.dark(), routerConfig: router),
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db)],
+        child: MaterialApp.router(theme: AppTheme.dark(), routerConfig: router),
+      ),
     );
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tapAt(tester.getCenter(find.bySemanticsLabel('Add')));
-    await tester.pumpAndSettle();
-    for (final label in ['Expense', 'Income', 'Transfer', 'Scan or import']) {
-      expect(find.text(label), findsOneWidget, reason: label);
+    await settle(tester);
+    expect(find.text('New Transaction'), findsOneWidget);
+    // Income and transfers are one tap away; templates and scanning sit in
+    // the header.
+    for (final label in ['Expense', 'Income', 'Transfer']) {
+      expect(find.text(label), findsWidgets, reason: label);
     }
-    // Tapping outside closes it without opening a form.
-    await tester.tapAt(const Offset(200, 200));
-    await tester.pumpAndSettle();
-    expect(find.text('Scan or import'), findsNothing);
+    expect(find.byTooltip('Scan or import'), findsOneWidget);
+    expect(find.byTooltip('Use template'), findsOneWidget);
+    await finish(tester, db);
   });
 }

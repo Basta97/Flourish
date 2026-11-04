@@ -15,10 +15,11 @@ final aiHttpClientProvider = Provider<http.Client>((ref) {
 });
 
 final aiApiKeyProvider = FutureProvider<String?>((ref) async {
-  ref.watch(aiSettingsProvider);
-  final key = await ref
-      .watch(secureStorageProvider)
-      .read(key: AiSettings.apiKeyStorageKey);
+  final settings = ref.watch(aiSettingsProvider);
+  final key = await AiKeys.read(
+    ref.watch(secureStorageProvider),
+    settings.host,
+  );
   return key == null || key.trim().isEmpty ? null : key.trim();
 });
 

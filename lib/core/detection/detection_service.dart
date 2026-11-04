@@ -837,16 +837,31 @@ class DetectionService {
     );
   });
 
-  /// Clears message text of resolved items older than [days].
-  Future<void> purgeText({required int days, DateTime? now}) =>
-      (db.update(db.detectedPayments)..where(
-            (d) =>
-                d.status.isNotValue('pending') &
-                d.receivedAt.isSmallerThanValue(
-                  (now ?? DateTime.now()).subtract(Duration(days: days)),
-                ),
-          ))
-          .write(const DetectedPaymentsCompanion(rawText: Value(null)));
+  /// Longest a message waiting for review keeps its text.
+  static const pendingTextDays = 30;
+
+  /// Clears message text of resolved items older than [days], and of items
+  /// still waiting for review once they are older than [pendingTextDays]
+  /// (or [days], if shorter) so an ignored inbox never keeps text forever.
+  /// With [days] 0, waiting items keep their text for review until the cap.
+  Future<void> purgeText({required int days, DateTime? now}) {
+    final at = now ?? DateTime.now();
+    final pendingDays = days == 0 || days > pendingTextDays
+        ? pendingTextDays
+        : days;
+    return (db.update(db.detectedPayments)..where(
+          (d) =>
+              (d.status.isNotValue('pending') &
+                  d.receivedAt.isSmallerThanValue(
+                    at.subtract(Duration(days: days)),
+                  )) |
+              (d.status.equals('pending') &
+                  d.receivedAt.isSmallerThanValue(
+                    at.subtract(Duration(days: pendingDays)),
+                  )),
+        ))
+        .write(const DetectedPaymentsCompanion(rawText: Value(null)));
+  }
 
   Future<void> purgeAllText() => (db.update(
     db.detectedPayments,

@@ -3965,4 +3965,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get setupDone => 'تم';
+
+  @override
+  String get aiHttpsRequired =>
+      'استخدم عنوانًا يبدأ بـ https://‏. يعمل http فقط مع هذا الجهاز أو شبكتك المنزلية.';
+
+  @override
+  String get passwordMin12 => 'كلمة المرور (12 حرفًا أو أكثر)';
 }

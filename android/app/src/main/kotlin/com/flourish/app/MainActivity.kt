@@ -1,6 +1,8 @@
 package com.flourish.app
 
 import android.content.Intent
+import android.os.Build
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -28,6 +30,17 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
         }
+        // While the app lock is on, keep finances out of screenshots, screen
+        // recordings and the recent-apps thumbnail.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "flourish/privacy").setMethodCallHandler { call, result ->
+            if (call.method == "setSecure") {
+                val secure = call.arguments as? Boolean ?: false
+                if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(!secure)
+                result.success(null)
+            } else result.notImplemented()
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "flourish/imports").setMethodCallHandler { call, result ->
             if (call.method == "consumePendingImport") {
                 result.success(pending)
@@ -40,7 +53,12 @@ class MainActivity : FlutterFragmentActivity() {
                     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
                     recognizer.process(image).addOnSuccessListener { result.success(it.text) }
                         .addOnFailureListener { result.error("ocr", "Text recognition failed", null) }
-                        .addOnCompleteListener { recognizer.close() }
+                        .addOnCompleteListener {
+                            recognizer.close()
+                            // The copy made from a share is only needed for OCR.
+                            val file = File(path)
+                            if (file.parentFile == cacheDir && file.name.startsWith("shared-")) file.delete()
+                        }
                 } catch (_: Exception) { result.error("image", "Could not open image", null) }
             } else result.notImplemented()
         }
@@ -78,7 +96,9 @@ class MainActivity : FlutterFragmentActivity() {
         var imagePath = ""
         if (intent.type?.startsWith("image/") == true) {
             val uri = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
-            if (uri != null) {
+            // Only content:// shares: a file:// path could make the app copy
+            // its own private files on another app's behalf.
+            if (uri != null && uri.scheme == "content") {
                 try {
                     val file = File(cacheDir, "shared-${System.currentTimeMillis()}.jpg")
                     contentResolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } }

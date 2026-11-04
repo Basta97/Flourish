@@ -3932,4 +3932,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get setupDone => 'Done';
+
+  @override
+  String get aiHttpsRequired =>
+      'Use an https:// address. Plain http works only for this device or your home network.';
+
+  @override
+  String get passwordMin12 => 'Password (12+ characters)';
 }

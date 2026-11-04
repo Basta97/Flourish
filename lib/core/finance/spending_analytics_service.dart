@@ -133,12 +133,20 @@ class SpendingPeriod {
     return spending + (rest > upcoming ? rest : upcoming);
   }
 
-  /// Percent change against the previous period, or null without history.
-  double? changeVsPrevious() => previousSpending > Amount.zero
-      ? (spending.toDouble() - previousSpending.toDouble()) /
-            previousSpending.toDouble() *
-            100
-      : null;
+  /// Previous period's spending up to the same day as [now] (all of it
+  /// for a finished period).
+  Amount previousToDate(DateTime now) => previousDaily
+      .take(now.isBefore(end) ? elapsedDays(now) : previousDaily.length)
+      .fold(Amount.zero, (a, b) => a + b);
+
+  /// Percent change against the same point of the previous period, or null
+  /// without history.
+  double? changeVsPrevious(DateTime now) {
+    final before = previousToDate(now);
+    return before > Amount.zero
+        ? (spending.toDouble() - before.toDouble()) / before.toDouble() * 100
+        : null;
+  }
 }
 
 /// The one place cash-flow totals are computed: classifies every entry with

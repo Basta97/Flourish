@@ -1,3 +1,4 @@
+import 'package:cryptography/cryptography.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
@@ -167,8 +168,44 @@ void main() {
         backup.decrypt(text, 'incorrect-password'),
         throwsA(anything),
       );
+      // The key settings are authenticated with the contents.
+      final j = jsonDecode(text) as Map<String, dynamic>;
+      expect(j['version'], 2);
+      expect(j['kdf'], {'name': 'pbkdf2-sha256', 'iterations': 600000});
+      j['kdf'] = {'name': 'pbkdf2-sha256', 'iterations': 600001};
+      await expectLater(
+        backup.decrypt(jsonEncode(j), 'strong-test-password'),
+        throwsA(anything),
+      );
+      await expectLater(backup.encrypt('short-pass'), throwsArgumentError);
     },
   );
+  test('version 1 encrypted backups still restore', () async {
+    await cash();
+    final backup = BackupService(db);
+    // Written exactly as Flourish 1.2 did: 210k rounds, no authenticated
+    // header.
+    final salt = List<int>.generate(16, (i) => i);
+    final key = await Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: 210000,
+      bits: 256,
+    ).deriveKeyFromPassword(password: 'old-password', nonce: salt);
+    final box = await AesGcm.with256bits().encrypt(
+      utf8.encode(jsonEncode(await backup.exportData())),
+      secretKey: key,
+    );
+    final text = jsonEncode({
+      'format': 'flourish-encrypted',
+      'version': 1,
+      'salt': base64Encode(salt),
+      'nonce': base64Encode(box.nonce),
+      'cipher': base64Encode(box.cipherText),
+      'mac': base64Encode(box.mac.bytes),
+    });
+    final clear = await backup.decrypt(text, 'old-password');
+    expect(clear['format'], 'flourish-finance');
+  });
   test(
     'spreadsheet preview detects duplicates and applies atomically',
     () async {

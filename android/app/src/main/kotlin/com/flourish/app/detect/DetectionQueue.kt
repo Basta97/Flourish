@@ -28,7 +28,8 @@ object DetectionQueue {
         synchronized(lock) {
             val entry = JSONObject()
                 .put("id", UUID.randomUUID().toString())
-                .put("text", text)
+                // Redacted before it touches disk, not later in Dart.
+                .put("text", Redactor.redact(text))
                 .put("sender", sender ?: JSONObject.NULL)
                 .put("packageName", packageName ?: JSONObject.NULL)
                 .put("receivedAt", receivedAtIso)

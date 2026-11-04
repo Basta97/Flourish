@@ -4,6 +4,10 @@ import Vision
 import WidgetKit
 
 class SceneDelegate: FlutterSceneDelegate {
+  /// Set from Dart while the app lock is on.
+  private var secure = false
+  private var cover: UIView?
+
   override func scene(
     _ scene: UIScene,
     willConnectTo session: UISceneSession,
@@ -13,7 +17,65 @@ class SceneDelegate: FlutterSceneDelegate {
     configureImportChannel()
     configureDetectionChannel()
     configureWidgetChannel()
+    configurePrivacyChannel()
+    excludeDataFromBackup()
+    // Observed rather than overridden so Flutter's own lifecycle handling
+    // in FlutterSceneDelegate keeps running.
+    let center = NotificationCenter.default
+    center.addObserver(forName: UIScene.willDeactivateNotification, object: scene, queue: .main) {
+      [weak self] _ in self?.showCover()
+    }
+    center.addObserver(forName: UIScene.didActivateNotification, object: scene, queue: .main) {
+      [weak self] _ in
+      self?.hideCover()
+      self?.excludeDataFromBackup()
+    }
     for item in connectionOptions.urlContexts { captureWidgetURL(item.url) }
+  }
+
+  private func configurePrivacyChannel() {
+    guard let controller = window?.rootViewController as? FlutterViewController else { return }
+    FlutterMethodChannel(name: "flourish/privacy", binaryMessenger: controller.binaryMessenger)
+      .setMethodCallHandler { [weak self] call, result in
+        if call.method == "setSecure" {
+          self?.secure = call.arguments as? Bool ?? false
+          result(nil)
+        } else {
+          result(FlutterMethodNotImplemented)
+        }
+      }
+  }
+
+  /// The app-switcher snapshot is taken right after the scene deactivates;
+  /// a native blur is in place before Flutter could repaint its curtain.
+  private func showCover() {
+    guard secure, cover == nil, let window = window else { return }
+    let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
+    blur.frame = window.bounds
+    blur.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    window.addSubview(blur)
+    cover = blur
+  }
+
+  private func hideCover() {
+    cover?.removeFromSuperview()
+    cover = nil
+  }
+
+  /// The database, automatic backups and receipts live in Documents. They
+  /// stay on this device: iCloud and computer backups skip them, matching
+  /// Android's backup rules. Rerun on each activation to cover new files.
+  private func excludeDataFromBackup() {
+    guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    else { return }
+    var urls = [documents]
+    urls += (try? FileManager.default.contentsOfDirectory(
+      at: documents, includingPropertiesForKeys: nil)) ?? []
+    for var url in urls {
+      var values = URLResourceValues()
+      values.isExcludedFromBackup = true
+      try? url.setResourceValues(values)
+    }
   }
 
   override func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

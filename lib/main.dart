@@ -9,12 +9,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'core/finance/financial_ledger_service.dart';
 import 'core/finance/recurring_service.dart';
 import 'core/services/preferences_service.dart';
+import 'core/utils/temporary_export.dart';
+import 'dart:async';
 import 'data/database/database.dart';
 import 'presentation/providers/database_provider.dart';
 import 'app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Logs can carry error details about finances; release builds stay quiet.
+  if (kReleaseMode) debugPrint = (String? message, {int? wrapWidth}) {};
   // Fonts ship in assets/fonts; never download them at runtime.
   GoogleFonts.config.allowRuntimeFetching = false;
   LicenseRegistry.addLicense(() async* {
@@ -27,6 +31,9 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final db = AppDatabase();
+  // Exports and shared images are deleted after use; this catches any a
+  // crash left behind.
+  unawaited(TemporaryExport.sweep());
 
   try {
     await RecurringService(FinancialLedgerService(db)).processDue();

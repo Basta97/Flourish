@@ -85,11 +85,60 @@ enum SharedImportStore {
     try? text.write(to: url, atomically: true, encoding: .utf8)
   }
 
+  /// Removes full card numbers (keeps the last 4), national IDs, one-time
+  /// codes and most of a phone number. Mirrors lib/core/detection/redact.dart.
+  static func redact(_ text: String) -> String {
+    var out = text
+    func replace(_ pattern: String, options: NSRegularExpression.Options = [],
+                 _ transform: (NSTextCheckingResult, NSString) -> String) {
+      guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else { return }
+      let source = out as NSString
+      var result = ""
+      var last = 0
+      for match in regex.matches(in: out, range: NSRange(location: 0, length: source.length)) {
+        result += source.substring(with: NSRange(location: last, length: match.range.location - last))
+        result += transform(match, source)
+        last = match.range.location + match.range.length
+      }
+      result += source.substring(from: last)
+      out = result
+    }
+    replace("(?<!\\d)(?:\\d[ -]?){12,18}\\d(?!\\d)") { match, source in
+      let value = source.substring(with: match.range)
+      let digits = value.filter(\.isNumber)
+      if luhn(digits) { return "••••" + digits.suffix(4) }
+      if digits.range(of: "^[23]\\d{13}$", options: .regularExpression) != nil { return "[ID]" }
+      return value
+    }
+    replace("((?:otp|code|passcode|pin|رمز|كود|الرمز)\\D{0,12})(\\d{4,8})", options: .caseInsensitive) {
+      match, source in source.substring(with: match.range(at: 1)) + "[CODE]"
+    }
+    replace("(?<!\\d)(\\+?20|0)(1[0125])(\\d{5})(\\d{3})(?!\\d)") { match, source in
+      source.substring(with: match.range(at: 1)) + source.substring(with: match.range(at: 2))
+        + "*****" + source.substring(with: match.range(at: 4))
+    }
+    return out
+  }
+
+  private static func luhn(_ digits: String) -> Bool {
+    var sum = 0
+    for (i, ch) in digits.reversed().enumerated() {
+      guard var d = ch.wholeNumberValue else { return false }
+      if i % 2 == 1 {
+        d *= 2
+        if d > 9 { d -= 9 }
+      }
+      sum += d
+    }
+    return sum % 10 == 0
+  }
+
   /// Adds a captured message for the app to pick up.
   static func appendDetection(text: String, sender: String?, source: String, receivedAt: Date = Date()) {
     let entry: [String: Any] = [
       "id": UUID().uuidString,
-      "text": text,
+      // Redacted before it touches disk, not later in Dart.
+      "text": redact(text),
       "sender": (sender as Any?) ?? NSNull(),
       "receivedAt": ISO8601DateFormatter().string(from: receivedAt),
       "source": source

@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/preferences_service.dart';
 
 /// A starting point for an OpenAI-compatible endpoint. The user can edit the
@@ -96,7 +97,12 @@ class AiSettings {
     this.autoConsentHost = '',
   });
 
+  /// Older versions kept one key for every host under this name.
   static const apiKeyStorageKey = 'ai_api_key';
+
+  /// Where the key for [host] is kept: one per host, so switching provider
+  /// never sends one service's key to another.
+  static String keyNameFor(String host) => '$apiKeyStorageKey:$host';
 
   /// Lets the person ask the AI about a payment message (Ask AI, Smart
   /// Import). Nothing is sent without a tap unless [automatic] is also on.
@@ -131,7 +137,30 @@ class AiSettings {
   /// Free providers always get redacted text, whatever the toggle says.
   bool get effectiveRedact => redact || preset.free;
 
-  bool get configured => baseUrl.trim().isNotEmpty && model.trim().isNotEmpty;
+  bool get configured =>
+      baseUrl.trim().isNotEmpty && model.trim().isNotEmpty && secureEndpoint;
+
+  /// Keys and payment text travel only over HTTPS. Plain HTTP is accepted
+  /// for a model running on this device or the home network.
+  bool get secureEndpoint {
+    final uri = Uri.tryParse(baseUrl.trim());
+    if (uri == null || uri.host.isEmpty) return false;
+    if (uri.scheme == 'https') return true;
+    return uri.scheme == 'http' && isLocalHost(uri.host);
+  }
+
+  static bool isLocalHost(String host) {
+    if (host == 'localhost' || host == '::1' || host.endsWith('.local')) {
+      return true;
+    }
+    final parts = host.split('.').map(int.tryParse).toList();
+    if (parts.length != 4 || parts.any((p) => p == null)) return false;
+    final [a, b, _, _] = parts.cast<int>();
+    return a == 127 ||
+        a == 10 ||
+        (a == 192 && b == 168) ||
+        (a == 172 && b >= 16 && b <= 31);
+  }
 
   AiSettings copyWith({
     bool? enabled,
@@ -207,4 +236,29 @@ class AiSettings {
     await PreferencesService.setBool('ai_screenshot_ocr', screenshotOcr);
     await PreferencesService.setString('ai_auto_consent_host', autoConsentHost);
   }
+}
+
+/// Reads and writes the API key of the configured host.
+class AiKeys {
+  AiKeys._();
+
+  static Future<String?> read(FlutterSecureStorage storage, String host) async {
+    final key = await storage.read(key: AiSettings.keyNameFor(host));
+    if (key != null) return key;
+    // One-time move of the single key older versions kept: it belonged to
+    // whichever host was configured when the key was saved, i.e. this one.
+    final legacy = await storage.read(key: AiSettings.apiKeyStorageKey);
+    if (legacy == null) return null;
+    await storage.write(key: AiSettings.keyNameFor(host), value: legacy);
+    await storage.delete(key: AiSettings.apiKeyStorageKey);
+    return legacy;
+  }
+
+  static Future<void> write(
+    FlutterSecureStorage storage,
+    String host,
+    String? key,
+  ) => key == null || key.isEmpty
+      ? storage.delete(key: AiSettings.keyNameFor(host))
+      : storage.write(key: AiSettings.keyNameFor(host), value: key);
 }

@@ -126,7 +126,8 @@ void main() {
     expect(p.averageDaily(DateTime(2026, 10, 10, 12)), Amount('20'));
     // Last month's spending fell before day 10, so nothing more is expected.
     expect(p.projected(DateTime(2026, 10, 10, 12)), Amount('200'));
-    expect(p.changeVsPrevious(), 0);
+    // 200 by day 10 now against 200 by day 10 last month.
+    expect(p.changeVsPrevious(DateTime(2026, 10, 10, 12)), 0);
   });
 
   test('projects from pace without a previous month', () async {

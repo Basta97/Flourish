@@ -2412,5 +2412,7 @@
   "setupAccount": "Add the account you spend from",
   "setupLock": "Lock the app with Face ID or passcode",
   "setupDetection": "Catch payments from bank alerts (optional)",
-  "setupDone": "Done"
+  "setupDone": "Done",
+  "aiHttpsRequired": "Use an https:// address. Plain http works only for this device or your home network.",
+  "passwordMin12": "Password (12+ characters)"
 }

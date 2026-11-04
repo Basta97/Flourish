@@ -14,12 +14,12 @@ import '../wealth/finance_runtime.dart' show remindersProvider;
 import '../providers/insights_providers.dart';
 import '../../core/auth/authentication_coordinator.dart';
 import '../../core/finance/reminder_service.dart';
+import '../../core/utils/temporary_export.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -818,13 +818,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!mounted || choice == null) return;
     if (choice == 'encrypted') return exportEncrypted(context, ref);
     try {
-      final data = await BackupService(ref.read(databaseProvider)).exportData();
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/flourish_backup.json');
-      await file.writeAsString(jsonEncode(data));
-      if (mounted) {
-        await Share.shareXFiles([XFile(file.path)], text: 'Flourish Backup');
+      // A readable copy of everything: confirm it is really the owner.
+      final auth = AuthenticationCoordinator.instance;
+      final reason = context.l10n.plainExportTitle;
+      if (await auth.isDeviceSupported() && !await auth.authenticate(reason)) {
+        return;
       }
+      final data = await BackupService(ref.read(databaseProvider)).exportData();
+      if (!mounted) return;
+      await TemporaryExport.share(
+        'flourish_backup.json',
+        jsonEncode(data),
+        (file) =>
+            Share.shareXFiles([XFile(file.path)], text: 'Flourish Backup'),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

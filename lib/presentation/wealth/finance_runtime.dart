@@ -3,6 +3,7 @@ import 'package:flourish/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/authentication_coordinator.dart';
 import '../providers/finance_providers.dart';
@@ -159,15 +160,39 @@ class _FinanceAppLockState extends State<FinanceAppLock>
   String? error;
   AuthenticationCoordinator get authentication =>
       widget.authentication ?? AuthenticationCoordinator.instance;
+  static const _privacy = MethodChannel('flourish/privacy');
+  StreamSubscription<String>? _lockSetting;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (locked) WidgetsBinding.instance.addPostFrameCallback((_) => unlock());
+    _applySecureWindow();
+    _lockSetting = PreferencesService.changes.stream
+        .where((key) => key == 'app_lock_enabled')
+        .listen((_) => _applySecureWindow());
+  }
+
+  /// With the lock on, the platform keeps the app out of screenshots,
+  /// recordings and the app switcher (Android FLAG_SECURE; a blur cover on
+  /// iOS). Platforms without the channel simply ignore it.
+  Future<void> _applySecureWindow() async {
+    try {
+      await _privacy.invokeMethod(
+        'setSecure',
+        PreferencesService.getBool('app_lock_enabled'),
+      );
+    } on MissingPluginException {
+      // Tests and desktop builds have no native side.
+    } on PlatformException {
+      // Not fatal: the in-app curtain still covers the content.
+    }
   }
 
   @override
   void dispose() {
+    _lockSetting?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

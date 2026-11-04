@@ -38,11 +38,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(secureStorageProvider).read(key: AiSettings.apiKeyStorageKey).then(
-      (k) {
-        if (mounted) setState(() => _hasKey = (k ?? '').isNotEmpty);
-      },
-    );
+    _loadKey();
   }
 
   @override
@@ -54,18 +50,28 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
   }
 
   Future<void> _update(AiSettings next) async {
+    final hostChanged = next.host != ref.read(aiSettingsProvider).host;
     ref.read(aiSettingsProvider.notifier).state = next;
     await next.save();
+    if (hostChanged) _loadKey();
+  }
+
+  /// Whether the current host has a key; each host keeps its own.
+  Future<void> _loadKey() async {
+    final k = await AiKeys.read(
+      ref.read(secureStorageProvider),
+      ref.read(aiSettingsProvider).host,
+    );
+    if (mounted) setState(() => _hasKey = (k ?? '').isNotEmpty);
   }
 
   Future<void> _saveKey() async {
-    final storage = ref.read(secureStorageProvider);
     final key = _key.text.trim();
-    if (key.isEmpty) {
-      await storage.delete(key: AiSettings.apiKeyStorageKey);
-    } else {
-      await storage.write(key: AiSettings.apiKeyStorageKey, value: key);
-    }
+    await AiKeys.write(
+      ref.read(secureStorageProvider),
+      ref.read(aiSettingsProvider).host,
+      key,
+    );
     _key.clear();
     ref.invalidate(aiApiKeyProvider);
     if (!mounted) return;
@@ -254,6 +260,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     autocorrect: false,
                     decoration: InputDecoration(
                       labelText: context.l10n.baseUrl,
+                      errorText: s.baseUrl.trim().isEmpty || s.secureEndpoint
+                          ? null
+                          : context.l10n.aiHttpsRequired,
                     ),
                     onChanged: (v) => _update(s.copyWith(baseUrl: v)),
                   ),

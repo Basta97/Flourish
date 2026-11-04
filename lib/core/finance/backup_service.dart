@@ -426,46 +426,85 @@ class BackupService {
     }
   }
 
+  /// Minimum length of a backup password.
+  static const minPasswordLength = 12;
+
+  /// PBKDF2-HMAC-SHA256 rounds for new backups (OWASP 2023 guidance).
+  static const _iterations = 600000;
+
+  static Future<SecretKey> _derive(
+    String password,
+    List<int> salt,
+    int iterations,
+  ) => Pbkdf2(
+    macAlgorithm: Hmac.sha256(),
+    iterations: iterations,
+    bits: 256,
+  ).deriveKeyFromPassword(password: password, nonce: salt);
+
+  /// The fields a version 2 file authenticates along with its contents, so
+  /// the key settings cannot be swapped without the password check failing.
+  static List<int> _header(Json j) => utf8.encode(
+    jsonEncode({
+      'format': j['format'],
+      'version': j['version'],
+      'kdf': j['kdf'],
+      'salt': j['salt'],
+    }),
+  );
+
   Future<String> encrypt(String password) async {
-    if (password.length < 10) throw ArgumentError('Use at least 10 characters');
+    if (password.length < minPasswordLength) {
+      throw ArgumentError('Use at least $minPasswordLength characters');
+    }
     final salt = List<int>.generate(16, (_) => Random.secure().nextInt(256));
-    final key = await Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: 210000,
-      bits: 256,
-    ).deriveKeyFromPassword(password: password, nonce: salt);
-    final cipher = AesGcm.with256bits();
-    final box = await cipher.encrypt(
+    final header = <String, dynamic>{
+      'format': 'flourish-encrypted',
+      'version': 2,
+      'kdf': {'name': 'pbkdf2-sha256', 'iterations': _iterations},
+      'salt': base64Encode(salt),
+    };
+    final box = await AesGcm.with256bits().encrypt(
       utf8.encode(jsonEncode(await exportData())),
-      secretKey: key,
+      secretKey: await _derive(password, salt, _iterations),
+      aad: _header(header),
     );
     return jsonEncode({
-      'format': 'flourish-encrypted',
-      'version': 1,
-      'salt': base64Encode(salt),
+      ...header,
       'nonce': base64Encode(box.nonce),
       'cipher': base64Encode(box.cipherText),
       'mac': base64Encode(box.mac.bytes),
     });
   }
 
+  /// Opens version 2 files and the version 1 files earlier releases wrote.
   Future<Json> decrypt(String text, String password) async {
     final j = jsonDecode(text) as Json;
-    if (j['format'] != 'flourish-encrypted' || j['version'] != 1) {
+    final version = j['version'];
+    if (j['format'] != 'flourish-encrypted' || (version != 1 && version != 2)) {
       throw const FormatException('Invalid encrypted backup');
     }
-    final key = await Pbkdf2(
-      macAlgorithm: Hmac.sha256(),
-      iterations: 210000,
-      bits: 256,
-    ).deriveKeyFromPassword(password: password, nonce: base64Decode(j['salt']));
+    final kdf = j['kdf'] as Map?;
+    final iterations = version == 1 ? 210000 : kdf?['iterations'];
+    if (version == 2 &&
+        (kdf?['name'] != 'pbkdf2-sha256' ||
+            iterations is! int ||
+            iterations < 100000 ||
+            iterations > 10000000)) {
+      throw const FormatException('Invalid encrypted backup');
+    }
     final clear = await AesGcm.with256bits().decrypt(
       SecretBox(
         base64Decode(j['cipher']),
         nonce: base64Decode(j['nonce']),
         mac: Mac(base64Decode(j['mac'])),
       ),
-      secretKey: key,
+      secretKey: await _derive(
+        password,
+        base64Decode(j['salt']),
+        iterations as int,
+      ),
+      aad: version == 2 ? _header(j) : const <int>[],
     );
     return jsonDecode(utf8.decode(clear)) as Json;
   }

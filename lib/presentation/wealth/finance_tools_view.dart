@@ -25,6 +25,7 @@ import 'package:pdfrx/pdfrx.dart' show PdfPasswordException;
 import '../../core/finance/import/import_sources.dart';
 import '../../core/finance/import/import_window.dart';
 import '../../core/utils/error_text.dart';
+import '../../core/utils/temporary_export.dart';
 import '../providers/ai_providers.dart';
 import 'import_review_screen.dart';
 import '../../core/finance/spreadsheet_import_service.dart';
@@ -344,23 +345,20 @@ Future<void> exportEncrypted(BuildContext context, WidgetRef ref) =>
       context,
       title: context.l10n.encryptedBackup,
       fields: [
-        FinanceField('password', context.l10n.passwordMin10, secret: true),
+        FinanceField('password', context.l10n.passwordMin12, secret: true),
       ],
       submit: context.l10n.export,
       save: (j) async {
         final text = await BackupService(
           ref.read(databaseProvider),
         ).encrypt(j['password']!);
-        final file = File(
-          path.join(
-            (await getTemporaryDirectory()).path,
-            'flourish-${DateTime.now().millisecondsSinceEpoch}.encrypted.json',
-          ),
+        await TemporaryExport.share(
+          'flourish-${DateTime.now().millisecondsSinceEpoch}.encrypted.json',
+          text,
+          (file) => Share.shareXFiles([
+            XFile(file.path),
+          ], text: 'Flourish encrypted backup'),
         );
-        await file.writeAsString(text, flush: true);
-        await Share.shareXFiles([
-          XFile(file.path),
-        ], text: 'Flourish encrypted backup');
       },
     ).then((_) {});
 Future<void> restoreEncrypted(BuildContext context, WidgetRef ref) async {
@@ -467,8 +465,6 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
         for (final c in await ref.read(databaseProvider).getAllCategories())
           c.id: c,
       };
-  String quote(Object? value) =>
-      '"${(value ?? '').toString().replaceAll('"', '""')}"';
   final lines = <List<Object?>>[
     // Headers stay English in every language so the file imports back.
     [
@@ -514,16 +510,11 @@ Future<void> exportCsv(BuildContext context, WidgetRef ref) async {
       original?['currency'],
     ]);
   }
-  final file = File(
-    path.join(
-      (await getTemporaryDirectory()).path,
-      'flourish-transactions.csv',
-    ),
+  await TemporaryExport.share(
+    'flourish-transactions.csv',
+    lines.map((r) => r.map(csvCell).join(',')).join('\r\n'),
+    (file) => Share.shareXFiles([XFile(file.path)]),
   );
-  await file.writeAsString(
-    lines.map((r) => r.map(quote).join(',')).join('\r\n'),
-  );
-  await Share.shareXFiles([XFile(file.path)]);
 }
 
 /// [since] limits the review to rows on or after that day and switches it

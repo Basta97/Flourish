@@ -163,9 +163,7 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
     final elapsed = p.elapsedDays(now);
 
     // Same point of last month, for the pace comparison.
-    final lastToDate = p.previousDaily
-        .take(isCurrent ? elapsed : p.previousDaily.length)
-        .fold(Amount.zero, (a, b) => a + b);
+    final lastToDate = p.previousToDate(now);
 
     return [
       _Hero(period: p, isCurrent: isCurrent, now: now),
@@ -349,7 +347,7 @@ class _Hero extends StatelessWidget {
     final palette = FlourishPalette.of(context);
     String money(Amount a) =>
         CurrencyFormatter.format(a.toDouble(), currency: p.currency);
-    final change = p.changeVsPrevious();
+    final change = p.changeVsPrevious(now);
     final projected = isCurrent ? p.projected(now) : p.spending;
     final budget = p.budget;
     final used = budget == null || budget <= Amount.zero

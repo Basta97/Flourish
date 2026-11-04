@@ -53,6 +53,9 @@ android {
     }
     buildTypes {
         release {
+            // Stated explicitly so a template change cannot turn them off.
+            isMinifyEnabled = true
+            isShrinkResources = true
             // Release builds use the owner-provided private keystore.
             if (signingFile.exists()) signingConfig = signingConfigs.getByName("release")
         }

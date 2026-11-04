@@ -16,7 +16,7 @@
 - **Developer:** [DEVELOPER OR ORGANIZATION NAME AS SHOWN ON GOOGLE PLAY]
 - **Contact:** [SUPPORT EMAIL]
 
-Flourish is a personal finance tracker for Android. It has:
+Flourish is a personal finance tracker for Android and iPhone. It has:
 
 - no server and no user accounts;
 - no advertising and no analytics;
@@ -34,6 +34,7 @@ Flourish keeps the following in its private app storage:
   in a database on the phone.
 - **Payment alerts** captured from notifications (section 3). The full text of
   an alert is kept for the number of days you choose (30 by default, or none).
+  An alert still waiting for your review keeps its text for at most 30 days.
 - **Receipt photos** you attach.
 - **Seven automatic daily backups**, kept so a restore or import can be
   undone. Since version 1.2 they are encrypted (AES-256-GCM) with a random key
@@ -45,23 +46,33 @@ Flourish keeps the following in its private app storage:
 The database itself relies on Android's app sandbox and your phone's storage
 encryption. Flourish does not add a separate layer of encryption to it. You
 can lock the app with your fingerprint, face or device passcode
-(Wealth → Tools → Device authentication lock).
+(Settings → Security & privacy → Device authentication lock). While the lock
+is on, Flourish keeps its screen out of screenshots, screen recordings and the
+recent-apps view.
+
+Optional **payment reminders** (Settings → Automation) appear on your lock
+screen. While the app lock or "Hide amounts" is on, they leave amounts out,
+and on Android a secure lock screen hides their text entirely.
 
 The developer cannot see, access or recover any of this information.
 
 ## 2. Backups and moving to a new phone
 
 Flourish **opts out** of Android's automatic Google backup and of
-device-to-device transfer for all of its data. Your records are not copied to
-your Google account or to a new phone automatically.
+device-to-device transfer for all of its data. On iPhone, its data is likewise
+excluded from iCloud and computer backups. Your records are not copied to
+your Google or Apple account, or to a new phone, automatically.
 
 To keep a copy or move to a new phone, use **Export encrypted backup**
-(Settings or Wealth → Tools). It creates a file protected by a password you
-choose, using AES-256-GCM with a key derived from your password. You decide
-where the file goes. It is never sent to the developer.
+(Settings → Data). It creates a file protected by a password of at least 12
+characters that you choose, using AES-256-GCM with a key derived from your
+password (PBKDF2-SHA256, 600,000 rounds). You decide where the file goes. It
+is never sent to the developer.
 
 Flourish also offers files that are **not encrypted**. They are clearly
-labelled, and the app warns you before creating the unencrypted backup:
+labelled; the app warns you, and asks for your device lock, before creating
+the unencrypted backup. The temporary copy made for the share sheet is
+deleted as soon as you finish sharing:
 
 - **Export unencrypted backup** (JSON);
 - **Export transactions as CSV**.
@@ -76,7 +87,10 @@ bank or wallet apps you choose:
 
 - Notifications that don't look like payment alerts are ignored and not
   stored.
-- One-time codes and declined payments are never saved.
+- One-time codes and declined payments are never saved. Codes, full card
+  numbers and national ID numbers are removed before an alert is written
+  anywhere on the phone, including the queue that holds alerts until Flourish
+  opens.
 - Card numbers are reduced to their last four digits.
 - Detected payments wait in an inbox for you to review, unless you turn on
   automatic adding.
@@ -163,8 +177,10 @@ any internet request, they reveal your IP address to the service.
 ## 6. API keys
 
 Keys you enter for an AI provider or for Alpha Vantage are stored in Android's
-encrypted secure storage, backed by the Android Keystore. Each key is sent
-only to the service it belongs to. Keys are never included in backups or
+encrypted secure storage (the Android Keystore, or the iPhone Keychain). Each
+AI key is stored for the server address it was entered for and is sent only
+there; switching provider never sends one provider's key to another. AI
+servers must use HTTPS, except a server on your phone or home network. Keys are never included in backups or
 exports, and never sent to the developer. **Reset all data** deletes them.
 
 ## 7. Text recognition (Google ML Kit)
@@ -195,7 +211,7 @@ https://developers.google.com/ml-kit/android-data-disclosure.
 
 - **Your records** stay on your phone until you delete them.
 - **The text of captured alerts** is deleted after the number of days you
-  choose.
+  choose, and at most 30 days after arrival while it waits for review.
 - **Settings → Reset all data** deletes everything Flourish keeps about your
   finances on this phone:
   - records and saved alerts;

@@ -43,7 +43,8 @@ jobs:
 
       - name: Build release APK
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-        run: flutter build apk --release
+        # Obfuscated, with symbols kept out of the APK for crash decoding.
+        run: flutter build apk --release --obfuscate --split-debug-info=build/symbols
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

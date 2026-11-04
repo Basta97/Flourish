@@ -6721,6 +6721,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get setupDone;
+
+  /// No description provided for @aiHttpsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an https:// address. Plain http works only for this device or your home network.'**
+  String get aiHttpsRequired;
+
+  /// No description provided for @passwordMin12.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (12+ characters)'**
+  String get passwordMin12;
 }
 
 class _AppLocalizationsDelegate

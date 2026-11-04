@@ -303,6 +303,22 @@ void main() {
     expect((await detection.get(row.id))!.rawText, isNull);
   });
 
+  test('waiting messages lose their text after the cap', () async {
+    final row = await detection.ingest(
+      sms('Card ending 1234 was charged EGP 250.00 at Talabat'),
+    );
+    // Even with "keep none", text stays while it may still be reviewed.
+    await detection.purgeText(days: 0, now: at.add(const Duration(days: 5)));
+    expect((await detection.get(row!.id))!.rawText, contains('Talabat'));
+    await detection.purgeText(
+      days: 0,
+      now: at.add(
+        const Duration(days: DetectionService.pendingTextDays + 1),
+      ),
+    );
+    expect((await detection.get(row.id))!.rawText, isNull);
+  });
+
   test('a v7 database gains the detection table', () async {
     await db.close();
     final folder = await Directory.systemTemp.createTemp('flourish-v7');

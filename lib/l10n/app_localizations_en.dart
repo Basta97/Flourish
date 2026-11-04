@@ -3733,4 +3733,111 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calculatorClear => 'Clear calculation';
+
+  @override
+  String budgetLeft(String left, String total) {
+    return '$left left of $total budget';
+  }
+
+  @override
+  String budgetOver(String amount) {
+    return '$amount over budget';
+  }
+
+  @override
+  String get byAccount => 'By account';
+
+  @override
+  String get couldNotLoadReport => 'Couldn\'t load this report';
+
+  @override
+  String get dailyAverage => 'Daily average';
+
+  @override
+  String get dailySpending => 'Daily spending';
+
+  @override
+  String lastMonthToDate(String amount) {
+    return 'Same point last month: $amount';
+  }
+
+  @override
+  String missingFxNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count entries need',
+      one: '1 entry needs',
+    );
+    return '$_temp0 a historical exchange rate; totals are incomplete.';
+  }
+
+  @override
+  String get monthlyTrend => 'Last 6 months';
+
+  @override
+  String get monthlyTrendNote => 'Income and spending each month';
+
+  @override
+  String projectedSpend(String amount) {
+    return 'On track for $amount by month end';
+  }
+
+  @override
+  String purchases(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count purchases',
+      one: '1 purchase',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get retry => 'Try again';
+
+  @override
+  String get topMerchants => 'Top merchants';
+
+  @override
+  String unconvertedPayments(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unconverted payments',
+      one: '1 unconverted payment',
+      zero: 'All payments converted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get upcomingCommitted => 'Still due this month';
+
+  @override
+  String get upcomingCommittedNote =>
+      'Active recurring expenses not posted yet';
+
+  @override
+  String get insights => 'Insights';
+
+  @override
+  String get navInsights => 'Insights';
+
+  @override
+  String get seeInsights => 'See where it went';
+
+  @override
+  String topCategoryIs(String name) {
+    return 'Most on $name';
+  }
+
+  @override
+  String periodSpentIncome(String spent, String income) {
+    return 'Spent $spent · Income $income';
+  }
+
+  @override
+  String get budget => 'Budget';
 }

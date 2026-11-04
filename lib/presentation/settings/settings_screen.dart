@@ -200,14 +200,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: context.l10n.budgetsSubtitle,
                   // /budgets lives inside the tab shell; pushing it from
                   // here would build a second shell, so switch to it.
-                  onTap: () => context.go('/budgets'),
+                  onTap: () => context.go('/insights?tab=budgets'),
                 ),
                 SettingsTile(
                   icon: Icons.flag_outlined,
                   tint: const Color(0xFF8B7CF6),
                   title: context.l10n.savingsGoals,
                   subtitle: context.l10n.savingsGoalsSubtitle,
-                  onTap: () => context.push('/goals'),
+                  onTap: () => context.go('/insights?tab=goals'),
                 ),
                 SettingsTile(
                   icon: Icons.repeat_rounded,

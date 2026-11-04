@@ -6433,6 +6433,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear calculation'**
   String get calculatorClear;
+
+  /// No description provided for @budgetLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{left} left of {total} budget'**
+  String budgetLeft(String left, String total);
+
+  /// No description provided for @budgetOver.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} over budget'**
+  String budgetOver(String amount);
+
+  /// No description provided for @byAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'By account'**
+  String get byAccount;
+
+  /// No description provided for @couldNotLoadReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this report'**
+  String get couldNotLoadReport;
+
+  /// No description provided for @dailyAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily average'**
+  String get dailyAverage;
+
+  /// No description provided for @dailySpending.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily spending'**
+  String get dailySpending;
+
+  /// No description provided for @lastMonthToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Same point last month: {amount}'**
+  String lastMonthToDate(String amount);
+
+  /// No description provided for @missingFxNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 entry needs} other{{count} entries need}} a historical exchange rate; totals are incomplete.'**
+  String missingFxNotice(int count);
+
+  /// No description provided for @monthlyTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 6 months'**
+  String get monthlyTrend;
+
+  /// No description provided for @monthlyTrendNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Income and spending each month'**
+  String get monthlyTrendNote;
+
+  /// No description provided for @projectedSpend.
+  ///
+  /// In en, this message translates to:
+  /// **'On track for {amount} by month end'**
+  String projectedSpend(String amount);
+
+  /// No description provided for @purchases.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 purchase} other{{count} purchases}}'**
+  String purchases(int count);
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get retry;
+
+  /// No description provided for @topMerchants.
+  ///
+  /// In en, this message translates to:
+  /// **'Top merchants'**
+  String get topMerchants;
+
+  /// No description provided for @unconvertedPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{All payments converted} =1{1 unconverted payment} other{{count} unconverted payments}}'**
+  String unconvertedPayments(int count);
+
+  /// No description provided for @upcomingCommitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Still due this month'**
+  String get upcomingCommitted;
+
+  /// No description provided for @upcomingCommittedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Active recurring expenses not posted yet'**
+  String get upcomingCommittedNote;
+
+  /// No description provided for @insights.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get insights;
+
+  /// No description provided for @navInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get navInsights;
+
+  /// No description provided for @seeInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'See where it went'**
+  String get seeInsights;
+
+  /// No description provided for @topCategoryIs.
+  ///
+  /// In en, this message translates to:
+  /// **'Most on {name}'**
+  String topCategoryIs(String name);
+
+  /// No description provided for @periodSpentIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent {spent} · Income {income}'**
+  String periodSpentIncome(String spent, String income);
+
+  /// No description provided for @budget.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget'**
+  String get budget;
 }
 
 class _AppLocalizationsDelegate

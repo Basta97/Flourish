@@ -13,14 +13,12 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/dashboard/dashboard_screen.dart';
 import '../../presentation/accounts/accounts_screen.dart';
 import '../../presentation/accounts/account_detail_screen.dart';
-import '../../presentation/budgets/budgets_screen.dart';
 import '../../presentation/transactions/transactions_screen.dart';
-import '../../presentation/wealth/wealth_screen.dart';
+import '../../presentation/insights/insights_screen.dart';
 import '../../presentation/search/search_screen.dart';
 import '../../presentation/settings/settings_screen.dart';
 import '../../presentation/categories/categories_management_screen.dart';
 import '../../presentation/recurring/recurring_transactions_screen.dart';
-import '../../presentation/goals/goals_screen.dart';
 import '../../presentation/transactions/notification_import_screen.dart';
 import '../../presentation/shared/not_found_screen.dart';
 import '../../core/models/shared_import_draft.dart';
@@ -47,22 +45,32 @@ final appRouter = GoRouter(
       builder: (context, state, child) => ScaffoldWithNavBar(child: child),
       routes: [
         GoRoute(
-          path: '/wealth',
+          path: '/insights',
           pageBuilder: (context, state) => _fadeThroughPage(
             key: state.pageKey,
-            child: WealthScreen(
+            child: InsightsScreen(
               key: ValueKey(state.uri.queryParameters['tab']),
-              initialTab: state.uri.queryParameters['tab'] == 'reports' ? 2 : 0,
+              initialTab: state.uri.queryParameters['tab'],
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/transactions',
+          pageBuilder: (context, state) => _fadeThroughPage(
+            key: state.pageKey,
+            child: TransactionsScreen(
+              key: ValueKey(state.uri.query),
+              initialCategory: int.tryParse(
+                state.uri.queryParameters['category'] ?? '',
+              ),
+              initialMonth: _parseMonth(state.uri.queryParameters['month']),
             ),
           ),
         ),
         for (final (path, screen) in <(String, Widget)>[
-          ('/transactions', const TransactionsScreen()),
-
           ('/dashboard', const DashboardScreen()),
           ('/search', const SearchScreen()),
           ('/accounts', const AccountsScreen()),
-          ('/budgets', const BudgetsScreen()),
         ])
           GoRoute(
             path: path,
@@ -159,11 +167,16 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const PaymentMethodsScreen(),
     ),
+    // Older locations now live as Insights tabs.
     GoRoute(
-      path: '/goals',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const GoalsScreen(),
+      path: '/wealth',
+      redirect: (context, state) =>
+          state.uri.queryParameters['tab'] == 'reports'
+          ? '/insights?tab=spending'
+          : '/insights?tab=holdings',
     ),
+    GoRoute(path: '/budgets', redirect: (_, _) => '/insights?tab=budgets'),
+    GoRoute(path: '/goals', redirect: (_, _) => '/insights?tab=goals'),
     GoRoute(
       path: '/smart-import',
       parentNavigatorKey: _rootNavigatorKey,
@@ -175,6 +188,13 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+DateTime? _parseMonth(String? value) {
+  final parts = value?.split('-');
+  if (parts == null || parts.length != 2) return null;
+  final year = int.tryParse(parts[0]), month = int.tryParse(parts[1]);
+  return year == null || month == null ? null : DateTime(year, month);
+}
 
 /// Tab switches cross-fade with a slight scale-up, like iOS tab bars that
 /// "breathe" in rather than slide.
@@ -221,9 +241,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
       return 1;
     }
     if (location.startsWith('/accounts')) return 3;
-    if (location.startsWith('/budgets') || location.startsWith('/wealth')) {
-      return 4;
-    }
+    if (location.startsWith('/insights')) return 4;
     return 0;
   }
 
@@ -233,7 +251,6 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     // `state` is the top-most route, including pushed ones like /budgets.
     final location = GoRouter.of(context).state.matchedLocation;
     if (location.startsWith('/accounts')) return '/accounts';
-    if (location.startsWith('/budgets')) return '/budgets';
     if (location.startsWith('/search')) return '/search';
     return '/dashboard';
   }
@@ -269,7 +286,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
                     case 3:
                       context.go('/accounts');
                     case 4:
-                      context.go('/wealth');
+                      context.go('/insights');
                   }
                 },
               ),
@@ -285,7 +302,6 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     setState(() => _addOpen = true);
     WidgetBuilder? builder = switch (route) {
       '/accounts' => (_) => const AddAccountSheet(),
-      '/budgets' => (_) => const AddBudgetSheet(),
       _ => null,
     };
     if (builder == null) {
@@ -347,9 +363,9 @@ class _IslandNavBar extends StatelessWidget {
       label: l.navAccounts,
     ),
     (
-      icon: Icons.diamond_outlined,
-      selectedIcon: Icons.diamond,
-      label: l.navWealth,
+      icon: Icons.insights_outlined,
+      selectedIcon: Icons.insights_rounded,
+      label: l.navInsights,
     ),
   ];
 

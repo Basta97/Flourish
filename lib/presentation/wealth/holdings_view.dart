@@ -8,6 +8,7 @@ import '../providers/theme_providers.dart';
 import '../../core/finance/valuation_service.dart';
 import '../../data/finance/finance_store.dart';
 import 'finance_form.dart';
+import 'wealth_report.dart';
 import 'widgets/asset_tile.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -91,6 +92,7 @@ class HoldingsView extends ConsumerWidget {
           ],
           error: (e, _) => [Text('$e')],
         ),
+        const WealthReport(),
       ],
     );
   }

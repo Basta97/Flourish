@@ -20,6 +20,16 @@ final monthStartDayProvider = Provider<int>((ref) {
   ).clamp(1, 28);
 });
 
+/// Subcategory → parent category ids.
+final categoryParentsProvider = FutureProvider<Map<int, int>>((ref) async {
+  ref.watch(financeRevisionProvider);
+  return {
+    for (final p
+        in await ref.watch(financeStoreProvider).list('categoryParents'))
+      int.parse(p['child'].toString()): p['parent'] as int,
+  };
+});
+
 final spendingAnalyticsProvider = Provider(
   (ref) => SpendingAnalyticsService(
     ref.watch(financeStoreProvider),

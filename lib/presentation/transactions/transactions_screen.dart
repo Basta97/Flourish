@@ -19,9 +19,18 @@ import '../../shared/widgets/transaction_swipe_tile.dart';
 import '../providers/account_providers.dart';
 import '../providers/category_providers.dart';
 import '../providers/transaction_providers.dart';
+import '../providers/insights_providers.dart';
+import '../../domain/finance/models.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
-  const TransactionsScreen({super.key});
+  /// Opens filtered, e.g. from a category on the Spending page.
+  final int? initialCategory;
+  final DateTime? initialMonth;
+  const TransactionsScreen({
+    super.key,
+    this.initialCategory,
+    this.initialMonth,
+  });
   @override
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
@@ -30,8 +39,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   static const _types = ['all', 'income', 'expense', 'transfer'];
 
   String type = 'all', view = 'list';
-  int? account, category;
-  DateTime month = DateTime(DateTime.now().year, DateTime.now().month);
+  int? account;
+  late int? category = widget.initialCategory;
+  late DateTime month =
+      widget.initialMonth ??
+      SpendingAnalyticsService.monthOf(
+        DateTime.now(),
+        ref.read(monthStartDayProvider),
+      );
   DateTime? selectedDay;
   DateTimeRange? range;
 
@@ -72,9 +87,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         categoryMap = {for (final c in categories) c.id: c};
     final palette = FlourishPalette.of(context);
 
+    final locale = Localizations.localeOf(context).toLanguageTag();
     final periodLabel = range != null
-        ? '${DateFormat('MMM d').format(range!.start)} – ${DateFormat('MMM d, y').format(range!.end)}'
-        : DateFormat('MMMM y').format(month);
+        ? '${DateFormat.MMMd(locale).format(range!.start)} – ${DateFormat.yMMMd(locale).format(range!.end)}'
+        : DateFormat.yMMMM(locale).format(month);
+    final summary = range == null
+        ? ref.watch(spendingPeriodProvider(month)).valueOrNull
+        : null;
 
     return Scaffold(
       body: CustomScrollView(
@@ -124,6 +143,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ? null
                       : () => setState(() => range = null),
                 ),
+                if (summary != null)
+                  _PeriodSummary(
+                    summary: summary,
+                    onTap: () {
+                      ref.read(selectedMonthProvider.notifier).state = month;
+                      context.go('/insights?tab=spending');
+                    },
+                  ),
                 const SizedBox(height: Sp.md),
                 SegmentedPill(
                   labels: [
@@ -262,12 +289,26 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     Map<int, Account> accountMap,
     Map<int, Category> categoryMap,
   ) {
-    final start = range?.start ?? selectedDay ?? month;
+    final (monthStart, monthEnd) = SpendingAnalyticsService.bounds(
+      month,
+      ref.watch(monthStartDayProvider),
+    );
+    final start = range?.start ?? selectedDay ?? monthStart;
     final end = range != null
         ? range!.end.add(const Duration(days: 1))
         : selectedDay != null
         ? selectedDay!.add(const Duration(days: 1))
-        : DateTime(month.year, month.month + 1);
+        : monthEnd;
+    // A category filter covers its subcategories too.
+    final parents = ref.watch(categoryParentsProvider).valueOrNull ?? const {};
+    bool inCategory(int id) {
+      final seen = <int>{};
+      for (int? c = id; c != null && seen.add(c); c = parents[c]) {
+        if (c == category) return true;
+      }
+      return false;
+    }
+
     final filtered = rows
         .where(
           (t) =>
@@ -278,7 +319,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ? t.linkedTransactionId != null
                       : t.type == type && t.linkedTransactionId == null)) &&
               (account == null || t.accountId == account) &&
-              (category == null || t.categoryId == category),
+              (category == null || inCategory(t.categoryId)),
         )
         .toList();
 
@@ -688,6 +729,63 @@ class _DayCard extends StatelessWidget {
                 ],
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Month totals above the list; tapping opens the Spending page.
+class _PeriodSummary extends StatelessWidget {
+  const _PeriodSummary({required this.summary, required this.onTap});
+
+  final SpendingPeriod summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = FlourishPalette.of(context);
+    String money(Amount a) =>
+        CurrencyFormatter.format(a.toDouble(), currency: summary.currency);
+    return Padding(
+      padding: const EdgeInsets.only(top: Sp.sm),
+      child: Pressable(
+        onTap: onTap,
+        scale: 0.98,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Sp.md,
+            vertical: Sp.sm,
+          ),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(Rad.md),
+            border: Border.all(color: palette.stroke),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.insights_rounded, size: 18, color: palette.accent),
+              const SizedBox(width: Sp.sm),
+              Expanded(
+                child: Text(
+                  context.l10n.periodSpentIncome(
+                    money(summary.spending),
+                    money(summary.income),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: palette.textHigh,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: palette.textLow,
+              ),
+            ],
+          ),
         ),
       ),
     );

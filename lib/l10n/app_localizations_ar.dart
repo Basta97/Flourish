@@ -3767,4 +3767,110 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get calculatorClear => 'مسح العملية الحسابية';
+
+  @override
+  String budgetLeft(String left, String total) {
+    return 'متبقٍ $left من ميزانية $total';
+  }
+
+  @override
+  String budgetOver(String amount) {
+    return 'تجاوزت الميزانية بمقدار $amount';
+  }
+
+  @override
+  String get byAccount => 'حسب الحساب';
+
+  @override
+  String get couldNotLoadReport => 'تعذّر تحميل هذا التقرير';
+
+  @override
+  String get dailyAverage => 'المتوسط اليومي';
+
+  @override
+  String get dailySpending => 'الإنفاق اليومي';
+
+  @override
+  String lastMonthToDate(String amount) {
+    return 'في نفس الوقت من الشهر الماضي: $amount';
+  }
+
+  @override
+  String missingFxNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count قيود تحتاج',
+      one: 'قيد واحد يحتاج',
+    );
+    return '$_temp0 إلى سعر صرف تاريخي؛ الإجماليات غير مكتملة.';
+  }
+
+  @override
+  String get monthlyTrend => 'آخر 6 أشهر';
+
+  @override
+  String get monthlyTrendNote => 'الدخل والإنفاق لكل شهر';
+
+  @override
+  String projectedSpend(String amount) {
+    return 'متوقع أن يبلغ $amount بنهاية الشهر';
+  }
+
+  @override
+  String purchases(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count عمليات شراء',
+      one: 'عملية شراء واحدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get retry => 'حاول مرة أخرى';
+
+  @override
+  String get topMerchants => 'أكثر التجار إنفاقًا';
+
+  @override
+  String unconvertedPayments(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دفعات غير محوّلة',
+      one: 'دفعة واحدة غير محوّلة',
+      zero: 'تم تحويل كل المدفوعات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get upcomingCommitted => 'مستحق خلال هذا الشهر';
+
+  @override
+  String get upcomingCommittedNote => 'مصروفات متكررة نشطة لم تُسجّل بعد';
+
+  @override
+  String get insights => 'الرؤى';
+
+  @override
+  String get navInsights => 'الرؤى';
+
+  @override
+  String get seeInsights => 'اعرف أين ذهبت أموالك';
+
+  @override
+  String topCategoryIs(String name) {
+    return 'الأكثر على $name';
+  }
+
+  @override
+  String periodSpentIncome(String spent, String income) {
+    return 'الإنفاق $spent · الدخل $income';
+  }
+
+  @override
+  String get budget => 'ميزانية';
 }

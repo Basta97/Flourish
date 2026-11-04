@@ -1,7 +1,8 @@
 import '../../shared/widgets/global_search_button.dart';
 import '../../shared/widgets/app_card.dart';
-import '../../core/finance/monthly_summary_service.dart';
-import '../../core/services/preferences_service.dart';
+import '../../shared/category_label.dart';
+import '../../shared/widgets/sparkline.dart';
+import '../providers/insights_providers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,11 +40,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  // The monthly totals walk every transaction through valuation, so the
-  // future is cached and only rebuilt when its inputs change.
-  Future<(Amount, Amount, int)>? _monthlyFuture;
-  Object? _monthlyKey;
-
   Future<void> _refresh() async {
     final currency = ref.read(defaultCurrencyProvider);
     final market = ref.read(marketDataProvider);
@@ -83,14 +79,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         a.id: a,
     };
     final currency = ref.watch(defaultCurrencyProvider);
-    // Each finance change emits a new AsyncValue; its identity marks a revision.
-    final revision = identityHashCode(ref.watch(financeRevisionProvider));
-
-    final key = (identityHashCode(loadedTx), currency, revision);
-    if (_monthlyKey != key) {
-      _monthlyKey = key;
-      _monthlyFuture = _monthly(tx, currency);
-    }
+    final month = ref
+        .watch(spendingPeriodProvider(ref.watch(currentMonthProvider)))
+        .valueOrNull;
 
     final toReview = ref.watch(pendingDetectionsProvider).valueOrNull ?? 0;
     final sections = <Widget>[
@@ -119,9 +110,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ],
       const NetWorthHero(),
       const SizedBox(height: Sp.lg),
-      _Motivation(future: _monthlyFuture!, currency: currency),
+      _Motivation(month: month, currency: currency),
       const SizedBox(height: Sp.xl),
-      _MonthSummary(future: _monthlyFuture!, currency: currency),
+      _MonthSummary(month: month),
       const SizedBox(height: Sp.xxl),
       const _QuickActions(),
       const SizedBox(height: Sp.xxl + Sp.xs),
@@ -174,20 +165,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Future<(Amount, Amount, int)> _monthly(
-    List<Transaction> transactions,
-    String currency,
-  ) async {
-    return MonthlySummaryService(
-      ref.read(financeStoreProvider),
-      ref.read(valuationProvider),
-    ).calculate(
-      transactions,
-      currency,
-      day: PreferencesService.getInt('month_start_day', defaultValue: 1),
     );
   }
 }
@@ -269,9 +246,9 @@ class _Header extends ConsumerWidget {
 /// Picks what to cheer about: a finished goal, money saved this month, a
 /// goal milestone, or the daily line.
 class _Motivation extends ConsumerWidget {
-  const _Motivation({required this.future, required this.currency});
+  const _Motivation({required this.month, required this.currency});
 
-  final Future<(Amount, Amount, int)> future;
+  final SpendingPeriod? month;
   final String currency;
 
   @override
@@ -286,11 +263,9 @@ class _Motivation extends ConsumerWidget {
         best = GoalMotivation(g.name, quarter);
       }
     }
-    return FutureBuilder<(Amount, Amount, int)>(
-      future: future,
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-        final saved = data == null ? null : data.$1 - data.$2;
+    return Builder(
+      builder: (context) {
+        final saved = month?.net;
         final Motivation motivation;
         if (best != null && best.percent == 100) {
           motivation = best;
@@ -341,79 +316,156 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// "This month" — Income, Spending and Saved, counting up once loaded.
-class _MonthSummary extends StatelessWidget {
-  const _MonthSummary({required this.future, required this.currency});
+/// "This month": spent so far with a daily sparkline, the budget left and
+/// the biggest category, plus income and saved. Opens the Spending page.
+class _MonthSummary extends ConsumerWidget {
+  const _MonthSummary({required this.month});
 
-  final Future<(Amount, Amount, int)> future;
-  final String currency;
+  final SpendingPeriod? month;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = FlourishPalette.of(context);
+    final l = context.l10n;
+    final p = month;
     String fmt(double v) =>
-        CurrencyFormatter.formatCompact(v, currency: currency);
-
-    return FutureBuilder<(Amount, Amount, int)>(
-      future: future,
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-        final income = data?.$1;
-        final expense = data?.$2;
-        final saved = data == null ? null : data.$1 - data.$2;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        CurrencyFormatter.formatCompact(v, currency: p?.currency ?? '');
+    // Running total so the line climbs through the month.
+    final cumulative = <double>[];
+    if (p != null) {
+      final days = p.elapsedDays(DateTime.now()).clamp(1, p.days);
+      var sum = 0.0;
+      for (final d in p.daily.take(days)) {
+        cumulative.add(sum += d.toDouble());
+      }
+    }
+    final budget = p?.budget;
+    final top = p?.categories.firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Text(
-              context.l10n.thisMonth.toUpperCase(),
-              style: AppTextStyles.eyebrow.copyWith(color: palette.textLow),
+            Expanded(
+              child: Text(
+                l.thisMonth.toUpperCase(),
+                style: AppTextStyles.eyebrow.copyWith(color: palette.textLow),
+              ),
             ),
-            const SizedBox(height: Sp.md),
-            Row(
-              children: [
-                Expanded(
-                  child: StatPill(
-                    label: context.l10n.income,
-                    icon: Icons.south_west_rounded,
-                    tone: palette.income,
-                    value: income?.toDouble(),
-                    format: fmt,
+            Text(
+              l.seeInsights,
+              style: AppTextStyles.caption.copyWith(color: palette.accent),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 16, color: palette.accent),
+          ],
+        ),
+        const SizedBox(height: Sp.sm),
+        AppCard(
+          onTap: () {
+            Haptics.tap();
+            ref.read(selectedMonthProvider.notifier).state = ref.read(
+              currentMonthProvider,
+            );
+            context.go('/insights?tab=spending');
+          },
+          padding: const EdgeInsets.all(Sp.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l.spending,
+                          style: AppTextStyles.caption.copyWith(
+                            color: palette.textLow,
+                          ),
+                        ),
+                        Text(
+                          p == null ? '—' : fmt(p.spending.toDouble()),
+                          style: AppTextStyles.number.copyWith(
+                            fontSize: 26,
+                            color: palette.textHigh,
+                          ),
+                        ),
+                        if (budget != null && p != null)
+                          Text(
+                            p.spending > budget
+                                ? l.budgetOver(
+                                    fmt((p.spending - budget).toDouble()),
+                                  )
+                                : l.budgetLeft(
+                                    fmt((budget - p.spending).toDouble()),
+                                    fmt(budget.toDouble()),
+                                  ),
+                            style: AppTextStyles.caption.copyWith(
+                              color: p.spending > budget
+                                  ? palette.expense
+                                  : palette.textLow,
+                            ),
+                          )
+                        else if (top?.category != null)
+                          Text(
+                            l.topCategoryIs(top!.category!.displayName),
+                            style: AppTextStyles.caption.copyWith(
+                              color: palette.textLow,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: StatPill(
-                    label: context.l10n.spending,
-                    icon: Icons.north_east_rounded,
-                    tone: palette.expense,
-                    value: expense?.toDouble(),
-                    format: fmt,
+                  if (cumulative.length > 1)
+                    SizedBox(
+                      width: 110,
+                      child: Sparkline(
+                        values: cumulative,
+                        color: palette.expense,
+                        height: 48,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: Sp.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: StatPill(
+                      label: l.income,
+                      icon: Icons.south_west_rounded,
+                      tone: palette.income,
+                      value: p?.income.toDouble(),
+                      format: fmt,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: StatPill(
-                    label: context.l10n.saved,
-                    icon: Icons.savings_outlined,
-                    tone: saved != null && saved < Amount.zero
-                        ? palette.expense
-                        : palette.accent,
-                    value: saved?.toDouble(),
-                    format: fmt,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: StatPill(
+                      label: l.saved,
+                      icon: Icons.savings_outlined,
+                      tone: p != null && p.net < Amount.zero
+                          ? palette.expense
+                          : palette.accent,
+                      value: p?.net.toDouble(),
+                      format: fmt,
+                    ),
                   ),
+                ],
+              ),
+              if (p != null && p.missing > 0) ...[
+                const SizedBox(height: Sp.sm),
+                Text(
+                  l.needHistoricalRates(p.missing),
+                  style: AppTextStyles.caption.copyWith(color: palette.warning),
                 ),
               ],
-            ),
-            if (data != null && data.$3 > 0) ...[
-              const SizedBox(height: Sp.sm),
-              Text(
-                context.l10n.needHistoricalRates(data.$3),
-                style: AppTextStyles.caption.copyWith(color: palette.warning),
-              ),
             ],
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -427,8 +479,8 @@ class _QuickActions extends StatelessWidget {
     final l = context.l10n;
     final actions = [
       (l.tools, '/tools', Icons.build_outlined),
-      (l.budgets, '/budgets', Icons.track_changes_rounded),
-      (l.goals, '/goals', Icons.flag_outlined),
+      (l.budgets, '/insights?tab=budgets', Icons.track_changes_rounded),
+      (l.goals, '/insights?tab=goals', Icons.flag_outlined),
       (l.recurring, '/recurring', Icons.repeat_rounded),
       (l.importAction, '/smart-import', Icons.document_scanner_outlined),
     ];
@@ -439,7 +491,11 @@ class _QuickActions extends StatelessWidget {
             child: Pressable(
               semanticLabel: label,
               scale: 0.92,
-              onTap: () => context.push(route),
+              // Insights tabs live in the shell; pushing them would stack a
+              // second navigation bar.
+              onTap: () => route.startsWith('/insights')
+                  ? context.go(route)
+                  : context.push(route),
               child: Column(
                 children: [
                   Container(

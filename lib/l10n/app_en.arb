@@ -2267,5 +2267,97 @@
   "calculatorDivideByZero": "Cannot divide by zero.",
   "calculatorNegativeTotal": "The total cannot be negative.",
   "calculatorBackspace": "Delete last digit",
-  "calculatorClear": "Clear calculation"
+  "calculatorClear": "Clear calculation",
+  "budgetLeft": "{left} left of {total} budget",
+  "@budgetLeft": {
+    "placeholders": {
+      "left": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetOver": "{amount} over budget",
+  "@budgetOver": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "byAccount": "By account",
+  "couldNotLoadReport": "Couldn't load this report",
+  "dailyAverage": "Daily average",
+  "dailySpending": "Daily spending",
+  "lastMonthToDate": "Same point last month: {amount}",
+  "@lastMonthToDate": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "missingFxNotice": "{count, plural, =1{1 entry needs} other{{count} entries need}} a historical exchange rate; totals are incomplete.",
+  "@missingFxNotice": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "monthlyTrend": "Last 6 months",
+  "monthlyTrendNote": "Income and spending each month",
+  "projectedSpend": "On track for {amount} by month end",
+  "@projectedSpend": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "purchases": "{count, plural, =1{1 purchase} other{{count} purchases}}",
+  "@purchases": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "retry": "Try again",
+  "topMerchants": "Top merchants",
+  "unconvertedPayments": "{count, plural, =0{All payments converted} =1{1 unconverted payment} other{{count} unconverted payments}}",
+  "@unconvertedPayments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "upcomingCommitted": "Still due this month",
+  "upcomingCommittedNote": "Active recurring expenses not posted yet",
+  "insights": "Insights",
+  "navInsights": "Insights",
+  "seeInsights": "See where it went",
+  "topCategoryIs": "Most on {name}",
+  "@topCategoryIs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "periodSpentIncome": "Spent {spent} · Income {income}",
+  "@periodSpentIncome": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "income": {
+        "type": "String"
+      }
+    }
+  },
+  "budget": "Budget"
 }

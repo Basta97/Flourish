@@ -23,27 +23,40 @@ import 'package:flourish/shared/widgets/shimmer_loading.dart';
 
 class GoalsScreen extends ConsumerWidget {
   final int? recordId;
-  const GoalsScreen({super.key, this.recordId});
+
+  /// Shown as a tab inside Insights: no app bar of its own.
+  final bool embedded;
+  const GoalsScreen({super.key, this.recordId, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(goalsProvider);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showSpringBottomSheet(
-          context: context,
-          builder: (_) => const _AddGoalSheet(),
+      backgroundColor: embedded ? Colors.transparent : null,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: embedded ? Sp.bottomNavClear - Sp.lg : 0,
         ),
-        icon: const Icon(Icons.add_rounded),
-        label: Text(context.l10n.goal),
+        child: FloatingActionButton.extended(
+          heroTag: 'add-goal',
+          onPressed: () => showSpringBottomSheet(
+            context: context,
+            builder: (_) => const _AddGoalSheet(),
+          ),
+          icon: const Icon(Icons.add_rounded),
+          label: Text(context.l10n.goal),
+        ),
       ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar(pinned: true, title: Text(context.l10n.savingsGoals)),
+          if (embedded)
+            const SliverToBoxAdapter(child: SizedBox(height: Sp.lg))
+          else
+            SliverAppBar(pinned: true, title: Text(context.l10n.savingsGoals)),
           ...goalsAsync.when(
             data: (allRecords) {
               final goals = allRecords

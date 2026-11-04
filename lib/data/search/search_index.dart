@@ -23,7 +23,11 @@ abstract final class SearchIndex {
       '/tools',
     ),
     ('Settings · الإعدادات', 'settings اعدادات', '/settings'),
-    ('Reports · التقارير', 'wealth reports ثروة تقارير', '/wealth?tab=reports'),
+    (
+      'Spending insights · الرؤى',
+      'insights spending statistics reports إنفاق احصائيات تقارير',
+      '/insights?tab=spending',
+    ),
     (
       'Payment detection · اكتشاف المدفوعات',
       'notifications sms كشف الدفع اشعارات',

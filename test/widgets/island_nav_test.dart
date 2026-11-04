@@ -25,7 +25,7 @@ void main() {
               '/dashboard',
               '/transactions',
               '/accounts',
-              '/wealth',
+              '/insights',
             ])
               GoRoute(
                 path: path,
@@ -44,7 +44,7 @@ void main() {
     for (final (label, path) in [
       ('Ledger', '/transactions'),
       ('Accounts', '/accounts'),
-      ('Wealth', '/wealth'),
+      ('Insights', '/insights'),
       ('Home', '/dashboard'),
     ]) {
       final target = tester.getCenter(find.bySemanticsLabel(label));

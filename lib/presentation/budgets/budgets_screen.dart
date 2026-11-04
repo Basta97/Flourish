@@ -35,7 +35,11 @@ import 'package:intl/intl.dart';
 
 class BudgetsScreen extends ConsumerStatefulWidget {
   final int? recordId;
-  const BudgetsScreen({super.key, this.recordId});
+
+  /// Shown as a tab inside Insights: no app bar of its own, and the add
+  /// button sits above the floating navigation bar.
+  final bool embedded;
+  const BudgetsScreen({super.key, this.recordId, this.embedded = false});
 
   @override
   ConsumerState<BudgetsScreen> createState() => _BudgetsScreenState();
@@ -48,16 +52,34 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     final palette = FlourishPalette.of(context);
 
     return Scaffold(
+      backgroundColor: widget.embedded ? Colors.transparent : null,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: widget.embedded ? Sp.bottomNavClear - Sp.lg : 0,
+        ),
+        child: FloatingActionButton.extended(
+          heroTag: 'add-budget',
+          onPressed: () => showSpringBottomSheet(
+            context: context,
+            builder: (_) => const AddBudgetSheet(),
+          ),
+          icon: const Icon(Icons.add_rounded),
+          label: Text(context.l10n.budget),
+        ),
+      ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            title: Text(context.l10n.budgets),
-            actions: const [GlobalSearchButton()],
-          ),
+          if (widget.embedded)
+            const SliverToBoxAdapter(child: SizedBox(height: Sp.lg))
+          else
+            SliverAppBar(
+              pinned: true,
+              title: Text(context.l10n.budgets),
+              actions: const [GlobalSearchButton()],
+            ),
           ...budgetsAsync.when(
             data: (allRecords) {
               final budgets = allRecords

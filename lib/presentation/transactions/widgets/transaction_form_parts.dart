@@ -117,7 +117,7 @@ class AmountInput extends StatelessWidget {
               focusedErrorBorder: InputBorder.none,
               errorText: errorText,
               errorStyle: AppTextStyles.caption.copyWith(
-                color: AppColors.danger,
+                color: FlourishPalette.of(context).danger,
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: Sp.sm),
             ),

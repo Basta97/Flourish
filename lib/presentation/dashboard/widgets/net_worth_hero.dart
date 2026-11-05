@@ -31,8 +31,8 @@ class NetWorthHero extends ConsumerWidget {
 
   final bool compact;
 
-  static const _textHigh = Color(0xFFF2F4F7);
-  static const _textLow = Color(0xFF9AA3B2);
+  static const _textHigh = AppColors.textPrimaryDark;
+  static const _textLow = AppColors.textSecondaryDark;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

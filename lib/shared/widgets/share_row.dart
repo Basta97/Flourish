@@ -87,10 +87,7 @@ class ShareRow extends StatelessWidget {
                 height: 4,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0, end: share.clamp(0, 1)),
-                  duration: Motion.of(
-                    context,
-                    const Duration(milliseconds: 900),
-                  ),
+                  duration: Motion.of(context, Motion.chart),
                   curve: Motion.enter,
                   builder: (context, v, _) => Stack(
                     children: [

@@ -111,7 +111,8 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
         ref.watch(transactionDetailsProvider(t.id)).valueOrNull?['original']
             as Map?;
     final meta = [
-      if (merchant.isNotEmpty && widget.category != null) widget.category!.displayName,
+      if (merchant.isNotEmpty && widget.category != null)
+        widget.category!.displayName,
       ?paidWith,
       if ((widget.accountName ?? '').trim().isNotEmpty) widget.accountName!,
       if ((t.note ?? '').trim().isNotEmpty) t.note!.trim(),
@@ -263,7 +264,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                   child: _SwipeAction(
                     label: context.l10n.delete,
                     icon: Icons.delete_outline_rounded,
-                    tint: AppColors.danger,
+                    tint: FlourishPalette.of(context).danger,
                   ),
                 ),
               ],

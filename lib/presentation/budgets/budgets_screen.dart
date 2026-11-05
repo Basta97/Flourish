@@ -198,7 +198,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             },
             child: Text(
               context.l10n.delete,
-              style: TextStyle(color: AppColors.danger),
+              style: TextStyle(color: FlourishPalette.of(context).danger),
             ),
           ),
         ],
@@ -343,7 +343,9 @@ class _BudgetCardState extends ConsumerState<_BudgetCard> {
                               value: 'delete',
                               child: Text(
                                 context.l10n.delete,
-                                style: TextStyle(color: AppColors.danger),
+                                style: TextStyle(
+                                  color: FlourishPalette.of(context).danger,
+                                ),
                               ),
                             ),
                           ],

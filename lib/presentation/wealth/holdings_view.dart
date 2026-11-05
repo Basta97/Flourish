@@ -342,8 +342,8 @@ Future<void> showHolding(
                       color: v?.gain == null
                           ? AppColors.textSecondary(context)
                           : v!.gain! >= Amount.zero
-                          ? AppColors.income
-                          : AppColors.expense,
+                          ? FlourishPalette.of(context).income
+                          : FlourishPalette.of(context).expense,
                     ),
                   ),
                 ],

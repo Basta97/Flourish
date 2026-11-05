@@ -100,7 +100,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               onPressed: _refreshPrices,
               icon: AnimatedRotation(
                 turns: _refreshing ? 1 : 0,
-                duration: Motion.of(context, const Duration(milliseconds: 900)),
+                duration: Motion.of(context, Motion.chart),
                 curve: Motion.morph,
                 child: const Icon(Icons.refresh_rounded),
               ),

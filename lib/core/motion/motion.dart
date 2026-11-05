@@ -11,6 +11,10 @@ class Motion {
   static const Duration base = Duration(milliseconds: 280);
   static const Duration slow = Duration(milliseconds: 450);
   static const Duration countUp = Duration(milliseconds: 900);
+
+  /// Chart, ring and bar draw-ins: long enough to read as a reveal, short
+  /// enough that numbers never wait on them.
+  static const Duration chart = Duration(milliseconds: 750);
   static const Duration stagger = Duration(milliseconds: 40);
 
   /// Entries and reveals.

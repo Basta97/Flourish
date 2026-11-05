@@ -30,10 +30,11 @@ class StatPill extends StatelessWidget {
     final palette = FlourishPalette.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(Sp.md, Sp.md, Sp.md, Sp.md + 2),
+      // A wash of the tone sets the tile apart from the card it sits in.
       decoration: BoxDecoration(
-        color: palette.surface,
+        color: Color.alphaBlend(tone.withValues(alpha: 0.07), palette.surface),
         borderRadius: BorderRadius.circular(Rad.lg),
-        border: Border.all(color: palette.stroke),
+        border: Border.all(color: tone.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

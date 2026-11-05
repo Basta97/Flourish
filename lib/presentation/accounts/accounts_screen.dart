@@ -451,7 +451,9 @@ class AddAccountSheetState extends ConsumerState<AddAccountSheet> {
               padding: const EdgeInsets.only(top: Sp.sm),
               child: Text(
                 _cardError!,
-                style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+                style: AppTextStyles.caption.copyWith(
+                  color: FlourishPalette.of(context).danger,
+                ),
               ),
             ),
           const SizedBox(height: Sp.xs),

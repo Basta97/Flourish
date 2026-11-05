@@ -227,7 +227,7 @@ class _StackedBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Motion.of(context, const Duration(milliseconds: 900)),
+      duration: Motion.of(context, Motion.chart),
       curve: Motion.enter,
       builder: (context, t, _) => ClipRRect(
         borderRadius: BorderRadius.circular(Rad.full),

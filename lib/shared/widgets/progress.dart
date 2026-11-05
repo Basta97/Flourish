@@ -42,7 +42,7 @@ class ProgressRing extends StatelessWidget {
     final track = FlourishPalette.of(context).stroke;
     final ring = TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: value.clamp(0, 1)),
-      duration: Motion.of(context, const Duration(milliseconds: 1100)),
+      duration: Motion.of(context, Motion.chart),
       curve: Motion.enter,
       builder: (context, v, _) => TweenAnimationBuilder<Color?>(
         tween: ColorTween(end: color),
@@ -149,7 +149,7 @@ class ProgressBar extends StatelessWidget {
         height: height,
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: value.clamp(0, 1)),
-          duration: Motion.of(context, const Duration(milliseconds: 1000)),
+          duration: Motion.of(context, Motion.chart),
           curve: Motion.enter,
           builder: (context, v, _) => Stack(
             children: [

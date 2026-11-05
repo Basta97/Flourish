@@ -29,7 +29,7 @@ class AnimatedDonut extends StatelessWidget {
     final palette = FlourishPalette.of(context);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Motion.of(context, const Duration(milliseconds: 1100)),
+      duration: Motion.of(context, Motion.chart),
       curve: Motion.enter,
       builder: (context, t, _) => Stack(
         alignment: Alignment.center,

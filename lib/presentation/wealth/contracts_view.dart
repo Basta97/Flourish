@@ -66,7 +66,9 @@ class ContractsView extends ConsumerWidget {
                                     : c.principal.toDouble(),
                                 currency: c.currency,
                               ),
-                              valueTone: c.isDebt ? AppColors.expense : null,
+                              valueTone: c.isDebt
+                                  ? FlourishPalette.of(context).expense
+                                  : null,
                               secondary: c.isDebt
                                   ? context.l10n.owed
                                   : context.l10n.principal,

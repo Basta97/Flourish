@@ -7,9 +7,14 @@ import 'package:flourish/core/theme/app_text_styles.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData light() => _build(Brightness.light);
+  // Built once: a fresh ThemeData on every app rebuild is slow to make and,
+  // never being identical, rebuilds every widget that reads the theme.
+  static final ThemeData _light = _build(Brightness.light);
+  static final ThemeData _dark = _build(Brightness.dark);
 
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData light() => _light;
+
+  static ThemeData dark() => _dark;
 
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
@@ -42,7 +47,7 @@ class AppTheme {
           outline: outline,
           outlineVariant: outline.withValues(alpha: isDark ? 0.75 : 0.88),
           surfaceContainerHighest: raised,
-          error: AppColors.danger,
+          error: palette.danger,
         );
 
     return ThemeData(
@@ -159,8 +164,8 @@ class AppTheme {
         border: _inputBorder(Colors.transparent),
         enabledBorder: _inputBorder(Colors.transparent),
         focusedBorder: _inputBorder(primary, width: 1.5),
-        errorBorder: _inputBorder(AppColors.danger),
-        focusedErrorBorder: _inputBorder(AppColors.danger, width: 1.5),
+        errorBorder: _inputBorder(palette.danger),
+        focusedErrorBorder: _inputBorder(palette.danger, width: 1.5),
       ),
       dividerTheme: DividerThemeData(color: outline, thickness: 1, space: 1),
       dialogTheme: DialogThemeData(

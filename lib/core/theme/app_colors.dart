@@ -12,7 +12,7 @@ class AppColors {
   static const Color primaryDeep = Color(0xFF077352);
   static const Color secondary = Color(0xFF6366F1);
   static const Color secondaryLight = Color(0xFFA5B4FC);
-  static const Color aurora = Color(0xFF0B0D12);
+  static const Color aurora = Color(0xFF07090D);
   static const Color peach = Color(0xFFF4A261);
 
   // ─── Semantic Colors ───
@@ -25,22 +25,32 @@ class AppColors {
   static const Color aiInsight = Color(0xFF8B7CF6);
 
   // ─── Surfaces ───
-  // Dark mode is layered in three steps: background → surface → raised.
-  static const Color backgroundDark = Color(0xFF0B0D12);
-  static const Color surfaceLight = Color(0xFFF4F5F7);
-  static const Color surfaceDark = Color(0xFF0B0D12);
+  // Dark mode is layered in three clearly separated steps: a near-black
+  // background, cards a visible step up, and raised sheets above those.
+  // Light mode sits on a mint-tinted paper with white cards and forest-ink
+  // accents, so it reads as the same jade brand rather than a grey default.
+  static const Color backgroundDark = Color(0xFF07090D);
+  static const Color surfaceLight = Color(0xFFF1F5F0);
+  static const Color surfaceDark = Color(0xFF07090D);
   static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color cardDark = Color(0xFF12151C);
+  static const Color cardDark = Color(0xFF141920);
   static const Color raisedLight = Color(0xFFFFFFFF);
-  static const Color raisedDark = Color(0xFF1A1E27);
+  static const Color raisedDark = Color(0xFF1D232D);
   static const Color glassStrongLight = Color(0xFFFFFFFF);
-  static const Color glassStrongDark = Color(0xFF12151C);
-  static const Color textPrimaryLight = Color(0xFF0E1116);
-  static const Color textSecondaryLight = Color(0xFF5F6B7A);
-  static const Color textPrimaryDark = Color(0xFFF2F4F7);
-  static const Color textSecondaryDark = Color(0xFF9AA3B2);
-  static const Color dividerLight = Color(0xFFE4E7EC);
-  static const Color dividerDark = Color(0xFF222733);
+  static const Color glassStrongDark = Color(0xFF141920);
+  static const Color textPrimaryLight = Color(0xFF0F1A15);
+  static const Color textSecondaryLight = Color(0xFF52615A);
+  static const Color textPrimaryDark = Color(0xFFF7F9FB);
+  static const Color textSecondaryDark = Color(0xFFAEB7C4);
+  static const Color dividerLight = Color(0xFFDCE5DE);
+  static const Color dividerDark = Color(0xFF2A313D);
+
+  /// Forest ink: the light theme's dark accent for the hero card and nav bar.
+  static const Color inkLight = Color(0xFF0F1C17);
+
+  /// Tint for light-mode shadows and hairlines, so depth reads green-grey
+  /// instead of dirty black on the mint paper.
+  static const Color shadeLight = Color(0xFF0B3B2A);
 
   // ─── Gradients ───
   static const List<Color> gradientNetWorth = [
@@ -48,14 +58,6 @@ class AppColors {
     Color(0xFF0E1218),
   ];
   static const List<Color> gradientAI = [Color(0xFF8B7CF6), Color(0xFF6366F1)];
-  static const List<Color> gradientBackdropLight = [
-    Color(0xFFF4F5F7),
-    Color(0xFFFAFAFB),
-  ];
-  static const List<Color> gradientBackdropDark = [
-    Color(0xFF0B0D12),
-    Color(0xFF0E1117),
-  ];
 
   // ─── Account Gradients (desaturated for calm) ───
   static List<List<Color>> accountGradients = [
@@ -125,22 +127,22 @@ class AppColors {
       _isDark(context) ? cardDark : cardLight;
   static Color glassStrong(BuildContext context) =>
       _isDark(context) ? glassStrongDark : glassStrongLight;
-  static Color glassStroke(BuildContext context) => _isDark(context)
-      ? Colors.white.withValues(alpha: 0.08)
-      : const Color(0xFFE4E7EC);
+  static Color glassStroke(BuildContext context) =>
+      _isDark(context) ? Colors.white.withValues(alpha: 0.13) : dividerLight;
   static Color softStroke(BuildContext context) => _isDark(context)
-      ? Colors.white.withValues(alpha: 0.06)
-      : Colors.black.withValues(alpha: 0.05);
+      ? Colors.white.withValues(alpha: 0.09)
+      : shadeLight.withValues(alpha: 0.07);
   static Color mutedSurface(BuildContext context) =>
       mutedSurfaceForBrightness(_isDark(context));
   static Color mutedSurfaceForBrightness(bool isDark) =>
-      isDark ? const Color(0xFF1A1E27) : const Color(0xFFECEEF2);
+      isDark ? const Color(0xFF1B212A) : const Color(0xFFE6EDE8);
   static Color elevatedSurface(BuildContext context) =>
       _isDark(context) ? raisedDark : raisedLight;
   static Color heroSurface(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF12151C) : const Color(0xFF0E1116);
-  static Color shadow(BuildContext context) =>
-      Colors.black.withValues(alpha: _isDark(context) ? 0.35 : 0.06);
+      _isDark(context) ? cardDark : inkLight;
+  static Color shadow(BuildContext context) => _isDark(context)
+      ? Colors.black.withValues(alpha: 0.5)
+      : shadeLight.withValues(alpha: 0.09);
   static Color brand(BuildContext context) =>
       _isDark(context) ? primaryLight : primaryDeep;
 }
@@ -159,6 +161,7 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
     required this.income,
     required this.expense,
     required this.warning,
+    required this.danger,
     required this.textHigh,
     required this.textLow,
     required this.navBar,
@@ -176,6 +179,9 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
   final Color income;
   final Color expense;
   final Color warning;
+
+  /// Errors and destructive actions, tuned per mode for legible text.
+  final Color danger;
   final Color textHigh;
   final Color textLow;
   final Color navBar;
@@ -184,23 +190,24 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
     background: AppColors.backgroundDark,
     surface: AppColors.cardDark,
     raised: AppColors.raisedDark,
-    stroke: Color(0x14FFFFFF),
-    highlight: Color(0x1AFFFFFF),
+    stroke: Color(0x21FFFFFF),
+    highlight: Color(0x2EFFFFFF),
     accent: AppColors.primaryLight,
-    accentSoft: Color(0x263DDC97),
+    accentSoft: Color(0x2E3DDC97),
     income: AppColors.income,
     expense: AppColors.expense,
     warning: AppColors.warning,
+    danger: Color(0xFFFF6B70),
     textHigh: AppColors.textPrimaryDark,
     textLow: AppColors.textSecondaryDark,
-    navBar: Color(0xE0151922),
+    navBar: Color(0xFF181D26),
   );
 
   static const light = FlourishPalette(
     background: AppColors.surfaceLight,
     surface: AppColors.cardLight,
     raised: AppColors.raisedLight,
-    stroke: Color(0x0F000000),
+    stroke: Color(0x170B3B2A),
     highlight: Color(0xFFFFFFFF),
     accent: AppColors.primaryDeep,
     // Light values are darkened to keep text at ≥ 4.5:1 on every surface.
@@ -208,9 +215,10 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
     income: Color(0xFF0A7350),
     expense: Color(0xFFC23B28),
     warning: Color(0xFF92600F),
+    danger: Color(0xFFC0272F),
     textHigh: AppColors.textPrimaryLight,
     textLow: AppColors.textSecondaryLight,
-    navBar: Color(0xE6151922),
+    navBar: Color(0xFF10201A),
   );
 
   static FlourishPalette of(BuildContext context) =>
@@ -229,6 +237,7 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
     Color? income,
     Color? expense,
     Color? warning,
+    Color? danger,
     Color? textHigh,
     Color? textLow,
     Color? navBar,
@@ -244,6 +253,7 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
       income: income ?? this.income,
       expense: expense ?? this.expense,
       warning: warning ?? this.warning,
+      danger: danger ?? this.danger,
       textHigh: textHigh ?? this.textHigh,
       textLow: textLow ?? this.textLow,
       navBar: navBar ?? this.navBar,
@@ -264,6 +274,7 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
       income: Color.lerp(income, other.income, t)!,
       expense: Color.lerp(expense, other.expense, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
       textHigh: Color.lerp(textHigh, other.textHigh, t)!,
       textLow: Color.lerp(textLow, other.textLow, t)!,
       navBar: Color.lerp(navBar, other.navBar, t)!,

@@ -307,7 +307,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               onPressed: _submitState == SubmitState.busy ? null : _delete,
               icon: const Icon(Icons.delete_outline_rounded, size: 18),
               label: Text(context.l10n.delete),
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              style: TextButton.styleFrom(
+                foregroundColor: FlourishPalette.of(context).danger,
+              ),
             )
           : _mode == 'transfer'
           ? null
@@ -371,13 +373,17 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         if (allAccounts.isEmpty)
           Text(
             accountsAsync.isLoading ? '' : context.l10n.noAccountsAddFirst,
-            style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+            style: AppTextStyles.caption.copyWith(
+              color: FlourishPalette.of(context).danger,
+            ),
           )
         else if (_mode == 'transfer') ...[
           if (allAccounts.length < 2)
             Text(
               context.l10n.needTwoAccounts,
-              style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+              style: AppTextStyles.caption.copyWith(
+                color: FlourishPalette.of(context).danger,
+              ),
             )
           else ...[
             FormLabel(context.l10n.from),
@@ -475,7 +481,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 : Text(
                     _categoryError!,
                     style: AppTextStyles.caption.copyWith(
-                      color: AppColors.danger,
+                      color: FlourishPalette.of(context).danger,
                     ),
                   ),
           ),
@@ -514,7 +520,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           const SizedBox(height: Sp.sm),
           Text(
             _accountError!,
-            style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+            style: AppTextStyles.caption.copyWith(
+              color: FlourishPalette.of(context).danger,
+            ),
           ),
         ],
         const SizedBox(height: Sp.lg),
@@ -741,7 +749,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 currency: account.currency,
               ),
             ),
-            style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+            style: AppTextStyles.caption.copyWith(
+              color: FlourishPalette.of(context).danger,
+            ),
           ),
         ),
       // Whether an entry is a refund, and its original currency, are set

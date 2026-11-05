@@ -51,7 +51,7 @@ class CreditCardPanel extends ConsumerWidget {
     }
     final utilization = status.utilization ?? 0;
     final tone = utilization >= 0.9
-        ? AppColors.danger
+        ? FlourishPalette.of(context).danger
         : utilization >= 0.3
         ? palette.warning
         : palette.income;
@@ -101,7 +101,9 @@ class CreditCardPanel extends ConsumerWidget {
               padding: const EdgeInsets.only(top: Sp.xs),
               child: Text(
                 context.l10n.overLimitBy(fmt(status.overLimitBy)),
-                style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+                style: AppTextStyles.caption.copyWith(
+                  color: FlourishPalette.of(context).danger,
+                ),
               ),
             ),
           if (status.intlLimit != null) ...[
@@ -111,7 +113,9 @@ class CreditCardPanel extends ConsumerWidget {
             if (status.intlOverLimitBy > Amount.zero)
               Text(
                 context.l10n.overIntlLimitBy(fmt(status.intlOverLimitBy)),
-                style: AppTextStyles.caption.copyWith(color: AppColors.danger),
+                style: AppTextStyles.caption.copyWith(
+                  color: FlourishPalette.of(context).danger,
+                ),
               ),
           ],
           for (final (reported, said) in [

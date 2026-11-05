@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 
+/// The page canvas. Flat, and the same color as the app bar and every other
+/// scaffold, so pushed pages never show a seam or a different tint.
 class LiquidPageBackground extends StatelessWidget {
   const LiquidPageBackground({super.key, required this.child});
 
@@ -8,22 +10,6 @@ class LiquidPageBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? AppColors.gradientBackdropDark
-              : AppColors.gradientBackdropLight,
-        ),
-      ),
-      child: child,
-    );
+    return ColoredBox(color: AppColors.surface(context), child: child);
   }
 }

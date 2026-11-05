@@ -20,7 +20,9 @@ class AmountText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = showColor
-        ? (amount >= 0 ? AppColors.income : AppColors.expense)
+        ? (amount >= 0
+              ? FlourishPalette.of(context).income
+              : FlourishPalette.of(context).expense)
         : null;
     return Text(
       compact

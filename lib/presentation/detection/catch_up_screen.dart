@@ -290,7 +290,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
                       ? Icons.verified_rounded
                       : Icons.playlist_add_check_rounded,
                   color: result.missing.isEmpty
-                      ? AppColors.income
+                      ? FlourishPalette.of(context).income
                       : AppColors.primary,
                 ),
                 const SizedBox(width: Sp.md),
@@ -443,7 +443,9 @@ class _MissingCard extends ConsumerWidget {
                   _amount(row),
                   textDirection: TextDirection.ltr,
                   style: AppTextStyles.number.copyWith(
-                    color: row.direction == 'income' ? AppColors.income : null,
+                    color: row.direction == 'income'
+                        ? FlourishPalette.of(context).income
+                        : null,
                   ),
                 ),
               ],
@@ -481,7 +483,7 @@ class _MissingCard extends ConsumerWidget {
                       : l.catchUpSkipped,
                   style: low.copyWith(
                     color: decision == _Decision.added
-                        ? AppColors.income
+                        ? FlourishPalette.of(context).income
                         : null,
                   ),
                 ),

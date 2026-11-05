@@ -242,7 +242,7 @@ class AccountDetailScreen extends ConsumerWidget {
             },
             child: Text(
               context.l10n.delete,
-              style: TextStyle(color: AppColors.danger),
+              style: TextStyle(color: FlourishPalette.of(context).danger),
             ),
           ),
         ],

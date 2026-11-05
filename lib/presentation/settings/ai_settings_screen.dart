@@ -328,7 +328,9 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     Text(
                       _testResult!,
                       style: AppTextStyles.caption.copyWith(
-                        color: _testOk ? AppColors.income : AppColors.expense,
+                        color: _testOk
+                            ? FlourishPalette.of(context).income
+                            : FlourishPalette.of(context).expense,
                       ),
                     ),
                   ],

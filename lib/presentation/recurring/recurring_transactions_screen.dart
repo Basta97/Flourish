@@ -169,7 +169,7 @@ class _RecurringCard extends ConsumerWidget {
                         child: Text(
                           context.l10n.notPosted(warning),
                           style: AppTextStyles.caption.copyWith(
-                            color: AppColors.danger,
+                            color: FlourishPalette.of(context).danger,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -209,7 +209,9 @@ class _RecurringCard extends ConsumerWidget {
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
                             style: TextButton.styleFrom(
-                              foregroundColor: AppColors.danger,
+                              foregroundColor: FlourishPalette.of(
+                                context,
+                              ).danger,
                             ),
                             child: Text(ctx.l10n.delete),
                           ),
@@ -233,7 +235,9 @@ class _RecurringCard extends ConsumerWidget {
                     value: 'delete',
                     child: Text(
                       context.l10n.delete,
-                      style: TextStyle(color: AppColors.danger),
+                      style: TextStyle(
+                        color: FlourishPalette.of(context).danger,
+                      ),
                     ),
                   ),
                 ],
@@ -351,7 +355,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               child: _TypeBtn(
                 label: context.l10n.expense,
                 selected: _type == 'expense',
-                color: AppColors.expense,
+                color: FlourishPalette.of(context).expense,
                 onTap: () => setState(() {
                   _type = 'expense';
                   _categoryId = null;
@@ -363,7 +367,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               child: _TypeBtn(
                 label: context.l10n.income,
                 selected: _type == 'income',
-                color: AppColors.income,
+                color: FlourishPalette.of(context).income,
                 onTap: () => setState(() {
                   _type = 'income';
                   _categoryId = null;

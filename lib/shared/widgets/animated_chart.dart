@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flourish/core/motion/motion.dart';
 
 /// Apple-style chart draw-in animation wrapper.
 /// Animates the child widget with a fade-in + slight scale-up effect.
@@ -10,7 +11,7 @@ class AnimatedChart extends StatefulWidget {
   const AnimatedChart({
     super.key,
     required this.child,
-    this.duration = const Duration(milliseconds: 700),
+    this.duration = Motion.chart,
   });
 
   @override
@@ -30,7 +31,14 @@ class _AnimatedChartState extends State<AnimatedChart>
       parent: _controller,
       curve: Curves.easeOutCubic,
     );
-    _controller.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (Motion.reduced(context)) {
+        _controller.value = 1;
+      } else {
+        _controller.forward();
+      }
+    });
   }
 
   @override
@@ -41,19 +49,14 @@ class _AnimatedChartState extends State<AnimatedChart>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _animation.value,
-          child: Transform.scale(
-            scale: 0.96 + (_animation.value * 0.04),
-            alignment: Alignment.center,
-            child: child,
-          ),
-        );
-      },
-      child: widget.child,
+    // Transitions animate on the compositor without rebuilding the chart,
+    // and the boundary keeps chart repaints from spreading to the page.
+    return FadeTransition(
+      opacity: _animation,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.96, end: 1).animate(_animation),
+        child: RepaintBoundary(child: widget.child),
+      ),
     );
   }
 }

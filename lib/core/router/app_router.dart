@@ -6,7 +6,6 @@ import 'package:flourish/presentation/settings/ai_settings_screen.dart';
 import 'package:flourish/presentation/detection/inbox_screen.dart';
 import 'package:flourish/presentation/detection/detection_settings_screen.dart';
 import 'package:flourish/presentation/payment_methods/payment_methods_screen.dart';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../presentation/dashboard/dashboard_screen.dart';
@@ -370,10 +369,11 @@ class _IslandNavBar extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Rad.full),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          // Near-opaque instead of frosted: a backdrop blur here would
+          // re-render every frame while the page scrolls underneath.
+          child: RepaintBoundary(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Rad.full),
               child: Container(
                 height: 72,
                 padding: const EdgeInsets.symmetric(horizontal: _hPad),
@@ -381,7 +381,7 @@ class _IslandNavBar extends StatelessWidget {
                   color: palette.navBar,
                   borderRadius: BorderRadius.circular(Rad.full),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: Colors.white.withValues(alpha: 0.11),
                   ),
                 ),
                 child: Stack(

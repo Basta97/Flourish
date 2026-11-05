@@ -402,7 +402,9 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
               missing == 0
                   ? Icons.verified_rounded
                   : Icons.playlist_add_check_rounded,
-              color: missing == 0 ? AppColors.income : AppColors.primary,
+              color: missing == 0
+                  ? FlourishPalette.of(context).income
+                  : AppColors.primary,
             ),
             const SizedBox(width: Sp.md),
             Expanded(
@@ -457,7 +459,7 @@ class _ImportReviewScreenState extends ConsumerState<ImportReviewScreen> {
             textDirection: TextDirection.ltr,
             style: AppTextStyles.numberSmall.copyWith(
               color: r.row.type == 'income'
-                  ? AppColors.income
+                  ? FlourishPalette.of(context).income
                   : AppColors.textPrimary(context),
             ),
           ),

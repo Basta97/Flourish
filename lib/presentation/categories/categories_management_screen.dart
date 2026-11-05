@@ -51,7 +51,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
                   ..._section(
                     context,
                     title: context.l10n.income,
-                    color: AppColors.income,
+                    color: FlourishPalette.of(context).income,
                     categories: income,
                     firstIndex: 0,
                   ),
@@ -61,7 +61,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
                   ..._section(
                     context,
                     title: context.l10n.expense,
-                    color: AppColors.expense,
+                    color: FlourishPalette.of(context).expense,
                     categories: expense,
                     firstIndex: income.length,
                   ),
@@ -163,7 +163,9 @@ class _CategoryTile extends ConsumerWidget {
               : IconButton(
                   icon: const Icon(Icons.delete_outline, size: 20),
                   tooltip: context.l10n.delete,
-                  color: AppColors.danger.withValues(alpha: 0.6),
+                  color: FlourishPalette.of(
+                    context,
+                  ).danger.withValues(alpha: 0.6),
                   onPressed: () => _confirmDelete(context, ref, category),
                 ),
           shape: RoundedRectangleBorder(
@@ -221,7 +223,7 @@ class _CategoryTile extends ConsumerWidget {
             },
             child: Text(
               ctx.l10n.delete,
-              style: TextStyle(color: AppColors.danger),
+              style: TextStyle(color: FlourishPalette.of(context).danger),
             ),
           ),
         ],

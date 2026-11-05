@@ -27,7 +27,7 @@ class _SparklineState extends State<Sparkline>
     with SingleTickerProviderStateMixin {
   late final AnimationController _reveal = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
+    duration: Motion.chart,
   );
 
   @override

@@ -22,7 +22,7 @@ class ErrorState extends StatelessWidget {
             Icon(
               Icons.error_outline,
               size: 48,
-              color: AppColors.danger.withValues(alpha: 0.6),
+              color: FlourishPalette.of(context).danger.withValues(alpha: 0.6),
             ),
             const SizedBox(height: Sp.md),
             Text(

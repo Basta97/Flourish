@@ -313,7 +313,9 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
                   ValueRow(
                     e.key,
                     money(e.value),
-                    tone: title == l.feesInterestPaid ? AppColors.danger : null,
+                    tone: title == l.feesInterestPaid
+                        ? FlourishPalette.of(context).danger
+                        : null,
                   ),
               ],
             ),

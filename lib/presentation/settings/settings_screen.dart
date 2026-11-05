@@ -172,7 +172,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.currency_exchange,
                   title: context.l10n.defaultCurrency,
                   subtitle: currency,
-                  trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
                     final v = await pickCurrency(context, selected: currency);
                     if (v != null && context.mounted) {
@@ -647,8 +646,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         icon: Icons.delete_outline,
         title: context.l10n.resetAllData,
         subtitle: context.l10n.resetAllDataSubtitle,
-        titleColor: AppColors.danger,
-        tint: AppColors.danger,
+        titleColor: FlourishPalette.of(context).danger,
+        tint: FlourishPalette.of(context).danger,
         onTap: () => _confirmReset(context, ref),
       ),
     ],
@@ -1171,7 +1170,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           );
                         }
                       },
-                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                style: TextButton.styleFrom(
+                  foregroundColor: FlourishPalette.of(context).danger,
+                ),
                 child: running
                     ? const SizedBox.square(
                         dimension: 18,

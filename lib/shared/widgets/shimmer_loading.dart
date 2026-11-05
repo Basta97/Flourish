@@ -36,10 +36,10 @@ class ShimmerLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: isDark ? const Color(0xFF161A22) : const Color(0xFFE9ECF0),
+      baseColor: isDark ? const Color(0xFF1B212A) : const Color(0xFFE2EAE4),
       highlightColor: isDark
-          ? const Color(0xFF232836)
-          : const Color(0xFFF6F7F9),
+          ? const Color(0xFF29313D)
+          : const Color(0xFFF4F8F5),
       period: const Duration(milliseconds: 1400),
       enabled: !Motion.reduced(context),
       child: child,

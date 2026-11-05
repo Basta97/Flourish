@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/l10n/l10n.dart';
 import '../accounts/widgets/credit_card_panel.dart' show payCard;
 import 'package:flutter/material.dart';
@@ -23,7 +24,7 @@ class ContractsView extends ConsumerWidget {
     children: [
       FilledButton.icon(
         onPressed: () => addContract(context, ref),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: Text(context.l10n.addContractOrDebt),
       ),
       Padding(
@@ -373,44 +374,53 @@ class ContractDetailScreen extends ConsumerWidget {
                       '${context.l10n.principalInterestLine(p.principal.fixed(), p.interest.fixed())}${p.paid ? ' · ${context.l10n.confirmed}' : ''}',
                     ),
                     trailing: p.paid
-                        ? IconButton(
-                            tooltip: context.l10n.reverseConfirmedPayment,
-                            icon: const Icon(Icons.undo),
-                            onPressed: () async {
-                              final reverse = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(context.l10n.reversePaymentTitle),
-                                  content: Text(
-                                    context.l10n.reversePaymentBody,
+                        ? TapBounce(
+                            child: IconButton(
+                              tooltip: context.l10n.reverseConfirmedPayment,
+                              icon: const Icon(Icons.undo_rounded),
+                              onPressed: () async {
+                                final reverse = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(
+                                      context.l10n.reversePaymentTitle,
+                                    ),
+                                    content: Text(
+                                      context.l10n.reversePaymentBody,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: Text(context.l10n.cancel),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: Text(context.l10n.reverse),
+                                      ),
+                                    ],
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, false),
-                                      child: Text(context.l10n.cancel),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: Text(context.l10n.reverse),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (reverse == true) {
-                                try {
-                                  await ref
-                                      .read(contractServiceProvider)
-                                      .reverseConfirmation(p.id);
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(describeError(e))),
-                                    );
+                                );
+                                if (reverse == true) {
+                                  try {
+                                    await ref
+                                        .read(contractServiceProvider)
+                                        .reverseConfirmation(p.id);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(describeError(e)),
+                                        ),
+                                      );
+                                    }
                                   }
                                 }
-                              }
-                            },
+                              },
+                            ),
                           )
                         : TextButton(
                             onPressed: () async {

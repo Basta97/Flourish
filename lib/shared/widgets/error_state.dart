@@ -20,7 +20,7 @@ class ErrorState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.error_outline,
+              Icons.error_outline_rounded,
               size: 48,
               color: FlourishPalette.of(context).danger.withValues(alpha: 0.6),
             ),
@@ -46,7 +46,7 @@ class ErrorState extends StatelessWidget {
               const SizedBox(height: Sp.lg),
               OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 18),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(context.l10n.tryAgain),
               ),
             ],

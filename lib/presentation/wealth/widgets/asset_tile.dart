@@ -12,19 +12,19 @@ import 'package:flourish/shared/widgets/pressable.dart';
   AssetKind.stock => (Icons.show_chart_rounded, const Color(0xFF5B9DF5)),
   AssetKind.fund => (Icons.pie_chart_outline_rounded, const Color(0xFF8B7CF6)),
   AssetKind.crypto => (Icons.currency_bitcoin_rounded, const Color(0xFFF4A261)),
-  AssetKind.property => (Icons.home_work_outlined, const Color(0xFF3CC8C0)),
-  AssetKind.custom => (Icons.category_outlined, const Color(0xFF8A94A6)),
+  AssetKind.property => (Icons.home_work_rounded, const Color(0xFF3CC8C0)),
+  AssetKind.custom => (Icons.category_rounded, const Color(0xFF8A94A6)),
 };
 
 /// Icon and tint for each contract kind; debts read coral, assets jade.
 (IconData, Color) contractStyle(ContractKind kind) => switch (kind) {
-  ContractKind.deposit => (Icons.savings_outlined, AppColors.income),
+  ContractKind.deposit => (Icons.savings_rounded, AppColors.income),
   ContractKind.certificate => (
-    Icons.workspace_premium_outlined,
+    Icons.workspace_premium_rounded,
     AppColors.income,
   ),
   ContractKind.receivable => (Icons.call_received_rounded, AppColors.income),
-  ContractKind.loan => (Icons.account_balance_outlined, AppColors.expense),
+  ContractKind.loan => (Icons.account_balance_rounded, AppColors.expense),
   ContractKind.creditCard => (Icons.credit_card_rounded, AppColors.expense),
 };
 
@@ -177,7 +177,11 @@ class AssetGroup extends StatelessWidget {
 
 /// Short explanatory note shown above a Wealth list or when it is empty.
 class WealthHint extends StatelessWidget {
-  const WealthHint(this.text, {super.key, this.icon = Icons.info_outline});
+  const WealthHint(
+    this.text, {
+    super.key,
+    this.icon = Icons.info_outline_rounded,
+  });
 
   final String text;
   final IconData icon;

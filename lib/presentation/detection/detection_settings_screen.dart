@@ -262,7 +262,7 @@ class _DetectionSettingsScreenState
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
                       access == true
-                          ? Icons.verified_user_outlined
+                          ? Icons.verified_user_rounded
                           : Icons.warning_amber_rounded,
                       color: access == true ? palette.income : palette.warning,
                     ),
@@ -382,7 +382,7 @@ class _DetectionSettingsScreenState
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.psychology_alt_outlined),
+                leading: const Icon(Icons.psychology_alt_rounded),
                 title: Text(context.l10n.aiForUnclear),
                 subtitle: Text(
                   ref.watch(aiSettingsProvider).enabled
@@ -444,7 +444,7 @@ class _DetectionSettingsScreenState
                       );
                     }
                   },
-                  icon: const Icon(Icons.delete_sweep_outlined),
+                  icon: const Icon(Icons.delete_sweep_rounded),
                   label: Text(context.l10n.deleteAllMessageText),
                 ),
               ),

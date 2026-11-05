@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/search/search_models.dart';
@@ -111,15 +112,17 @@ Future<SearchFilters?> showSearchFilters(
                             ) ??
                             '—',
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() {
-                          if (start) {
-                            from = null;
-                          } else {
-                            to = null;
-                          }
-                        }),
+                      trailing: TapBounce(
+                        child: IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () => setState(() {
+                            if (start) {
+                              from = null;
+                            } else {
+                              to = null;
+                            }
+                          }),
+                        ),
                       ),
                       onTap: () async {
                         final value = await showDatePicker(

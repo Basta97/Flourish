@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import '../../currencies/currency_picker.dart';
 import '../../templates/template_picker.dart';
@@ -316,23 +317,27 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: context.l10n.useTemplate,
-                  onPressed: _submitState == SubmitState.busy
-                      ? null
-                      : _pickTemplate,
-                  icon: const Icon(Icons.bookmark_outline),
+                TapBounce(
+                  child: IconButton(
+                    tooltip: context.l10n.useTemplate,
+                    onPressed: _submitState == SubmitState.busy
+                        ? null
+                        : _pickTemplate,
+                    icon: const Icon(Icons.bookmark_outline_rounded),
+                  ),
                 ),
-                IconButton(
-                  tooltip: context.l10n.scanOrImport,
-                  onPressed: _submitState == SubmitState.busy
-                      ? null
-                      : () {
-                          final router = GoRouter.of(context);
-                          Navigator.pop(context);
-                          router.push('/smart-import');
-                        },
-                  icon: const Icon(Icons.document_scanner_outlined),
+                TapBounce(
+                  child: IconButton(
+                    tooltip: context.l10n.scanOrImport,
+                    onPressed: _submitState == SubmitState.busy
+                        ? null
+                        : () {
+                            final router = GoRouter.of(context);
+                            Navigator.pop(context);
+                            router.push('/smart-import');
+                          },
+                    icon: const Icon(Icons.document_scanner_rounded),
+                  ),
                 ),
               ],
             ),
@@ -543,7 +548,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   hintText: context.l10n.merchantOptional,
-                  prefixIcon: const Icon(Icons.storefront_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.storefront_rounded, size: 20),
                 ),
               ),
               const SizedBox(height: Sp.md),
@@ -1249,7 +1254,7 @@ class _TemplateTransactionSheetState
   Widget build(BuildContext context) => selection == null
       ? const SizedBox(
           height: 160,
-          child: Center(child: Icon(Icons.bookmark_outline)),
+          child: Center(child: Icon(Icons.bookmark_outline_rounded)),
         )
       : AddTransactionSheet(templateSelection: selection);
 }

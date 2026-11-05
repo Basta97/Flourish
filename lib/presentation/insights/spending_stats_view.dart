@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/data/database/database.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/shared/category_label.dart';
@@ -55,11 +56,13 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
 
     final header = Row(
       children: [
-        IconButton.filledTonal(
-          tooltip: context.l10n.previousMonth,
-          style: IconButton.styleFrom(shape: const CircleBorder()),
-          onPressed: () => _shift(-1),
-          icon: const Icon(Icons.chevron_left_rounded),
+        TapBounce(
+          child: IconButton.filledTonal(
+            tooltip: context.l10n.previousMonth,
+            style: IconButton.styleFrom(shape: const CircleBorder()),
+            onPressed: () => _shift(-1),
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
         ),
         Expanded(
           child: Text(
@@ -70,11 +73,13 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
             style: AppTextStyles.title.copyWith(color: palette.textHigh),
           ),
         ),
-        IconButton.filledTonal(
-          tooltip: context.l10n.nextMonth,
-          style: IconButton.styleFrom(shape: const CircleBorder()),
-          onPressed: month.isBefore(current) ? () => _shift(1) : null,
-          icon: const Icon(Icons.chevron_right_rounded),
+        TapBounce(
+          child: IconButton.filledTonal(
+            tooltip: context.l10n.nextMonth,
+            style: IconButton.styleFrom(shape: const CircleBorder()),
+            onPressed: month.isBefore(current) ? () => _shift(1) : null,
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
         ),
       ],
     );

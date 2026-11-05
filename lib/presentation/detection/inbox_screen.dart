@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
@@ -68,22 +69,26 @@ class InboxScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(context.l10n.paymentsToReviewTitle),
         actions: [
-          IconButton(
-            tooltip: context.l10n.catchUpTitle,
-            icon: const Icon(Icons.history_rounded),
-            onPressed: () => context.push('/catch-up'),
+          TapBounce(
+            child: IconButton(
+              tooltip: context.l10n.catchUpTitle,
+              icon: const Icon(Icons.history_rounded),
+              onPressed: () => context.push('/catch-up'),
+            ),
           ),
-          IconButton(
-            tooltip: context.l10n.detectionSettings,
-            icon: const Icon(Icons.tune_rounded),
-            onPressed: () => context.push('/settings/detection'),
+          TapBounce(
+            child: IconButton(
+              tooltip: context.l10n.detectionSettings,
+              icon: const Icon(Icons.tune_rounded),
+              onPressed: () => context.push('/settings/detection'),
+            ),
           ),
         ],
       ),
       body: LiquidPageBackground(
         child: rows.isEmpty
             ? EmptyState(
-                icon: Icons.mark_email_unread_outlined,
+                icon: Icons.mark_email_unread_rounded,
                 title: context.l10n.nothingDetected,
                 subtitle: context.l10n.nothingDetectedSubtitle,
                 action: FilledButton(
@@ -106,7 +111,7 @@ class InboxScreen extends ConsumerWidget {
                         onPressed: () => askAi(context, ref, [
                           for (final r in unclear) r.id,
                         ]),
-                        icon: const Icon(Icons.psychology_alt_outlined),
+                        icon: const Icon(Icons.psychology_alt_rounded),
                         label: Text(context.l10n.checkUnclear(unclear.length)),
                       ),
                     ),
@@ -367,14 +372,16 @@ class _DetectedCard extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (row.rawText != null)
-                  IconButton(
-                    tooltip: context.l10n.showMessage,
-                    icon: const Icon(Icons.notes_rounded, size: 20),
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(from),
-                        content: SelectableText(row.rawText!),
+                  TapBounce(
+                    child: IconButton(
+                      tooltip: context.l10n.showMessage,
+                      icon: const Icon(Icons.notes_rounded, size: 20),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(from),
+                          content: SelectableText(row.rawText!),
+                        ),
                       ),
                     ),
                   ),

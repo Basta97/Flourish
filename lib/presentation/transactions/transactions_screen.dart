@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
@@ -106,25 +107,32 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
             title: Text(context.l10n.navLedger),
             actions: [
-              IconButton(
-                tooltip: context.l10n.globalSearch,
-                onPressed: () {
-                  Haptics.tap();
-                  context.push('/search');
-                },
-                icon: const Icon(Icons.search_rounded),
+              TapBounce(
+                child: IconButton(
+                  tooltip: context.l10n.globalSearch,
+                  onPressed: () {
+                    Haptics.tap();
+                    context.push('/search');
+                  },
+                  icon: const Icon(Icons.search_rounded),
+                ),
               ),
-              IconButton(
-                tooltip: view == 'calendar'
-                    ? context.l10n.listView
-                    : context.l10n.calendarView,
-                isSelected: view == 'calendar',
-                onPressed: () {
-                  Haptics.select();
-                  setState(() => view = view == 'list' ? 'calendar' : 'list');
-                },
-                icon: const Icon(Icons.calendar_month),
-                selectedIcon: Icon(Icons.calendar_month, color: palette.accent),
+              TapBounce(
+                child: IconButton(
+                  tooltip: view == 'calendar'
+                      ? context.l10n.listView
+                      : context.l10n.calendarView,
+                  isSelected: view == 'calendar',
+                  onPressed: () {
+                    Haptics.select();
+                    setState(() => view = view == 'list' ? 'calendar' : 'list');
+                  },
+                  icon: const Icon(Icons.calendar_month_rounded),
+                  selectedIcon: Icon(
+                    Icons.calendar_month_rounded,
+                    color: palette.accent,
+                  ),
+                ),
               ),
               const SizedBox(width: Sp.xs),
             ],
@@ -172,7 +180,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   children: [
                     Expanded(
                       child: _FilterMenu<int>(
-                        icon: Icons.account_balance_wallet_outlined,
+                        icon: Icons.account_balance_wallet_rounded,
                         label:
                             accountMap[account]?.name ??
                             context.l10n.allAccounts,
@@ -187,7 +195,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     const SizedBox(width: Sp.sm),
                     Expanded(
                       child: _FilterMenu<int>(
-                        icon: Icons.category_outlined,
+                        icon: Icons.category_rounded,
                         label:
                             categoryMap[category]?.name ??
                             context.l10n.allCategories,
@@ -476,11 +484,13 @@ class _PeriodSwitcher extends StatelessWidget {
                     ),
                   ),
                   if (onClearRange != null)
-                    IconButton(
-                      tooltip: context.l10n.clearRange,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onClearRange,
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                    TapBounce(
+                      child: IconButton(
+                        tooltip: context.l10n.clearRange,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onClearRange,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                      ),
                     ),
                 ],
               ),

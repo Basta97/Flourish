@@ -32,7 +32,7 @@ class CurrencyField extends StatelessWidget {
     child: InputDecorator(
       decoration: InputDecoration(
         labelText: label,
-        suffixIcon: const Icon(Icons.search),
+        suffixIcon: const Icon(Icons.search_rounded),
       ),
       child: Text(value.isEmpty ? '—' : value),
     ),
@@ -110,7 +110,7 @@ class _PickerState extends ConsumerState<_Picker> {
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: context.l10n.searchCurrency,
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search_rounded),
                 ),
                 onChanged: (v) => setState(() => query = v),
               ),
@@ -124,7 +124,7 @@ class _PickerState extends ConsumerState<_Picker> {
                     title: Text(r.code),
                     subtitle: Text(r.name),
                     trailing: r.code == widget.selected
-                        ? const Icon(Icons.check)
+                        ? const Icon(Icons.check_rounded)
                         : null,
                     onTap: () => Navigator.pop(context, r.code),
                   );

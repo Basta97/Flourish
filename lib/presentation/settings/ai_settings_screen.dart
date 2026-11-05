@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -274,10 +275,12 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                     autocorrect: false,
                     decoration: InputDecoration(
                       labelText: context.l10n.model,
-                      suffixIcon: IconButton(
-                        tooltip: context.l10n.chooseModel,
-                        icon: const Icon(Icons.list_alt_rounded),
-                        onPressed: _testing ? null : _chooseModel,
+                      suffixIcon: TapBounce(
+                        child: IconButton(
+                          tooltip: context.l10n.chooseModel,
+                          icon: const Icon(Icons.list_alt_rounded),
+                          onPressed: _testing ? null : _chooseModel,
+                        ),
                       ),
                     ),
                     onChanged: (v) => _update(s.copyWith(model: v)),
@@ -293,10 +296,12 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                       hintText: _hasKey
                           ? context.l10n.apiKeySavedHint
                           : context.l10n.pasteYourKey,
-                      suffixIcon: IconButton(
-                        tooltip: context.l10n.saveKey,
-                        icon: const Icon(Icons.check_rounded),
-                        onPressed: _saveKey,
+                      suffixIcon: TapBounce(
+                        child: IconButton(
+                          tooltip: context.l10n.saveKey,
+                          icon: const Icon(Icons.check_rounded),
+                          onPressed: _saveKey,
+                        ),
                       ),
                     ),
                     onSubmitted: (_) => _saveKey(),
@@ -430,7 +435,7 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
               padding: const EdgeInsets.all(Sp.lg),
               child: Row(
                 children: [
-                  const Icon(Icons.insights_outlined),
+                  const Icon(Icons.insights_rounded),
                   const SizedBox(width: Sp.md),
                   Expanded(
                     child: Text(

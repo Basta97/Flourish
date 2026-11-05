@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/utils/amount_calculator.dart';
@@ -24,28 +25,30 @@ class AmountCalculatorButton extends StatelessWidget {
   final bool enabled;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: context.l10n.amountCalculator,
-    icon: const Icon(Icons.calculate_outlined),
-    onPressed: !enabled
-        ? null
-        : () async {
-            FocusManager.instance.primaryFocus?.unfocus();
-            final total = await showSpringBottomSheet<String>(
-              context: context,
-              builder: (_) => _CalculatorSheet(
-                initial: controller.text,
-                decimalPlaces: decimalPlaces,
-                allowNegative: allowNegative,
-              ),
-            );
-            if (total == null || !context.mounted) return;
-            controller.value = TextEditingValue(
-              text: total,
-              selection: TextSelection.collapsed(offset: total.length),
-            );
-            onChanged?.call(total);
-          },
+  Widget build(BuildContext context) => TapBounce(
+    child: IconButton(
+      tooltip: context.l10n.amountCalculator,
+      icon: const Icon(Icons.calculate_rounded),
+      onPressed: !enabled
+          ? null
+          : () async {
+              FocusManager.instance.primaryFocus?.unfocus();
+              final total = await showSpringBottomSheet<String>(
+                context: context,
+                builder: (_) => _CalculatorSheet(
+                  initial: controller.text,
+                  decimalPlaces: decimalPlaces,
+                  allowNegative: allowNegative,
+                ),
+              );
+              if (total == null || !context.mounted) return;
+              controller.value = TextEditingValue(
+                text: total,
+                selection: TextSelection.collapsed(offset: total.length),
+              );
+              onChanged?.call(total);
+            },
+    ),
   );
 }
 
@@ -123,10 +126,12 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
     ];
     return BottomSheetScaffold(
       title: l.amountCalculator,
-      headerTrailing: IconButton(
-        tooltip: l.cancel,
-        onPressed: () => Navigator.pop(context),
-        icon: const Icon(Icons.close),
+      headerTrailing: TapBounce(
+        child: IconButton(
+          tooltip: l.cancel,
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close_rounded),
+        ),
       ),
       children: [
         Text(l.calculatorUseTotal),
@@ -186,7 +191,7 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
                               onPressed: () => _key(key),
                               child: key == '⌫'
                                   ? Icon(
-                                      Icons.backspace_outlined,
+                                      Icons.backspace_rounded,
                                       semanticLabel: l.calculatorBackspace,
                                     )
                                   : Text(

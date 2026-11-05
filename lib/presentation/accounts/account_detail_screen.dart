@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/l10n/l10n.dart';
 import '../wealth/finance_tools_view.dart';
 import 'package:flutter/material.dart';
@@ -57,15 +58,19 @@ class AccountDetailScreen extends ConsumerWidget {
                 pinned: true,
                 title: Text(account.name),
                 actions: [
-                  IconButton(
-                    tooltip: context.l10n.manageAccount,
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => editAccount(context, ref, account),
+                  TapBounce(
+                    child: IconButton(
+                      tooltip: context.l10n.manageAccount,
+                      icon: const Icon(Icons.edit_rounded),
+                      onPressed: () => editAccount(context, ref, account),
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    tooltip: context.l10n.deleteAccount,
-                    onPressed: () => _confirmDelete(context, ref, account),
+                  TapBounce(
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      tooltip: context.l10n.deleteAccount,
+                      onPressed: () => _confirmDelete(context, ref, account),
+                    ),
                   ),
                   const SizedBox(width: Sp.xs),
                 ],

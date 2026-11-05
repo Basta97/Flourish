@@ -246,7 +246,7 @@ class _TransactionSwipeTileState extends ConsumerState<TransactionSwipeTile>
                   foregroundColor: Colors.transparent,
                   child: _SwipeAction(
                     label: context.l10n.edit,
-                    icon: Icons.edit_outlined,
+                    icon: Icons.edit_rounded,
                     tint: palette.accent,
                   ),
                 ),

@@ -68,7 +68,7 @@ void main() {
         Expanded(
           child: StatPill(
             label: 'Saved',
-            icon: Icons.savings_outlined,
+            icon: Icons.savings_rounded,
             tone: Colors.teal,
             value: null,
             format: _egp,

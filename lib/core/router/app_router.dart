@@ -23,13 +23,13 @@ import '../../core/models/shared_import_draft.dart';
 import '../../presentation/transactions/widgets/add_transaction_sheet.dart';
 import '../../shared/widgets/spring_bottom_sheet.dart';
 import '../../shared/widgets/pressable.dart';
+import '../../shared/widgets/nav_icons.dart';
 import '../motion/motion.dart';
 import '../../l10n/l10n.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -37,43 +37,65 @@ final appRouter = GoRouter(
   errorBuilder: (context, state) =>
       NotFoundScreen(subtitle: context.l10n.pageNotFound('${state.uri}')),
   routes: [
-    ShellRoute(
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) => ScaffoldWithNavBar(child: child),
-      routes: [
-        GoRoute(
-          path: '/insights',
-          pageBuilder: (context, state) => _fadeThroughPage(
-            key: state.pageKey,
-            child: InsightsScreen(
-              key: ValueKey(state.uri.queryParameters['tab']),
-              initialTab: state.uri.queryParameters['tab'],
+    // Each tab keeps its own navigator, so switching back finds the page
+    // where it was left (scroll, filters) instead of rebuilding it.
+    StatefulShellRoute(
+      builder: (context, state, shell) => ScaffoldWithNavBar(child: shell),
+      navigatorContainerBuilder: (context, shell, children) =>
+          _TabSwitcher(index: shell.currentIndex, children: children),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/dashboard',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: DashboardScreen()),
             ),
-          ),
+          ],
         ),
-        GoRoute(
-          path: '/transactions',
-          pageBuilder: (context, state) => _fadeThroughPage(
-            key: state.pageKey,
-            child: TransactionsScreen(
-              key: ValueKey(state.uri.query),
-              initialCategory: int.tryParse(
-                state.uri.queryParameters['category'] ?? '',
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/transactions',
+              pageBuilder: (context, state) => NoTransitionPage(
+                child: TransactionsScreen(
+                  key: ValueKey(state.uri.query),
+                  initialCategory: int.tryParse(
+                    state.uri.queryParameters['category'] ?? '',
+                  ),
+                  initialMonth: _parseMonth(state.uri.queryParameters['month']),
+                ),
               ),
-              initialMonth: _parseMonth(state.uri.queryParameters['month']),
             ),
-          ),
+            GoRoute(
+              path: '/search',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: SearchScreen()),
+            ),
+          ],
         ),
-        for (final (path, screen) in <(String, Widget)>[
-          ('/dashboard', const DashboardScreen()),
-          ('/search', const SearchScreen()),
-          ('/accounts', const AccountsScreen()),
-        ])
-          GoRoute(
-            path: path,
-            pageBuilder: (context, state) =>
-                _fadeThroughPage(key: state.pageKey, child: screen),
-          ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/accounts',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: AccountsScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/insights',
+              pageBuilder: (context, state) => NoTransitionPage(
+                child: InsightsScreen(
+                  key: ValueKey(state.uri.queryParameters['tab']),
+                  initialTab: state.uri.queryParameters['tab'],
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     ),
     GoRoute(
@@ -192,29 +214,109 @@ DateTime? _parseMonth(String? value) {
 
 /// Tab switches cross-fade with a slight scale-up, like iOS tab bars that
 /// "breathe" in rather than slide.
-CustomTransitionPage<void> _fadeThroughPage({
-  required LocalKey key,
-  required Widget child,
-}) {
-  return CustomTransitionPage<void>(
-    key: key,
-    child: child,
-    transitionDuration: Motion.base,
-    reverseTransitionDuration: Motion.fast,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(parent: animation, curve: Motion.enter);
-      if (Motion.reduced(context)) {
-        return FadeTransition(opacity: curved, child: child);
-      }
-      return FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.98, end: 1).animate(curved),
-          child: child,
-        ),
-      );
-    },
-  );
+/// Shows the active tab. On a switch the old tab fades out quickly and the
+/// new one fades in with a short slide from the side it was tapped on.
+/// Inactive tabs stay mounted but offstage, with their tickers paused.
+class _TabSwitcher extends StatefulWidget {
+  const _TabSwitcher({required this.index, required this.children});
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<_TabSwitcher> createState() => _TabSwitcherState();
+}
+
+class _TabSwitcherState extends State<_TabSwitcher>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 340),
+        value: 1,
+      )..addStatusListener((status) {
+        // Takes the old tab offstage once it has faded.
+        if (status == AnimationStatus.completed) setState(() {});
+      });
+  late int _previous = widget.index;
+  double _direction = 1;
+
+  @override
+  void didUpdateWidget(_TabSwitcher old) {
+    super.didUpdateWidget(old);
+    if (old.index == widget.index) return;
+    _previous = old.index;
+    _direction = widget.index > old.index ? 1 : -1;
+    if (Motion.reduced(context)) {
+      _controller.value = 1;
+    } else {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final leaving = _controller.isAnimating ? _previous : null;
+    final fadeOut = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0, 0.35, curve: Curves.easeOut),
+    );
+    final fadeIn = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.15, 1, curve: Motion.enter),
+    );
+    final slideIn = Tween<Offset>(
+      begin: Offset(0.06 * _direction * (rtl ? -1 : 1), 0),
+      end: Offset.zero,
+    ).animate(fadeIn);
+    // Every tab keeps the same wrappers in every state, and keyed slots let
+    // the stack reorder them, so no tab is ever rebuilt by a switch. The
+    // incoming tab paints last, above the one fading out.
+    final order = [
+      for (var i = 0; i < widget.children.length; i++)
+        if (i != widget.index && i != leaving) i,
+      ?leaving,
+      widget.index,
+    ];
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (final i in order)
+          KeyedSubtree(
+            key: ValueKey(i),
+            child: IgnorePointer(
+              ignoring: i != widget.index,
+              child: FadeTransition(
+                opacity: i == widget.index
+                    ? fadeIn
+                    : i == leaving
+                    ? ReverseAnimation(fadeOut)
+                    : kAlwaysCompleteAnimation,
+                child: SlideTransition(
+                  position: i == widget.index
+                      ? slideIn
+                      : const AlwaysStoppedAnimation(Offset.zero),
+                  child: Offstage(
+                    offstage: i != widget.index && i != leaving,
+                    child: TickerMode(
+                      enabled: i == widget.index,
+                      child: widget.children[i],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class ScaffoldWithNavBar extends StatefulWidget {
@@ -310,30 +412,12 @@ class _IslandNavBar extends StatelessWidget {
   static const double _centerExtent = 72; // 56 button + 2×8 gutter
   static const double _hPad = 10;
 
-  static List<({IconData icon, IconData selectedIcon, String label})> _items(
-    AppLocalizations l,
-  ) => [
-    (
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home_rounded,
-      label: l.navHome,
-    ),
-    (
-      icon: Icons.receipt_long_outlined,
-      selectedIcon: Icons.receipt_long,
-      label: l.navLedger,
-    ),
-    (icon: Icons.add_rounded, selectedIcon: Icons.add_rounded, label: l.add),
-    (
-      icon: Icons.account_balance_wallet_outlined,
-      selectedIcon: Icons.account_balance_wallet_rounded,
-      label: l.navAccounts,
-    ),
-    (
-      icon: Icons.insights_outlined,
-      selectedIcon: Icons.insights_rounded,
-      label: l.navInsights,
-    ),
+  static List<({NavGlyph glyph, String label})> _items(AppLocalizations l) => [
+    (glyph: NavGlyph.home, label: l.navHome),
+    (glyph: NavGlyph.ledger, label: l.navLedger),
+    (glyph: NavGlyph.home, label: l.add), // centre slot: the add button
+    (glyph: NavGlyph.accounts, label: l.navAccounts),
+    (glyph: NavGlyph.insights, label: l.navInsights),
   ];
 
   double _offsetOf(int index) {
@@ -375,7 +459,7 @@ class _IslandNavBar extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(Rad.full),
               child: Container(
-                height: 72,
+                height: 66,
                 padding: const EdgeInsets.symmetric(horizontal: _hPad),
                 decoration: BoxDecoration(
                   color: palette.navBar,
@@ -392,7 +476,7 @@ class _IslandNavBar extends StatelessWidget {
                       duration: blobDuration,
                       curve: Motion.springSnappy,
                       start: _offsetOf(selectedIndex) - _hPad,
-                      top: 12,
+                      top: 8,
                       width: 48,
                       height: 48,
                       child: AnimatedOpacity(
@@ -419,8 +503,10 @@ class _IslandNavBar extends StatelessWidget {
                                   onTap: () => onDestinationSelected(2),
                                 )
                               : _NavItem(
-                                  item: items[index],
+                                  glyph: items[index].glyph,
+                                  label: items[index].label,
                                   selected: index == selectedIndex,
+                                  cutout: palette.navBar,
                                   onTap: () => onDestinationSelected(index),
                                 ),
                       ],
@@ -436,69 +522,107 @@ class _IslandNavBar extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
+/// Icon-only tab: the glyph fills in and plays its flourish when chosen,
+/// and springs under the finger. The name is kept for screen readers.
+class _NavItem extends StatefulWidget {
   const _NavItem({
-    required this.item,
+    required this.glyph,
+    required this.label,
     required this.selected,
+    required this.cutout,
     required this.onTap,
   });
 
-  final ({IconData icon, IconData selectedIcon, String label}) item;
+  final NavGlyph glyph;
+  final String label;
   final bool selected;
+  final Color cutout;
   final VoidCallback onTap;
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> with TickerProviderStateMixin {
+  late final AnimationController _fill = AnimationController(
+    vsync: this,
+    duration: Motion.base,
+    value: widget.selected ? 1 : 0,
+  );
+  late final AnimationController _flourish = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 620),
+    value: 1,
+  );
+
+  @override
+  void didUpdateWidget(_NavItem old) {
+    super.didUpdateWidget(old);
+    if (old.selected == widget.selected) return;
+    if (Motion.reduced(context)) {
+      _fill.value = widget.selected ? 1 : 0;
+      return;
+    }
+    if (widget.selected) {
+      _fill.forward();
+      _flourish.forward(from: 0);
+    } else {
+      _fill.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _fill.dispose();
+    _flourish.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final reduced = Motion.reduced(context);
+    // Selected glyphs sit on the selection blob, so details cut out to that.
+    final cutout = Color.alphaBlend(
+      Colors.white.withValues(alpha: 0.10),
+      widget.cutout,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedSwitcher(
-                duration: reduced ? Duration.zero : Motion.base,
-                switchInCurve: Motion.settle,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: Tween<double>(begin: 0.6, end: 1).animate(animation),
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: Icon(
-                  selected ? item.selectedIcon : item.icon,
-                  key: ValueKey(selected),
-                  semanticLabel: item.label,
-                  size: 22,
-                  color: selected
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.55),
-                ),
-              ),
-              const SizedBox(height: 2),
-              // Visible names: the icons alone were hard to tell apart.
-              ExcludeSemantics(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    item.label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: 10,
-                      height: 1.1,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                      color: selected
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.55),
-                    ),
-                  ),
+      child: Semantics(
+        button: true,
+        selected: widget.selected,
+        label: widget.label,
+        excludeSemantics: true,
+        child: Tooltip(
+          message: widget.label,
+          excludeFromSemantics: true,
+          child: Pressable(
+            onTap: widget.onTap,
+            scale: 0.8,
+            haptic: false,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_fill, _flourish]),
+                  builder: (context, _) {
+                    final fill = Motion.morph.transform(_fill.value);
+                    return NavIcon(
+                      glyph: widget.glyph,
+                      size: 25,
+                      fill: fill,
+                      flourish: _flourish.value,
+                      cutout: cutout,
+                      color: Color.lerp(
+                        Colors.white.withValues(alpha: 0.5),
+                        Colors.white,
+                        fill,
+                      )!,
+                    );
+                  },
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

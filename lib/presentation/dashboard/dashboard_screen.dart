@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import '../../shared/widgets/global_search_button.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/category_label.dart';
@@ -95,7 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.mark_email_unread_outlined),
+              const Icon(Icons.mark_email_unread_rounded),
               const SizedBox(width: Sp.md),
               Expanded(
                 child: Text(
@@ -213,31 +214,35 @@ class _Header extends ConsumerWidget {
             ),
           ),
           const GlobalSearchButton(),
-          IconButton(
-            tooltip: hidden ? l.showAmounts : l.hideAmounts,
-            onPressed: () {
-              Haptics.select();
-              ref.read(hideAmountsProvider.notifier).toggle();
-            },
-            icon: AnimatedSwitcher(
-              duration: Motion.of(context, Motion.base),
-              transitionBuilder: (child, animation) =>
-                  ScaleTransition(scale: animation, child: child),
-              child: Icon(
-                hidden
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                key: ValueKey(hidden),
+          TapBounce(
+            child: IconButton(
+              tooltip: hidden ? l.showAmounts : l.hideAmounts,
+              onPressed: () {
+                Haptics.select();
+                ref.read(hideAmountsProvider.notifier).toggle();
+              },
+              icon: AnimatedSwitcher(
+                duration: Motion.of(context, Motion.base),
+                transitionBuilder: (child, animation) =>
+                    ScaleTransition(scale: animation, child: child),
+                child: Icon(
+                  hidden
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  key: ValueKey(hidden),
+                ),
               ),
             ),
           ),
-          IconButton(
-            tooltip: l.settings,
-            onPressed: () {
-              Haptics.tap();
-              context.push('/settings');
-            },
-            icon: const Icon(Icons.tune_rounded),
+          TapBounce(
+            child: IconButton(
+              tooltip: l.settings,
+              onPressed: () {
+                Haptics.tap();
+                context.push('/settings');
+              },
+              icon: const Icon(Icons.tune_rounded),
+            ),
           ),
         ],
       ),
@@ -447,7 +452,7 @@ class _MonthSummary extends ConsumerWidget {
                   Expanded(
                     child: StatPill(
                       label: l.saved,
-                      icon: Icons.savings_outlined,
+                      icon: Icons.savings_rounded,
                       tone: p != null && p.net < Amount.zero
                           ? palette.expense
                           : palette.accent,
@@ -481,9 +486,9 @@ class _QuickActions extends StatelessWidget {
     final l = context.l10n;
     final actions = [
       (l.budgets, '/insights?tab=budgets', Icons.track_changes_rounded),
-      (l.goals, '/insights?tab=goals', Icons.flag_outlined),
+      (l.goals, '/insights?tab=goals', Icons.flag_rounded),
       (l.recurring, '/recurring', Icons.repeat_rounded),
-      (l.importAction, '/smart-import', Icons.document_scanner_outlined),
+      (l.importAction, '/smart-import', Icons.document_scanner_rounded),
     ];
     return Row(
       children: [
@@ -611,7 +616,7 @@ class _GetStarted extends StatelessWidget {
       child: EmptyState(
         icon: hasAccounts
             ? Icons.receipt_long_rounded
-            : Icons.account_balance_wallet_outlined,
+            : Icons.account_balance_wallet_rounded,
         title: hasAccounts
             ? context.l10n.noActivityYet
             : context.l10n.getStartedTitle,

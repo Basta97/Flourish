@@ -156,7 +156,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
             Text(l.catchUpIntro, style: secondary),
             const SizedBox(height: Sp.lg),
             _card(
-              icon: Icons.sms_outlined,
+              icon: Icons.sms_rounded,
               title: l.catchUpPasteTitle,
               body: l.catchUpPasteBody,
               children: [
@@ -173,7 +173,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _busy ? null : _paste,
-                        icon: const Icon(Icons.content_paste_go),
+                        icon: const Icon(Icons.content_paste_go_rounded),
                         label: Text(l.paste),
                       ),
                     ),
@@ -189,7 +189,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.fact_check_outlined),
+                            : const Icon(Icons.fact_check_rounded),
                         label: Text(l.catchUpCheck),
                       ),
                     ),
@@ -200,7 +200,7 @@ class _CatchUpScreenState extends ConsumerState<CatchUpScreen> {
             if (result != null) ..._results(context, result),
             const SizedBox(height: Sp.lg),
             _card(
-              icon: Icons.description_outlined,
+              icon: Icons.description_rounded,
               title: l.catchUpStatementTitle,
               body: l.catchUpStatementBody,
               children: [

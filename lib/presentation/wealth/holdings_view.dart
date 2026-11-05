@@ -37,7 +37,7 @@ class HoldingsView extends ConsumerWidget {
       children: [
         FilledButton.icon(
           onPressed: () => addHolding(context, ref),
-          icon: const Icon(Icons.add),
+          icon: const Icon(Icons.add_rounded),
           label: Text(context.l10n.addHolding),
         ),
         const SizedBox(height: 16),

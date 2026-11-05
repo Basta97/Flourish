@@ -94,7 +94,7 @@ IconData _icon(String kind) => switch (kind) {
   'instapay' => Icons.bolt_rounded,
   'bank_transfer' => Icons.account_balance_rounded,
   'bnpl' => Icons.calendar_month_rounded,
-  _ => Icons.payments_outlined,
+  _ => Icons.payments_rounded,
 };
 
 Future<void> editPaymentInstrument(

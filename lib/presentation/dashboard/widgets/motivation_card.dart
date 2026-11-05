@@ -233,7 +233,7 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget icon = Icon(
-      celebrating ? Icons.auto_awesome_rounded : Icons.spa_outlined,
+      celebrating ? Icons.auto_awesome_rounded : Icons.spa_rounded,
       size: 20,
       color: tone,
     );

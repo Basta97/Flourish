@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,10 +69,12 @@ class CreditCardPanel extends ConsumerWidget {
               Expanded(
                 child: Text(context.l10n.credit, style: AppTextStyles.title),
               ),
-              IconButton(
-                tooltip: context.l10n.editCardTerms,
-                icon: const Icon(Icons.tune_rounded, size: 20),
-                onPressed: () => editCardTerms(context, ref, account),
+              TapBounce(
+                child: IconButton(
+                  tooltip: context.l10n.editCardTerms,
+                  icon: const Icon(Icons.tune_rounded, size: 20),
+                  onPressed: () => editCardTerms(context, ref, account),
+                ),
               ),
             ],
           ),
@@ -158,7 +161,7 @@ class CreditCardPanel extends ConsumerWidget {
             children: [
               FilledButton.icon(
                 onPressed: () => payCard(context, ref, account, status),
-                icon: const Icon(Icons.payments_outlined, size: 18),
+                icon: const Icon(Icons.payments_rounded, size: 18),
                 label: Text(context.l10n.payCard),
               ),
               OutlinedButton.icon(

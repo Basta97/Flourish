@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flourish/core/utils/amount_parser.dart';
@@ -67,7 +68,7 @@ class GoalsScreen extends ConsumerWidget {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyState(
-                      icon: Icons.flag_outlined,
+                      icon: Icons.flag_rounded,
                       title: context.l10n.noGoalsYet,
                       subtitle: context.l10n.noGoalsSubtitle,
                     ),
@@ -281,15 +282,17 @@ class _GoalCardState extends ConsumerState<_GoalCard>
                           ),
                         ),
                       ),
-                    IconButton(
-                      tooltip: context.l10n.deleteGoal,
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        size: 20,
-                        color: palette.textLow,
+                    TapBounce(
+                      child: IconButton(
+                        tooltip: context.l10n.deleteGoal,
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                          color: palette.textLow,
+                        ),
+                        onPressed: () => _confirmDelete(context),
                       ),
-                      onPressed: () => _confirmDelete(context),
                     ),
                   ],
                 ),

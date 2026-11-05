@@ -277,7 +277,7 @@ class _NotificationImportScreenState
                     ),
                     child: Icon(
                       _imagePath != null
-                          ? Icons.photo_camera_back_outlined
+                          ? Icons.photo_camera_back_rounded
                           : Icons.auto_awesome_rounded,
                       color: AppColors.primary,
                     ),
@@ -339,7 +339,7 @@ class _NotificationImportScreenState
                         child: OutlinedButton.icon(
                           onPressed: _busy ? null : _paste,
                           style: _compactButton,
-                          icon: const Icon(Icons.content_paste_go),
+                          icon: const Icon(Icons.content_paste_go_rounded),
                           label: Text(context.l10n.paste),
                         ),
                       ),
@@ -348,7 +348,7 @@ class _NotificationImportScreenState
                         child: OutlinedButton.icon(
                           onPressed: _busy ? null : _pickPhoto,
                           style: _compactButton,
-                          icon: const Icon(Icons.photo_library_outlined),
+                          icon: const Icon(Icons.photo_library_rounded),
                           label: Text(context.l10n.photo),
                         ),
                       ),
@@ -365,7 +365,7 @@ class _NotificationImportScreenState
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.auto_awesome),
+                              : const Icon(Icons.auto_awesome_rounded),
                           label: Text(context.l10n.analyze),
                         ),
                       ),
@@ -382,7 +382,7 @@ class _NotificationImportScreenState
                 children: [
                   Icon(
                     aiReady
-                        ? Icons.psychology_alt_outlined
+                        ? Icons.psychology_alt_rounded
                         : Icons.memory_rounded,
                     size: 18,
                     color: AppColors.textSecondary(context),

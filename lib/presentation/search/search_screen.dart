@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import '../providers/locale_providers.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -149,24 +150,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         actions: [
           if (_controller.text.isNotEmpty)
-            IconButton(
-              tooltip: context.l10n.searchClear,
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                _controller.clear();
-                schedule();
+            TapBounce(
+              child: IconButton(
+                tooltip: context.l10n.searchClear,
+                icon: const Icon(Icons.clear_rounded),
+                onPressed: () {
+                  _controller.clear();
+                  schedule();
+                },
+              ),
+            ),
+          TapBounce(
+            child: IconButton(
+              tooltip: context.l10n.searchFilters,
+              icon: const Icon(Icons.tune_rounded),
+              onPressed: () async {
+                final selected = await showSearchFilters(context, ref, filters);
+                if (selected != null && mounted) {
+                  setState(() => filters = selected);
+                  schedule();
+                }
               },
             ),
-          IconButton(
-            tooltip: context.l10n.searchFilters,
-            icon: const Icon(Icons.tune),
-            onPressed: () async {
-              final selected = await showSearchFilters(context, ref, filters);
-              if (selected != null && mounted) {
-                setState(() => filters = selected);
-                schedule();
-              }
-            },
           ),
         ],
       ),
@@ -299,10 +304,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         key: ValueKey('${hit.kind}:${hit.id}'),
                         leading: Icon(
                           hit.kind == 'transaction'
-                              ? Icons.receipt_long
+                              ? Icons.receipt_long_rounded
                               : hit.kind == 'feature'
-                              ? Icons.apps
-                              : Icons.search,
+                              ? Icons.apps_rounded
+                              : Icons.search_rounded,
                         ),
                         title: _highlight(hit.title),
                         subtitle: Text(

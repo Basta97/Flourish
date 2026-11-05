@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import '../currencies/currency_picker.dart';
 import '../../shared/widgets/global_search_button.dart';
@@ -47,16 +48,18 @@ class AccountsScreen extends ConsumerWidget {
             title: Text(context.l10n.navAccounts),
             actions: [
               const GlobalSearchButton(),
-              IconButton(
-                tooltip: context.l10n.addAccount,
-                onPressed: () {
-                  Haptics.tap();
-                  showSpringBottomSheet(
-                    context: context,
-                    builder: (_) => const AddAccountSheet(),
-                  );
-                },
-                icon: const Icon(Icons.add_rounded),
+              TapBounce(
+                child: IconButton(
+                  tooltip: context.l10n.addAccount,
+                  onPressed: () {
+                    Haptics.tap();
+                    showSpringBottomSheet(
+                      context: context,
+                      builder: (_) => const AddAccountSheet(),
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                ),
               ),
               const SizedBox(width: Sp.xs),
             ],
@@ -83,7 +86,7 @@ class AccountsScreen extends ConsumerWidget {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyState(
-                      icon: Icons.account_balance_wallet_outlined,
+                      icon: Icons.account_balance_wallet_rounded,
                       title: context.l10n.noAccountsYet,
                       subtitle: context.l10n.addFirstAccount,
                       action: FilledButton.icon(
@@ -209,7 +212,7 @@ class _ArchivedAccounts extends ConsumerWidget {
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: EdgeInsets.zero,
-        leading: Icon(Icons.inventory_2_outlined, color: palette.textLow),
+        leading: Icon(Icons.inventory_2_rounded, color: palette.textLow),
         title: Text(
           context.l10n.archivedAccounts(accounts.length),
           style: AppTextStyles.bodyMedium.copyWith(color: palette.textLow),

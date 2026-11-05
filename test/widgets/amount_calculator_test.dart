@@ -40,7 +40,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.calculate_outlined));
+    await tester.tap(find.byIcon(Icons.calculate_rounded));
     await tester.pumpAndSettle();
   }
 
@@ -82,7 +82,7 @@ void main() {
     await press(tester, '2');
     await press(tester, '=');
     expect(controller.text, '25');
-    await tester.tap(find.byIcon(Icons.calculate_outlined));
+    await tester.tap(find.byIcon(Icons.calculate_rounded));
     await tester.pumpAndSettle();
     await press(tester, 'AC');
     await press(tester, '9');

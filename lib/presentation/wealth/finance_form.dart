@@ -124,7 +124,7 @@ class _FinanceFormState extends State<_FinanceForm> {
                         decoration: InputDecoration(
                           labelText: f.label,
                           suffixIcon: f.date
-                              ? const Icon(Icons.calendar_today)
+                              ? const Icon(Icons.calendar_today_rounded)
                               : f.numeric
                               ? AmountCalculatorButton(
                                   controller: values[f.key]!,

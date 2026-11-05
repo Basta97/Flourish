@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/core/finance/system_categories.dart';
 import 'package:flourish/core/theme/app_colors.dart';
 import 'package:flourish/core/theme/app_spacing.dart';
@@ -36,7 +37,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
                 : all.where((c) => c.id == recordId).toList();
             if (categories.isEmpty) {
               return EmptyState(
-                icon: Icons.category,
+                icon: Icons.category_rounded,
                 title: context.l10n.noCategories,
               );
             }
@@ -70,7 +71,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
           },
           loading: () => const ShimmerList(),
           error: (error, stackTrace) => EmptyState(
-            icon: Icons.error,
+            icon: Icons.error_rounded,
             title: context.l10n.errorLoadingCategories,
             subtitle: describeError(error),
           ),
@@ -79,7 +80,7 @@ class CategoriesManagementScreen extends ConsumerWidget {
       floatingActionButton: recordId == null
           ? FloatingActionButton.extended(
               onPressed: () => _showAddCategorySheet(context),
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: Text(context.l10n.addCategory),
             )
           : null,
@@ -160,13 +161,15 @@ class _CategoryTile extends ConsumerWidget {
                     color: AppColors.textSecondary(context),
                   ),
                 )
-              : IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  tooltip: context.l10n.delete,
-                  color: FlourishPalette.of(
-                    context,
-                  ).danger.withValues(alpha: 0.6),
-                  onPressed: () => _confirmDelete(context, ref, category),
+              : TapBounce(
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                    tooltip: context.l10n.delete,
+                    color: FlourishPalette.of(
+                      context,
+                    ).danger.withValues(alpha: 0.6),
+                    onPressed: () => _confirmDelete(context, ref, category),
+                  ),
                 ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Rad.md),

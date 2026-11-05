@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/shared/widgets/amount_calculator_button.dart';
 import 'package:flourish/shared/category_label.dart';
 import 'package:flourish/l10n/l10n.dart';
@@ -41,7 +42,7 @@ class RecurringTransactionsScreen extends ConsumerWidget {
           context: context,
           builder: (_) => const _AddRecurringSheet(),
         ),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: Text(context.l10n.recurringPayment),
       ),
       appBar: AppBar(title: Text(context.l10n.recurringTransactions)),
@@ -50,7 +51,7 @@ class RecurringTransactionsScreen extends ConsumerWidget {
           data: (items) {
             if (items.isEmpty) {
               return EmptyState(
-                icon: Icons.repeat,
+                icon: Icons.repeat_rounded,
                 title: context.l10n.noRecurring,
                 subtitle: context.l10n.setUpAutomatic,
               );
@@ -65,8 +66,10 @@ class RecurringTransactionsScreen extends ConsumerWidget {
             );
           },
           loading: () => const ShimmerList(),
-          error: (error, stackTrace) =>
-              EmptyState(icon: Icons.error, title: context.l10n.errorLoading),
+          error: (error, stackTrace) => EmptyState(
+            icon: Icons.error_rounded,
+            title: context.l10n.errorLoading,
+          ),
         ),
       ),
     );
@@ -572,7 +575,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, size: 18),
+                const Icon(Icons.calendar_today_rounded, size: 18),
                 const SizedBox(width: Sp.sm),
                 Text(DateFormatter.formatFull(_nextDate)),
               ],
@@ -596,10 +599,12 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               labelText: context.l10n.endsOptional,
               suffixIcon: _endDate == null
                   ? null
-                  : IconButton(
-                      tooltip: context.l10n.noEndDate,
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      onPressed: () => setState(() => _endDate = null),
+                  : TapBounce(
+                      child: IconButton(
+                        tooltip: context.l10n.noEndDate,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        onPressed: () => setState(() => _endDate = null),
+                      ),
                     ),
             ),
             child: Text(

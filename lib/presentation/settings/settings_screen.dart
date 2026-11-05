@@ -115,22 +115,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.settingsGeneral,
               children: [
                 SettingsTile(
-                  icon: Icons.dark_mode_outlined,
+                  icon: Icons.dark_mode_rounded,
                   title: context.l10n.theme,
                   subtitle: context.l10n.themeName(themeMode.name),
                   trailing: SegmentedButton<AppThemeMode>(
                     segments: const [
                       ButtonSegment(
                         value: AppThemeMode.system,
-                        icon: Icon(Icons.brightness_auto, size: 16),
+                        icon: Icon(Icons.brightness_auto_rounded, size: 16),
                       ),
                       ButtonSegment(
                         value: AppThemeMode.light,
-                        icon: Icon(Icons.light_mode, size: 16),
+                        icon: Icon(Icons.light_mode_rounded, size: 16),
                       ),
                       ButtonSegment(
                         value: AppThemeMode.dark,
-                        icon: Icon(Icons.dark_mode, size: 16),
+                        icon: Icon(Icons.dark_mode_rounded, size: 16),
                       ),
                     ],
                     selected: {themeMode},
@@ -155,8 +155,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 SettingsTile(
                   icon: hideAmounts
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   tint: const Color(0xFF8B7CF6),
                   title: context.l10n.hideAmounts,
                   subtitle: context.l10n.hideAmountsSubtitle,
@@ -169,7 +169,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 SettingsTile(
-                  icon: Icons.currency_exchange,
+                  icon: Icons.currency_exchange_rounded,
                   title: context.l10n.defaultCurrency,
                   subtitle: currency,
                   onTap: () async {
@@ -181,7 +181,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   },
                 ),
                 SettingsTile(
-                  icon: Icons.calendar_month,
+                  icon: Icons.calendar_month_rounded,
                   tint: const Color(0xFFEF8A47),
                   title: context.l10n.reportingMonthStarts,
                   subtitle: context.l10n.dayNumber(
@@ -190,7 +190,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: _pickMonthStart,
                 ),
                 SettingsTile(
-                  icon: Icons.currency_exchange,
+                  icon: Icons.currency_exchange_rounded,
                   tint: const Color(0xFF3CC8C0),
                   title: context.l10n.exchangeRates,
                   subtitle: context.l10n.exchangeRatesSubtitle,
@@ -203,20 +203,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.manage,
               children: [
                 SettingsTile(
-                  icon: Icons.account_balance,
+                  icon: Icons.account_balance_rounded,
                   tint: const Color(0xFF5B9DF5),
                   title: context.l10n.manageAccounts,
                   subtitle: context.l10n.manageAccountsSubtitle,
                   onTap: () => manageAccounts(context, ref),
                 ),
                 SettingsTile(
-                  icon: Icons.category_outlined,
+                  icon: Icons.category_rounded,
                   title: context.l10n.categories,
                   subtitle: context.l10n.categoriesSubtitle,
                   onTap: () => context.push('/categories/manage'),
                 ),
                 SettingsTile(
-                  icon: Icons.account_tree_outlined,
+                  icon: Icons.account_tree_rounded,
                   tint: const Color(0xFF3CC8C0),
                   title: context.l10n.subcategories,
                   subtitle: context.l10n.subcategoriesSubtitle,
@@ -230,14 +230,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/payment-methods'),
                 ),
                 SettingsTile(
-                  icon: Icons.bookmark_outline,
+                  icon: Icons.bookmark_outline_rounded,
                   tint: const Color(0xFFF5B547),
                   title: context.l10n.savedTemplates,
                   subtitle: context.l10n.savedTemplatesSubtitle,
                   onTap: () => context.push('/templates'),
                 ),
                 SettingsTile(
-                  icon: Icons.receipt_long,
+                  icon: Icons.receipt_long_rounded,
                   tint: const Color(0xFF8B7CF6),
                   title: context.l10n.receiptAttachments,
                   subtitle: context.l10n.receiptAttachmentsSubtitle,
@@ -257,20 +257,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/recurring'),
                 ),
                 SettingsTile(
-                  icon: Icons.mark_email_unread_outlined,
+                  icon: Icons.mark_email_unread_rounded,
                   tint: const Color(0xFF5B9DF5),
                   title: context.l10n.paymentDetection,
                   subtitle: context.l10n.paymentDetectionSubtitle,
                   onTap: () => context.push('/settings/detection'),
                 ),
                 SettingsTile(
-                  icon: Icons.inbox_outlined,
+                  icon: Icons.inbox_rounded,
                   title: context.l10n.reviewInbox,
                   subtitle: context.l10n.reviewInboxSubtitle,
                   onTap: () => context.push('/inbox'),
                 ),
                 SettingsTile(
-                  icon: Icons.notifications_outlined,
+                  icon: Icons.notifications_rounded,
                   tint: const Color(0xFFF5B547),
                   title: context.l10n.paymentReminders,
                   subtitle: context.l10n.paymentRemindersSubtitle,
@@ -280,7 +280,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 SettingsTile(
-                  icon: Icons.auto_awesome_outlined,
+                  icon: Icons.auto_awesome_rounded,
                   tint: const Color(0xFF8B7CF6),
                   title: context.l10n.aiSettings,
                   subtitle: context.l10n.aiAssistant,
@@ -293,7 +293,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.toolsImportExport,
               children: [
                 SettingsTile(
-                  icon: Icons.document_scanner_outlined,
+                  icon: Icons.document_scanner_rounded,
                   title: context.l10n.smartImport,
                   subtitle: context.l10n.smartImportSubtitle,
                   onTap: () => context.push('/smart-import'),
@@ -306,14 +306,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/catch-up'),
                 ),
                 SettingsTile(
-                  icon: Icons.table_chart_outlined,
+                  icon: Icons.table_chart_rounded,
                   tint: const Color(0xFFF5B547),
                   title: context.l10n.importFromApps,
                   subtitle: context.l10n.importFromAppsSubtitle,
                   onTap: () => importSpreadsheet(context, ref),
                 ),
                 SettingsTile(
-                  icon: Icons.file_download_outlined,
+                  icon: Icons.file_download_rounded,
                   tint: const Color(0xFF5B9DF5),
                   title: context.l10n.exportCsv,
                   subtitle: context.l10n.exportCsvSubtitle,
@@ -326,7 +326,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.monthlyAutoIncome,
               children: [
                 SettingsTile(
-                  icon: Icons.schedule,
+                  icon: Icons.schedule_rounded,
                   title: context.l10n.autoMonthlyIncome,
                   subtitle: autoIncome
                       ? context.l10n.enabled
@@ -529,7 +529,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.settingsSecurity,
               children: [
                 SettingsTile(
-                  icon: Icons.lock_outline,
+                  icon: Icons.lock_outline_rounded,
                   tint: const Color(0xFF8B7CF6),
                   title: context.l10n.deviceLock,
                   subtitle: context.l10n.appLockSubtitle,
@@ -539,7 +539,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 SettingsTile(
-                  icon: Icons.vpn_key_outlined,
+                  icon: Icons.vpn_key_rounded,
                   tint: const Color(0xFF3CC8C0),
                   title: context.l10n.stockApiKey,
                   subtitle: context.l10n.stockApiKeySubtitle,
@@ -559,7 +559,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 SettingsTile(
-                  icon: Icons.widgets_outlined,
+                  icon: Icons.widgets_rounded,
                   title: context.l10n.homeScreenWidgets,
                   subtitle: context.l10n.widgetQuickAdd,
                   onTap: () => showDialog<void>(
@@ -579,7 +579,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 SettingsTile(
-                  icon: Icons.privacy_tip_outlined,
+                  icon: Icons.privacy_tip_rounded,
                   title: context.l10n.privacyPolicy,
                   subtitle: context.l10n.privacyPolicySubtitle,
                   onTap: _openPrivacyPolicy,
@@ -591,12 +591,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: context.l10n.about,
               children: [
                 SettingsTile(
-                  icon: Icons.info_outline,
+                  icon: Icons.info_outline_rounded,
                   title: context.l10n.version,
                   subtitle: AppConstants.version,
                 ),
                 SettingsTile(
-                  icon: Icons.code,
+                  icon: Icons.code_rounded,
                   title: context.l10n.builtWith,
                   subtitle: 'Flutter & Drift',
                 ),
@@ -612,38 +612,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     title: context.l10n.data,
     children: [
       SettingsTile(
-        icon: Icons.enhanced_encryption_outlined,
+        icon: Icons.enhanced_encryption_rounded,
         title: context.l10n.exportBackup,
         subtitle: context.l10n.exportBackupSubtitle,
         onTap: () => exportEncrypted(context, ref),
       ),
       SettingsTile(
-        icon: Icons.restore,
+        icon: Icons.restore_rounded,
         title: context.l10n.restoreBackup,
         subtitle: context.l10n.restoreBackupSubtitle,
         onTap: () => restoreEncrypted(context, ref),
       ),
       SettingsTile(
-        icon: Icons.history,
+        icon: Icons.history_rounded,
         tint: const Color(0xFFF5B547),
         title: context.l10n.backupHistory,
         subtitle: context.l10n.backupHistorySubtitle,
         onTap: () => backupHistory(context, ref),
       ),
       SettingsTile(
-        icon: Icons.file_download_outlined,
+        icon: Icons.file_download_rounded,
         title: context.l10n.exportData,
         subtitle: context.l10n.exportDataSubtitle,
         onTap: () => _exportData(ref),
       ),
       SettingsTile(
-        icon: Icons.file_upload_outlined,
+        icon: Icons.file_upload_rounded,
         title: context.l10n.importData,
         subtitle: context.l10n.importDataSubtitle,
         onTap: () => _importData(ref),
       ),
       SettingsTile(
-        icon: Icons.delete_outline,
+        icon: Icons.delete_outline_rounded,
         title: context.l10n.resetAllData,
         subtitle: context.l10n.resetAllDataSubtitle,
         titleColor: FlourishPalette.of(context).danger,

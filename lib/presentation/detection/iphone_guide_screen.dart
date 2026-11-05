@@ -46,7 +46,7 @@ class IphoneGuideScreen extends StatelessWidget {
             ),
             const SizedBox(height: Sp.lg),
             _Steps(
-              icon: Icons.sms_outlined,
+              icon: Icons.sms_rounded,
               title: l.iosGuideMessagesTitle,
               steps: [
                 l.iosGuideMsg1,
@@ -59,7 +59,7 @@ class IphoneGuideScreen extends StatelessWidget {
             ),
             const SizedBox(height: Sp.lg),
             _Steps(
-              icon: Icons.contactless_outlined,
+              icon: Icons.contactless_rounded,
               title: l.iosGuideWalletTitle,
               steps: [
                 l.iosGuideWallet1,

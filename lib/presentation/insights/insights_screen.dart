@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:flourish/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,14 +96,16 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
         actions: [
           const GlobalSearchButton(),
           if (_onWealth)
-            IconButton(
-              tooltip: l.refreshPrices,
-              onPressed: _refreshPrices,
-              icon: AnimatedRotation(
-                turns: _refreshing ? 1 : 0,
-                duration: Motion.of(context, Motion.chart),
-                curve: Motion.morph,
-                child: const Icon(Icons.refresh_rounded),
+            TapBounce(
+              child: IconButton(
+                tooltip: l.refreshPrices,
+                onPressed: _refreshPrices,
+                icon: AnimatedRotation(
+                  turns: _refreshing ? 1 : 0,
+                  duration: Motion.of(context, Motion.chart),
+                  curve: Motion.morph,
+                  child: const Icon(Icons.refresh_rounded),
+                ),
               ),
             ),
           const SizedBox(width: Sp.xs),

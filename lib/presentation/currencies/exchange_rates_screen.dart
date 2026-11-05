@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import '../providers/locale_providers.dart';
 import 'dart:async';
@@ -207,17 +208,19 @@ class _ExchangeRatesState extends ConsumerState<ExchangeRatesScreen> {
                     },
                   ),
                 ),
-                IconButton(
-                  tooltip: l.transfer,
-                  icon: const Icon(Icons.swap_horiz),
-                  onPressed: () {
-                    setState(() {
-                      final previous = base;
-                      base = quote;
-                      quote = previous;
-                    });
-                    unawaited(load());
-                  },
+                TapBounce(
+                  child: IconButton(
+                    tooltip: l.transfer,
+                    icon: const Icon(Icons.swap_horiz_rounded),
+                    onPressed: () {
+                      setState(() {
+                        final previous = base;
+                        base = quote;
+                        quote = previous;
+                      });
+                      unawaited(load());
+                    },
+                  ),
                 ),
                 Expanded(
                   child: CurrencyField(
@@ -256,10 +259,12 @@ class _ExchangeRatesState extends ConsumerState<ExchangeRatesScreen> {
             if (failed)
               ListTile(
                 title: Text(l.rateRefreshFailed),
-                trailing: IconButton(
-                  tooltip: l.searchRetry,
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () => load(force: true),
+                trailing: TapBounce(
+                  child: IconButton(
+                    tooltip: l.searchRetry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    onPressed: () => load(force: true),
+                  ),
                 ),
               ),
             if (!loading && effective == null) Text(l.rateUnavailable),
@@ -272,7 +277,7 @@ class _ExchangeRatesState extends ConsumerState<ExchangeRatesScreen> {
               children: [
                 TextButton.icon(
                   onPressed: base == quote ? null : editOverride,
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(Icons.edit_rounded),
                   label: Text(l.addOverride),
                 ),
                 if (effective?.manual == true)
@@ -285,16 +290,18 @@ class _ExchangeRatesState extends ConsumerState<ExchangeRatesScreen> {
                     },
                     child: Text(l.resumeAutomaticRate),
                   ),
-                IconButton(
-                  tooltip: l.favoritePairs,
-                  icon: Icon(
-                    favorites.contains('$base/$quote')
-                        ? Icons.star
-                        : Icons.star_border,
+                TapBounce(
+                  child: IconButton(
+                    tooltip: l.favoritePairs,
+                    icon: Icon(
+                      favorites.contains('$base/$quote')
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                    ),
+                    onPressed: base == quote
+                        ? null
+                        : () => favorite('$base/$quote'),
                   ),
-                  onPressed: base == quote
-                      ? null
-                      : () => favorite('$base/$quote'),
                 ),
               ],
             ),
@@ -309,10 +316,12 @@ class _ExchangeRatesState extends ConsumerState<ExchangeRatesScreen> {
                 subtitle: Text(
                   favoriteRates[pair]?.rate.toString() ?? l.rateUnavailable,
                 ),
-                trailing: IconButton(
-                  tooltip: l.delete,
-                  icon: const Icon(Icons.star),
-                  onPressed: () => favorite(pair),
+                trailing: TapBounce(
+                  child: IconButton(
+                    tooltip: l.delete,
+                    icon: const Icon(Icons.star_rounded),
+                    onPressed: () => favorite(pair),
+                  ),
                 ),
                 onTap: () {
                   final p = pair.split('/');
@@ -347,7 +356,7 @@ class _ExchangeRatesState extends ConsumerState<ExchangeRatesScreen> {
                 },
               ),
             TextButton.icon(
-              icon: const Icon(Icons.search),
+              icon: const Icon(Icons.search_rounded),
               label: Text(l.searchCurrency),
               onPressed: () async {
                 final selected = await pickCurrency(context, selected: quote);

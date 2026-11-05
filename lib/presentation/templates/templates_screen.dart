@@ -1,3 +1,4 @@
+import 'package:flourish/shared/widgets/tap_bounce.dart';
 import '../../shared/category_label.dart';
 import '../providers/database_provider.dart';
 import '../../core/finance/system_categories.dart';
@@ -28,7 +29,7 @@ class TemplatesScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(context.l10n.transactionTemplates)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(context, ref),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: Text(context.l10n.newTemplate),
       ),
       body: rows.when(
@@ -65,7 +66,7 @@ class TemplatesScreen extends ConsumerWidget {
                               Wrap(
                                 children: [
                                   TextButton.icon(
-                                    icon: const Icon(Icons.play_arrow),
+                                    icon: const Icon(Icons.play_arrow_rounded),
                                     label: Text(context.l10n.useTemplate),
                                     onPressed: () async {
                                       final selection =
@@ -84,38 +85,46 @@ class TemplatesScreen extends ConsumerWidget {
                                       }
                                     },
                                   ),
-                                  IconButton(
-                                    tooltip: context.l10n.edit,
-                                    icon: const Icon(Icons.edit_outlined),
-                                    onPressed: () => _edit(context, ref, t),
+                                  TapBounce(
+                                    child: IconButton(
+                                      tooltip: context.l10n.edit,
+                                      icon: const Icon(Icons.edit_rounded),
+                                      onPressed: () => _edit(context, ref, t),
+                                    ),
                                   ),
-                                  IconButton(
-                                    tooltip: context.l10n.delete,
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: () async {
-                                      final repository =
-                                          TransactionTemplateRepository(
-                                            ref.read(financeStoreProvider),
-                                          );
-                                      final messenger = ScaffoldMessenger.of(
-                                        context,
-                                      );
-                                      final l = context.l10n;
-                                      await repository.delete(t.id);
-                                      ref.invalidate(templatesProvider);
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                          content: Text(l.templateDeleted),
-                                          action: SnackBarAction(
-                                            label: l.undo,
-                                            onPressed: () async {
-                                              await repository.save(t);
-                                              ref.invalidate(templatesProvider);
-                                            },
+                                  TapBounce(
+                                    child: IconButton(
+                                      tooltip: context.l10n.delete,
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                      ),
+                                      onPressed: () async {
+                                        final repository =
+                                            TransactionTemplateRepository(
+                                              ref.read(financeStoreProvider),
+                                            );
+                                        final messenger = ScaffoldMessenger.of(
+                                          context,
+                                        );
+                                        final l = context.l10n;
+                                        await repository.delete(t.id);
+                                        ref.invalidate(templatesProvider);
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text(l.templateDeleted),
+                                            action: SnackBarAction(
+                                              label: l.undo,
+                                              onPressed: () async {
+                                                await repository.save(t);
+                                                ref.invalidate(
+                                                  templatesProvider,
+                                                );
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ],
                               ),

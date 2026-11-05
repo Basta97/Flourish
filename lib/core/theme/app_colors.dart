@@ -27,10 +27,10 @@ class AppColors {
   // ─── Surfaces ───
   // Dark mode is layered in three clearly separated steps: a near-black
   // background, cards a visible step up, and raised sheets above those.
-  // Light mode sits on a mint-tinted paper with white cards and forest-ink
-  // accents, so it reads as the same jade brand rather than a grey default.
+  // Light mode is cool porcelain: a faintly blue-white page, pure white
+  // cards and navy-ink accents, with jade kept for money and actions.
   static const Color backgroundDark = Color(0xFF07090D);
-  static const Color surfaceLight = Color(0xFFF1F5F0);
+  static const Color surfaceLight = Color(0xFFF3F5F9);
   static const Color surfaceDark = Color(0xFF07090D);
   static const Color cardLight = Color(0xFFFFFFFF);
   static const Color cardDark = Color(0xFF141920);
@@ -38,19 +38,19 @@ class AppColors {
   static const Color raisedDark = Color(0xFF1D232D);
   static const Color glassStrongLight = Color(0xFFFFFFFF);
   static const Color glassStrongDark = Color(0xFF141920);
-  static const Color textPrimaryLight = Color(0xFF0F1A15);
-  static const Color textSecondaryLight = Color(0xFF52615A);
+  static const Color textPrimaryLight = Color(0xFF111827);
+  static const Color textSecondaryLight = Color(0xFF5B6475);
   static const Color textPrimaryDark = Color(0xFFF7F9FB);
   static const Color textSecondaryDark = Color(0xFFAEB7C4);
-  static const Color dividerLight = Color(0xFFDCE5DE);
+  static const Color dividerLight = Color(0xFFE2E6EE);
   static const Color dividerDark = Color(0xFF2A313D);
 
-  /// Forest ink: the light theme's dark accent for the hero card and nav bar.
-  static const Color inkLight = Color(0xFF0F1C17);
+  /// Navy ink: the light theme's dark accent for the hero card and nav bar.
+  static const Color inkLight = Color(0xFF111827);
 
-  /// Tint for light-mode shadows and hairlines, so depth reads green-grey
-  /// instead of dirty black on the mint paper.
-  static const Color shadeLight = Color(0xFF0B3B2A);
+  /// Tint for light-mode shadows and hairlines, so depth reads cool slate
+  /// instead of dirty black on the porcelain page.
+  static const Color shadeLight = Color(0xFF1E293B);
 
   // ─── Gradients ───
   static const List<Color> gradientNetWorth = [
@@ -135,7 +135,7 @@ class AppColors {
   static Color mutedSurface(BuildContext context) =>
       mutedSurfaceForBrightness(_isDark(context));
   static Color mutedSurfaceForBrightness(bool isDark) =>
-      isDark ? const Color(0xFF1B212A) : const Color(0xFFE6EDE8);
+      isDark ? const Color(0xFF1B212A) : const Color(0xFFEBEEF4);
   static Color elevatedSurface(BuildContext context) =>
       _isDark(context) ? raisedDark : raisedLight;
   static Color heroSurface(BuildContext context) =>
@@ -207,7 +207,7 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
     background: AppColors.surfaceLight,
     surface: AppColors.cardLight,
     raised: AppColors.raisedLight,
-    stroke: Color(0x170B3B2A),
+    stroke: Color(0x171E293B),
     highlight: Color(0xFFFFFFFF),
     accent: AppColors.primaryDeep,
     // Light values are darkened to keep text at ≥ 4.5:1 on every surface.
@@ -218,7 +218,7 @@ class FlourishPalette extends ThemeExtension<FlourishPalette> {
     danger: Color(0xFFC0272F),
     textHigh: AppColors.textPrimaryLight,
     textLow: AppColors.textSecondaryLight,
-    navBar: Color(0xFF10201A),
+    navBar: AppColors.inkLight,
   );
 
   static FlourishPalette of(BuildContext context) =>

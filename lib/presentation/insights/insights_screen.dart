@@ -135,11 +135,16 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   if (i == _selected) return;
                   Haptics.select();
                   setState(() => _selected = i);
-                  _controller.animateTo(
-                    i,
-                    duration: Motion.of(context, Motion.base),
-                    curve: Motion.morph,
-                  );
+                  // Paint the highlight first; the page slide, which may
+                  // build a whole tab, starts on the following frame.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted || _selected != i) return;
+                    _controller.animateTo(
+                      i,
+                      duration: Motion.of(context, Motion.base),
+                      curve: Motion.morph,
+                    );
+                  });
                 },
               ),
             ),
@@ -166,11 +171,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
             child: TabBarView(
               controller: _controller,
               children: const [
-                SpendingStatsView(),
-                BudgetsScreen(embedded: true),
-                GoalsScreen(embedded: true),
-                HoldingsView(),
-                ContractsView(),
+                _KeepAlive(child: SpendingStatsView()),
+                _KeepAlive(child: BudgetsScreen(embedded: true)),
+                _KeepAlive(child: GoalsScreen(embedded: true)),
+                _KeepAlive(child: HoldingsView()),
+                _KeepAlive(child: ContractsView()),
               ],
             ),
           ),
@@ -218,5 +223,28 @@ class _TabChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Keeps a visited tab built, so switching back to it is instant instead of
+/// rebuilding the page (and replaying its entrance) every time.
+class _KeepAlive extends StatefulWidget {
+  const _KeepAlive({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

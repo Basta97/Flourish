@@ -18,6 +18,7 @@ Future<T?> showSpringBottomSheet<T>({
     // bar, which lives outside the tab navigator.
     useRootNavigator: true,
     backgroundColor: Colors.transparent,
+    showDragHandle: false,
     barrierColor: Colors.black.withValues(alpha: 0.55),
     elevation: 0,
     sheetAnimationStyle: AnimationStyle(

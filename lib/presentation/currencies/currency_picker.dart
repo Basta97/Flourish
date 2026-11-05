@@ -105,7 +105,7 @@ class _PickerState extends ConsumerState<_Picker> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: TextField(
                 autofocus: true,
                 decoration: InputDecoration(
@@ -117,6 +117,10 @@ class _PickerState extends ConsumerState<_Picker> {
             ),
             Expanded(
               child: ListView.builder(
+                // Last rows stay reachable above the keyboard.
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                ),
                 itemCount: all.length,
                 itemBuilder: (context, i) {
                   final r = all[i];

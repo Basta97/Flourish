@@ -177,9 +177,14 @@ class AppTheme {
         titleTextStyle: AppTextStyles.title.copyWith(color: onSurface),
         contentTextStyle: AppTextStyles.body.copyWith(color: onSurfaceVariant),
       ),
+      // Plain sheets get a solid surface; the spring sheets pass their own
+      // transparent background and draw a styled scaffold instead.
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
+        backgroundColor: raised,
+        modalBackgroundColor: raised,
         surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: onSurfaceVariant.withValues(alpha: 0.4),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(Rad.sheet)),
         ),

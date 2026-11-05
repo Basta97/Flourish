@@ -37,6 +37,10 @@ class SpendingStatsView extends ConsumerStatefulWidget {
 class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
   int? _touched;
 
+  /// The last month that finished loading. Shown, slightly dimmed, while
+  /// the next one computes, so stepping months never blanks the page.
+  (DateTime, SpendingPeriod)? _shown;
+
   void _shift(int delta) {
     Haptics.select();
     final month = ref.read(selectedMonthProvider);
@@ -53,6 +57,10 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
     final current = ref.watch(currentMonthProvider);
     final period = ref.watch(spendingPeriodProvider(month));
     final palette = FlourishPalette.of(context);
+    if (period.valueOrNull case final p?) {
+      if (_shown?.$1 != month) _prefetchBefore(month);
+      _shown = (month, p);
+    }
 
     final header = Row(
       children: [
@@ -83,6 +91,33 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
         ),
       ],
     );
+
+    final shown = _shown;
+    if (shown != null && !period.hasError) {
+      final (shownMonth, p) = shown;
+      final sections = _sections(context, p, shownMonth, shownMonth == current);
+      return AnimatedOpacity(
+        opacity: shownMonth == month ? 1 : 0.55,
+        duration: Motion.fast,
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(
+            Sp.screenH,
+            Sp.lg,
+            Sp.screenH,
+            Sp.bottomNavClear,
+          ),
+          itemCount: sections.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(height: Sp.lg),
+          itemBuilder: (context, i) {
+            if (i == 0) return header;
+            final child = sections[i - 1];
+            return i < Motion.maxStaggered
+                ? AnimatedListItem(index: i, child: child)
+                : child;
+          },
+        ),
+      );
+    }
 
     return period.when(
       skipLoadingOnReload: true,
@@ -116,27 +151,19 @@ class _SpendingStatsViewState extends ConsumerState<SpendingStatsView> {
           ),
         ],
       ),
-      data: (p) {
-        final sections = _sections(context, p, month, month == current);
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-            Sp.screenH,
-            Sp.lg,
-            Sp.screenH,
-            Sp.bottomNavClear,
-          ),
-          itemCount: sections.length + 1,
-          separatorBuilder: (_, _) => const SizedBox(height: Sp.lg),
-          itemBuilder: (context, i) {
-            if (i == 0) return header;
-            final child = sections[i - 1];
-            return i < Motion.maxStaggered
-                ? AnimatedListItem(index: i, child: child)
-                : child;
-          },
-        );
-      },
+      // Data is always rendered above, through [_shown].
+      data: (_) => const SizedBox.shrink(),
     );
+  }
+
+  /// Warms the month before [month], the usual next step back.
+  void _prefetchBefore(DateTime month) {
+    final previous = DateTime(month.year, month.month - 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(spendingPeriodProvider(previous));
+      ref.read(spendingSeriesProvider((previous, 6)));
+    });
   }
 
   List<Widget> _sections(
@@ -510,15 +537,25 @@ class _Chip extends StatelessWidget {
 }
 
 /// Spending and income for the last six months, side by side.
-class _Trend extends ConsumerWidget {
+class _Trend extends ConsumerStatefulWidget {
   const _Trend({required this.month});
 
   final DateTime month;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Trend> createState() => _TrendState();
+}
+
+class _TrendState extends ConsumerState<_Trend> {
+  // Keeps the previous chart up while another month's series computes.
+  List<PeriodTotals>? _last;
+
+  @override
+  Widget build(BuildContext context) {
+    final month = widget.month;
     final palette = FlourishPalette.of(context);
-    final series = ref.watch(spendingSeriesProvider((month, 6))).valueOrNull;
+    final series = _last =
+        ref.watch(spendingSeriesProvider((month, 6))).valueOrNull ?? _last;
     final locale = Localizations.localeOf(context).toLanguageTag();
     return ReportSection(
       title: context.l10n.monthlyTrend,

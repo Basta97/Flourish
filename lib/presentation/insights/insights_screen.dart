@@ -45,11 +45,19 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
   );
   bool _refreshing = false;
 
+  /// The highlighted chip. It follows the finger: set on tap and while
+  /// swiping, rather than after the page slide finishes.
+  late int _selected = _controller.index;
+
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      if (!_controller.indexIsChanging) setState(() {});
+    _controller.animation!.addListener(() {
+      // During a tap-driven slide, keep the tapped chip lit instead of
+      // flickering through the tabs in between.
+      if (_controller.indexIsChanging) return;
+      final nearest = _controller.animation!.value.round();
+      if (nearest != _selected) setState(() => _selected = nearest);
     });
   }
 
@@ -59,7 +67,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
     super.dispose();
   }
 
-  bool get _onWealth => _controller.index >= 3;
+  bool get _onWealth => _selected >= 3;
 
   Future<void> _refreshPrices() async {
     if (_refreshing) return;
@@ -122,12 +130,14 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               separatorBuilder: (_, _) => const SizedBox(width: Sp.sm),
               itemBuilder: (context, i) => _TabChip(
                 label: labels[i],
-                selected: _controller.index == i,
+                selected: _selected == i,
                 onTap: () {
+                  if (i == _selected) return;
                   Haptics.select();
+                  setState(() => _selected = i);
                   _controller.animateTo(
                     i,
-                    duration: Motion.of(context, Motion.slow),
+                    duration: Motion.of(context, Motion.base),
                     curve: Motion.morph,
                   );
                 },

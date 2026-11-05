@@ -24,21 +24,8 @@ class EmptyState extends StatelessWidget {
     final palette = FlourishPalette.of(context);
     final reduced = Motion.reduced(context);
 
-    Widget badge = Container(
-      width: 76,
-      height: 76,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            palette.accent.withValues(alpha: 0.22),
-            palette.accent.withValues(alpha: 0.04),
-          ],
-        ),
-        border: Border.all(color: palette.accent.withValues(alpha: 0.18)),
-      ),
-      child: Icon(icon, size: 32, color: palette.accent),
-    );
+    // Just the glyph: no tinted disc behind it.
+    Widget badge = Icon(icon, size: 44, color: palette.accent);
     if (!reduced) {
       // A slow, gentle float so the empty screen feels alive, not broken.
       badge = badge
@@ -50,7 +37,7 @@ class EmptyState extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         badge,
-        const SizedBox(height: Sp.xl),
+        const SizedBox(height: Sp.lg),
         Text(
           title,
           style: AppTextStyles.title.copyWith(color: palette.textHigh),

@@ -672,9 +672,10 @@ class _AddButton extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: accent.withValues(alpha: open ? 0.55 : 0.38),
-                blurRadius: open ? 22 : 16,
-                offset: const Offset(0, 6),
+                // A soft lift, not a glow.
+                color: accent.withValues(alpha: open ? 0.22 : 0.14),
+                blurRadius: open ? 12 : 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),

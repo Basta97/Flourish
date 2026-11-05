@@ -1,3 +1,4 @@
+import 'package:flourish/core/services/secure_storage.dart';
 import '../../data/search/search_index.dart';
 import 'transaction_templates.dart';
 import 'dart:convert';
@@ -18,7 +19,7 @@ class BackupService {
   /// Holds [localKeyName], the key automatic backups are sealed with.
   final FlutterSecureStorage keys;
   BackupService(this.db, {FlutterSecureStorage? keys})
-    : keys = keys ?? const FlutterSecureStorage();
+    : keys = keys ?? appSecureStorage;
 
   /// Automatic backups written since 1.2: AES-256-GCM with a random key kept
   /// in Android Keystore-backed secure storage. The key is excluded from

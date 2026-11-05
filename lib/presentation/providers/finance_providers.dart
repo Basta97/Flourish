@@ -1,7 +1,7 @@
+import 'package:flourish/core/services/secure_storage.dart';
 import '../../core/finance/currency_catalog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/finance/financial_ledger_service.dart';
 import '../../core/finance/contract_service.dart';
 import '../../core/finance/recurring_service.dart';
@@ -61,7 +61,7 @@ final contractServiceProvider = Provider(
 final valuationProvider = Provider(
   (ref) => ValuationService(ref.watch(financeStoreProvider)),
 );
-final secureStorageProvider = Provider((ref) => const FlutterSecureStorage());
+final secureStorageProvider = Provider((ref) => appSecureStorage);
 final marketDataProvider = Provider((ref) {
   final client = http.Client();
   ref.onDispose(client.close);

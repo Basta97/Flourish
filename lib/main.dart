@@ -1,3 +1,4 @@
+import 'package:flourish/core/services/secure_storage.dart';
 import 'presentation/home_widgets/home_widget_runtime.dart';
 import 'presentation/wealth/finance_runtime.dart';
 import 'presentation/detection/detection_runtime.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
     }
   });
   await PreferencesService.init();
+  await migrateSecureStorage();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final db = AppDatabase();

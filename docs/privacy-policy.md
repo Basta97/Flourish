@@ -1,19 +1,7 @@
 # Flourish Privacy Policy
 
-> **DRAFT. Not published.** Checked against the code for version 1.2.0
-> (`pubspec.yaml` `1.2.0+10200`) on 2026-10-22.
->
-> Before publishing:
-> 1. Replace every `[BRACKETED]` field.
-> 2. Host this page at a public HTTPS URL, for example GitHub Pages.
-> 3. Put that URL in `AppConstants.privacyPolicyUrl`
->    (`lib/core/constants/app_constants.dart`) and in Play Console.
-> 4. Re-check the policy whenever data handling changes.
->
-> Delete this box when you publish.
-
-- **Effective date:** [DATE OF FIRST GOOGLE PLAY RELEASE]
-- **Developer:** [DEVELOPER OR ORGANIZATION NAME AS SHOWN ON GOOGLE PLAY]
+- **Effective date:** [DATE OF FIRST APP STORE RELEASE]
+- **Developer:** Flourish
 - **Contact:** [SUPPORT EMAIL]
 
 Flourish is a personal finance tracker for Android and iPhone. It has:
@@ -38,17 +26,17 @@ Flourish keeps the following in its private app storage:
 - **Receipt photos** you attach.
 - **Seven automatic daily backups**, kept so a restore or import can be
   undone. Since version 1.2 they are encrypted (AES-256-GCM) with a random key
-  held in Android's secure key storage, so only this installation can read
-  them. Older unencrypted daily backups are encrypted automatically the next
+  held in the phone's secure key storage (the Android Keystore or the iPhone
+  Keychain), so only this installation can read them. Older unencrypted daily backups are encrypted automatically the next
   time Flourish saves a backup.
 - **Your settings**, and any API keys you enter (section 6).
 
-The database itself relies on Android's app sandbox and your phone's storage
-encryption. Flourish does not add a separate layer of encryption to it. You
+The database itself relies on the phone's app sandbox and storage encryption
+(on iPhone, Data Protection). Flourish does not add a separate layer of encryption to it. You
 can lock the app with your fingerprint, face or device passcode
 (Settings → Security & privacy → Device authentication lock). While the lock
-is on, Flourish keeps its screen out of screenshots, screen recordings and the
-recent-apps view.
+is on, Flourish covers its screen in the recent-apps view and app switcher,
+and on Android also keeps it out of screenshots and screen recordings.
 
 Optional **payment reminders** (Settings → Automation) appear on your lock
 screen. While the app lock or "Hide amounts" is on, they leave amounts out,
@@ -79,9 +67,9 @@ deleted as soon as you finish sharing:
 
 Anyone who obtains a copy of these files can read them.
 
-## 3. Payment-alert detection (Android notification access)
+## 3. Payment-alert detection
 
-If you turn on payment detection and grant **notification access** in Android
+**On Android**, if you turn on payment detection and grant **notification access** in Android
 settings, Flourish reads notifications from your messaging app and from the
 bank or wallet apps you choose:
 
@@ -103,6 +91,12 @@ if you separately agree to automatic reading.
 
 You can turn detection off in the app, and remove notification access in
 Android settings, at any time.
+
+**On iPhone**, apps cannot read your messages or notifications. If you set up
+the optional Shortcuts automation that Flourish describes, iOS hands each new
+payment message you choose to Flourish, which treats it exactly as above.
+Nothing is read unless you create that automation, and you can delete it in
+the Shortcuts app at any time.
 
 ## 4. Optional AI assistant (third-party processing)
 
@@ -176,14 +170,16 @@ any internet request, they reveal your IP address to the service.
 
 ## 6. API keys
 
-Keys you enter for an AI provider or for Alpha Vantage are stored in Android's
-encrypted secure storage (the Android Keystore, or the iPhone Keychain). Each
+Keys you enter for an AI provider or for Alpha Vantage are stored in the
+phone's encrypted secure storage (the Android Keystore, or the iPhone Keychain,
+where they are readable only after the phone is first unlocked and are never
+synced to iCloud or restored onto another device). Each
 AI key is stored for the server address it was entered for and is sent only
 there; switching provider never sends one provider's key to another. AI
 servers must use HTTPS, except a server on your phone or home network. Keys are never included in backups or
 exports, and never sent to the developer. **Reset all data** deletes them.
 
-## 7. Text recognition (Google ML Kit)
+## 7. Text recognition on Android (Google ML Kit)
 
 When you import a screenshot or shared image, Android reads its text **on your
 phone** using Google's ML Kit through Google Play services. The image is not
@@ -227,8 +223,9 @@ https://developers.google.com/ml-kit/android-data-disclosure.
 
 ## 10. Children
 
-Flourish is meant for adults and is not directed to children.
-[OWNER: confirm the minimum age you want to state.]
+Flourish is not directed to children under 13, and we do not knowingly
+collect information from them. Flourish has no accounts and sends nothing to
+the developer, so no one's information, including a child's, reaches us.
 
 ## 11. Changes to this policy
 

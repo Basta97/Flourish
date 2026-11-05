@@ -8,7 +8,7 @@ class AppConstants {
 
   /// Shown in Settings → About; kept equal to `version:` in pubspec.yaml by
   /// test/release_config_test.dart.
-  static const String version = '1.2.0';
+  static const String version = '1.3.0';
 
   /// Public URL of docs/privacy-policy.md, opened from Settings → About.
   /// OWNER: set it once the policy is published; empty until then, and

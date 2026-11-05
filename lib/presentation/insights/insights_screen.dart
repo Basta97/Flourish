@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/global_search_button.dart';
+import '../../shared/widgets/pressable.dart';
 import '../budgets/budgets_screen.dart';
 import '../dashboard/widgets/net_worth_hero.dart';
 import '../goals/goals_screen.dart';
@@ -199,25 +200,32 @@ class _TabChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = FlourishPalette.of(context);
+    // No ink ripple: its pale wash over the newly active chip took a
+    // quarter second to fade and made the switch look slow.
     return Center(
-      child: Material(
-        color: selected ? palette.accent : AppColors.mutedSurface(context),
-        shape: StadiumBorder(
-          side: BorderSide(color: selected ? palette.accent : palette.stroke),
-        ),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Sp.lg,
-              vertical: Sp.sm,
-            ),
-            child: Text(
-              label,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: selected ? AppColors.backgroundDark : palette.textHigh,
+      child: Pressable(
+        onTap: onTap,
+        haptic: false,
+        scale: 0.94,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Sp.lg,
+            vertical: Sp.sm,
+          ),
+          decoration: ShapeDecoration(
+            color: selected ? palette.accent : AppColors.mutedSurface(context),
+            shape: StadiumBorder(
+              side: BorderSide(
+                color: selected ? palette.accent : palette.stroke,
               ),
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: selected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : palette.textHigh,
             ),
           ),
         ),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 import '../../presentation/currencies/exchange_rates_screen.dart';
 import '../../presentation/templates/templates_screen.dart';
 import 'package:flourish/presentation/detection/catch_up_screen.dart';
@@ -351,6 +353,12 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     // later, after the new page has been built.
     if (_pending == routed) _pending = null;
     final index = _pending ?? routed;
+    // Sit low, close to the home indicator, rather than a full safe-area
+    // inset above it.
+    final navGap = math.max(
+      MediaQuery.viewPaddingOf(context).bottom - 18,
+      10.0,
+    );
     return Scaffold(
       extendBody: true,
       // Pages handle the keyboard themselves; the nav stays put behind it.
@@ -358,13 +366,42 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
       body: Stack(
         children: [
           Positioned.fill(child: widget.child),
+          // Frosted band under the bar: content scrolling past the sides
+          // and the gap below blurs instead of showing sharp.
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: SafeArea(
-              top: false,
-              child: _IslandNavBar(
+            height: navGap + _IslandNavBar.height - 14,
+            child: IgnorePointer(
+              child: ShaderMask(
+                // Fade the band in from its top edge so it has no seam.
+                shaderCallback: (rect) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x00FFFFFF), Color(0xFFFFFFFF)],
+                  stops: [0, 0.35],
+                ).createShader(rect),
+                blendMode: BlendMode.dstIn,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: ColoredBox(
+                      color: Theme.of(
+                        context,
+                      ).scaffoldBackgroundColor.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: navGap,
+            child: Builder(
+              builder: (context) => _IslandNavBar(
                 selectedIndex: index,
                 addOpen: _addOpen,
                 onDestinationSelected: (i) {
@@ -421,6 +458,7 @@ class _IslandNavBar extends StatelessWidget {
   static const double _itemExtent = 64; // 48 hit target + 2×8 gutter
   static const double _centerExtent = 72; // 56 button + 2×8 gutter
   static const double _hPad = 10;
+  static const double height = 66;
 
   static List<({NavGlyph glyph, String label})> _items(AppLocalizations l) => [
     (glyph: NavGlyph.home, label: l.navHome),
@@ -450,7 +488,7 @@ class _IslandNavBar extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.zero,
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(Rad.full),
@@ -469,7 +507,7 @@ class _IslandNavBar extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(Rad.full),
               child: Container(
-                height: 66,
+                height: height,
                 padding: const EdgeInsets.symmetric(horizontal: _hPad),
                 decoration: BoxDecoration(
                   color: palette.navBar,

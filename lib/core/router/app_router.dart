@@ -232,7 +232,7 @@ class _TabSwitcherState extends State<_TabSwitcher>
   late final AnimationController _controller =
       AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 340),
+        duration: const Duration(milliseconds: 260),
         value: 1,
       )..addStatusListener((status) {
         // Takes the old tab offstage once it has faded.
@@ -330,6 +330,9 @@ class ScaffoldWithNavBar extends StatefulWidget {
 class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   bool _addOpen = false;
 
+  /// Tab tapped but not routed to yet.
+  int? _pending;
+
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/search') ||
@@ -343,7 +346,11 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    final index = _currentIndex(context);
+    final routed = _currentIndex(context);
+    // The tapped tab lights up at once; the route catches up a frame or two
+    // later, after the new page has been built.
+    if (_pending == routed) _pending = null;
+    final index = _pending ?? routed;
     return Scaffold(
       extendBody: true,
       // Pages handle the keyboard themselves; the nav stays put behind it.
@@ -361,7 +368,10 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
                 selectedIndex: index,
                 addOpen: _addOpen,
                 onDestinationSelected: (i) {
-                  if (i != 2 && i != index) Haptics.select();
+                  if (i != 2 && i != index) {
+                    Haptics.select();
+                    setState(() => _pending = i);
+                  }
                   switch (i) {
                     case 0:
                       context.go('/dashboard');
@@ -435,7 +445,7 @@ class _IslandNavBar extends StatelessWidget {
     final reduced = Motion.reduced(context);
     final blobDuration = reduced
         ? Duration.zero
-        : const Duration(milliseconds: 420);
+        : const Duration(milliseconds: 300);
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -546,12 +556,12 @@ class _NavItem extends StatefulWidget {
 class _NavItemState extends State<_NavItem> with TickerProviderStateMixin {
   late final AnimationController _fill = AnimationController(
     vsync: this,
-    duration: Motion.base,
+    duration: Motion.fast,
     value: widget.selected ? 1 : 0,
   );
   late final AnimationController _flourish = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 620),
+    duration: const Duration(milliseconds: 480),
     value: 1,
   );
 
@@ -591,12 +601,15 @@ class _NavItemState extends State<_NavItem> with TickerProviderStateMixin {
         button: true,
         selected: widget.selected,
         label: widget.label,
+        // Screen readers activate through here, the gesture below is hidden.
+        onTap: widget.onTap,
         excludeSemantics: true,
         child: Tooltip(
           message: widget.label,
           excludeFromSemantics: true,
           child: Pressable(
             onTap: widget.onTap,
+            onTapDown: true,
             scale: 0.8,
             haptic: false,
             child: SizedBox(

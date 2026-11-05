@@ -14,6 +14,7 @@ class Pressable extends StatefulWidget {
     this.scale = 0.96,
     this.haptic = true,
     this.semanticLabel,
+    this.onTapDown = false,
   });
 
   final Widget child;
@@ -24,6 +25,10 @@ class Pressable extends StatefulWidget {
   final double scale;
   final bool haptic;
   final String? semanticLabel;
+
+  /// Fires [onTap] as the finger lands instead of when it lifts, for
+  /// controls like tabs where waiting for the release feels slow.
+  final bool onTapDown;
 
   @override
   State<Pressable> createState() => _PressableState();
@@ -45,10 +50,16 @@ class _PressableState extends State<Pressable> {
       label: widget.semanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _set(true),
+        onTapDown: (_) {
+          _set(true);
+          if (widget.onTapDown && widget.onTap != null) {
+            if (widget.haptic) Haptics.tap();
+            widget.onTap!();
+          }
+        },
         onTapCancel: () => _set(false),
         onTapUp: (_) => _set(false),
-        onTap: widget.onTap == null
+        onTap: widget.onTap == null || widget.onTapDown
             ? null
             : () {
                 if (widget.haptic) Haptics.tap();

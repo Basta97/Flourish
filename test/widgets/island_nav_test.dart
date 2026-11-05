@@ -52,5 +52,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('page $path'), findsOneWidget, reason: label);
     }
+
+    // Tabs switch as the finger lands, not when it lifts.
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.bySemanticsLabel('Accounts')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('page /accounts'), findsOneWidget);
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 }
